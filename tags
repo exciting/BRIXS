@@ -1,0 +1,112 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+10	mod_hdf5.f90	/^        10 continue$/;"	l	function:hdf5_exist_group	file:
+10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_create_file	file:
+10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_create_group	file:
+10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_get_dims	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_c	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_d	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_i4	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_c	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_d	file:
+10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_i4	file:
+A	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(/;"	v	program:rixs
+A_H	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(:), A_H(/;"	v	program:rixs
+A_inter	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(/;"	v	program:rixs
+A_matrix	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(/;"	v	program:rixs
+B	rixs.f90	/^  complex(8), allocatable :: chi_optical(:,:,:), B(/;"	v	program:rixs
+B_matrix	rixs.f90	/^  complex(8), allocatable :: B_matrix(/;"	v	program:rixs
+broad	mod_io.f90	/^    real(8) :: broad,/;"	k	type:input
+broad	rixs.f90	/^  real(8) :: broad,/;"	v	program:rixs
+broad2	mod_io.f90	/^    real(8) :: broad, broad2$/;"	k	type:input
+broad2	rixs.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
+chi_optical	rixs.f90	/^  complex(8), allocatable :: chi_optical(/;"	v	program:rixs
+core	rixs.f90	/^  type(io) :: optical, core$/;"	v	program:rixs
+eigvecs	mod_io.f90	/^    complex(8), allocatable :: eigvecs(/;"	k	type:io
+evals	mod_io.f90	/^    real(8), allocatable :: evals(/;"	k	type:io
+fname_core	rixs.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs
+fname_optical	rixs.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
+fname_pmat	rixs.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
+generate_Bvector	mod_rixs.f90	/^  subroutine generate_Bvector(/;"	s	module:mod_rixs
+generate_chi	mod_rixs.f90	/^  subroutine generate_chi(/;"	s	module:mod_rixs
+generate_t	mod_rixs.f90	/^  subroutine generate_t(/;"	s	module:mod_rixs
+generate_tprime	mod_rixs.f90	/^  subroutine generate_tprime(/;"	s	module:mod_rixs
+get_eigvecs	mod_io.f90	/^  subroutine get_eigvecs(/;"	s	module:mod_io
+get_evals	mod_io.f90	/^  subroutine get_evals(/;"	s	module:mod_io
+get_ismap	mod_io.f90	/^  subroutine get_ismap(/;"	s	module:mod_io
+get_koulims	mod_io.f90	/^  subroutine get_koulims(/;"	s	module:mod_io
+get_smap	mod_io.f90	/^  subroutine get_smap(/;"	s	module:mod_io
+hamsiz	rixs.f90	/^  integer :: interdim(2), hamsiz$/;"	v	program:rixs
+hamsize	mod_io.f90	/^    integer(4) :: hamsize,/;"	k	type:io
+hdf5_create_file	mod_hdf5.f90	/^    subroutine hdf5_create_file(/;"	s	module:mod_hdf5
+hdf5_create_group	mod_hdf5.f90	/^    subroutine hdf5_create_group(/;"	s	module:mod_hdf5
+hdf5_exist_group	mod_hdf5.f90	/^    logical function hdf5_exist_group(/;"	f	module:mod_hdf5
+hdf5_finalize	mod_hdf5.f90	/^    subroutine hdf5_finalize$/;"	s	module:mod_hdf5
+hdf5_get_dims	mod_hdf5.f90	/^    subroutine hdf5_get_dims(/;"	s	module:mod_hdf5
+hdf5_initialize	mod_hdf5.f90	/^    subroutine hdf5_initialize$/;"	s	module:mod_hdf5
+hdf5_read_array_c	mod_hdf5.f90	/^subroutine hdf5_read_array_c(/;"	s
+hdf5_read_array_d	mod_hdf5.f90	/^subroutine hdf5_read_array_d(/;"	s
+hdf5_read_array_i4	mod_hdf5.f90	/^subroutine hdf5_read_array_i4(/;"	s
+hdf5_read_c	mod_hdf5.f90	/^    subroutine hdf5_read_c(/;"	s	module:mod_hdf5
+hdf5_read_d	mod_hdf5.f90	/^    subroutine hdf5_read_d(/;"	s	module:mod_hdf5
+hdf5_read_i4	mod_hdf5.f90	/^    subroutine hdf5_read_i4(/;"	s	module:mod_hdf5
+hdf5_read_l	mod_hdf5.f90	/^    subroutine hdf5_read_l(/;"	s	module:mod_hdf5
+hdf5_read_z	mod_hdf5.f90	/^    subroutine hdf5_read_z(/;"	s	module:mod_hdf5
+hdf5_write_array_c	mod_hdf5.f90	/^subroutine hdf5_write_array_c(/;"	s
+hdf5_write_array_d	mod_hdf5.f90	/^subroutine hdf5_write_array_d(/;"	s
+hdf5_write_array_i4	mod_hdf5.f90	/^subroutine hdf5_write_array_i4(/;"	s
+hdf5_write_c	mod_hdf5.f90	/^    subroutine hdf5_write_c(/;"	s	module:mod_hdf5
+hdf5_write_d	mod_hdf5.f90	/^    subroutine hdf5_write_d(/;"	s	module:mod_hdf5
+hdf5_write_i4	mod_hdf5.f90	/^    subroutine hdf5_write_i4(/;"	s	module:mod_hdf5
+hdf5_write_l	mod_hdf5.f90	/^    subroutine hdf5_write_l(/;"	s	module:mod_hdf5
+hdf5_write_z	mod_hdf5.f90	/^    subroutine hdf5_write_z(/;"	s	module:mod_hdf5
+i	rixs.f90	/^  in/;"	v	program:rixs
+input	mod_io.f90	/^  type :: input$/;"	t	module:mod_io
+inputparam	rixs.f90	/^  type(input) :: inputparam$/;"	v	program:rixs
+inter	rixs.f90	/^  complex(8), allocatable :: inter(/;"	v	program:rixs
+inter2	rixs.f90	/^  complex(8) :: inter2$/;"	v	program:rixs
+interdim	rixs.f90	/^  integer :: interdim(/;"	v	program:rixs
+io	mod_io.f90	/^  type :: io$/;"	t	module:mod_io
+ismap	mod_io.f90	/^    integer(4), allocatable :: smap(:,:), ismap(/;"	k	type:io
+k	rixs.f90	/^  integer :: i, w, nkm/;"	v	program:rixs
+koulims	mod_io.f90	/^    integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(/;"	k	type:io
+koulims_comb	rixs.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
+lo	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,/;"	k	type:io
+lu	mod_io.f90	/^    integer(4) :: hamsize, lu,/;"	k	type:io
+matprod_matmat	mod_matmul.f90	/^  subroutine matprod_matmat(/;"	s	module:mod_matmul
+matprod_matvec	mod_matmul.f90	/^  subroutine matprod_matvec(/;"	s	module:mod_matmul
+matprod_vecvec	mod_matmul.f90	/^  subroutine matprod_vecvec(/;"	s	module:mod_matmul
+mod_hdf5	mod_hdf5.f90	/^module mod_hdf5$/;"	m
+mod_io	mod_io.f90	/^module mod_io$/;"	m
+mod_matmul	mod_matmul.f90	/^module mod_matmul$/;"	m
+mod_rixs	mod_rixs.f90	/^module mod_rixs$/;"	m
+nk0	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0,/;"	k	type:io
+nkmax	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax,/;"	k	type:io
+nkmax	rixs.f90	/^  integer :: i, w, nkmax,/;"	v	program:rixs
+no	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no$/;"	k	type:io
+no	rixs.f90	/^  integer :: i, w, nkmax, nu, no,/;"	v	program:rixs
+nu	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu,/;"	k	type:io
+nu	rixs.f90	/^  integer :: i, w, nkmax, nu,/;"	v	program:rixs
+omega	mod_io.f90	/^    real(8), allocatable :: omega(/;"	k	type:input
+omega	rixs.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
+omega2	mod_io.f90	/^    real(8), allocatable :: omega(:), omega2(/;"	k	type:input
+omega2	rixs.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
+optical	rixs.f90	/^  type(io) :: optical,/;"	v	program:rixs
+pol	rixs.f90	/^  real(8) :: pol(/;"	v	program:rixs
+read_inputfile	mod_io.f90	/^  subroutine read_inputfile(/;"	s	module:mod_io
+results	rixs.f90	/^  real(8), allocatable :: results(/;"	v	program:rixs
+rixs	rixs.f90	/^program rixs$/;"	p
+set_param	mod_io.f90	/^  subroutine set_param(/;"	s	module:mod_io
+smap	mod_io.f90	/^    integer(4), allocatable :: smap(/;"	k	type:io
+tprime	rixs.f90	/^  complex(8), allocatable :: chi_optical(:,:,:), B(:,:), tprime(/;"	v	program:rixs
+transform2matrix	mod_rixs.f90	/^  subroutine transform2matrix(/;"	s	module:mod_rixs
+transform2vector	mod_rixs.f90	/^  subroutine transform2vector(/;"	s	module:mod_rixs
+uo	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo,/;"	k	type:io
+uu	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,/;"	k	type:io
+w	rixs.f90	/^  integer :: i, w,/;"	v	program:rixs
+w1	rixs.f90	/^  integer :: i, w, nkmax, nu, no, k, w1,/;"	v	program:rixs
+w2	rixs.f90	/^  integer :: i, w, nkmax, nu, no, k, w1, w2$/;"	v	program:rixs
