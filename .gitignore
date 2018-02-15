@@ -1,3 +1,5 @@
 # ignore all module files 
 *.o
 *.mod
+#ignore the executable
+rixs
