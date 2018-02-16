@@ -8,13 +8,13 @@ program rixs
   real(8) :: broad, broad2
   real(8), allocatable :: omega(:), omega2(:)
   real(8) :: pol(3)
-  integer :: i, w, nkmax, nu, no, k, w1, w2
-  integer :: interdim(2), hamsiz
+  integer :: w, nkmax, nu, no, k, w1, w2
+  integer :: interdim(2), hamsiz, lambda
   type(io) :: optical, core
   type(input) :: inputparam
   complex(8), allocatable :: chi_optical(:,:,:), B(:,:), tprime(:,:,:)
-  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(:), A_H(:)
-  complex(8), allocatable :: inter(:)
+  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(:)
+  complex(8), allocatable :: inter(:), oscstr(:,:)
   complex(8) :: inter2
   real(8), allocatable :: results(:,:)
   integer(4), allocatable :: koulims_comb(:,:)
@@ -40,17 +40,18 @@ program rixs
   ! set parameters
   ! for now, only ONE broadening parameter is use
   broad=inputparam%broad
+  broad2=inputparam%broad2
   allocate(omega(size(inputparam%omega))) 
   allocate(omega2(size(inputparam%omega2)))
   omega(:)=inputparam%omega(:) 
   omega2(:)=inputparam%omega2(:) 
-  print *, 'omega2=', omega2
+  !print *, 'omega2=', omega2
   ! set polarization vector
   pol(1)=1.0d0
   pol(2)=0.0d0
   pol(3)=0.0d0
   ! generate optical chi
-  call generate_chi(omega2,broad,optical,fname_optical,chi_optical)
+  call generate_chi(omega2,broad2,optical,fname_optical,chi_optical)
   ! generate B_vector
   call generate_Bvector(omega,broad,core,fname_pmat,fname_core,pol,B)
   ! generate a combined maps for t'
@@ -84,11 +85,13 @@ program rixs
     call transform2vector(optical%koulims,optical%smap,A_matrix,A_inter)
     A(:,w)=A_inter(:)
   end do
+  deallocate(A_matrix,A_inter)
   ! allocate final spectrum
-  !generate final spectrum
   allocate(inter(hamsiz))
-
   allocate(results(size(omega),size(omega2)))
+  allocate(oscstr(hamsiz,size(omega)))
+ 
+  !generate final spectrum
   do w1=1,size(omega)
     do w2=1,size(omega2)
       call matprod(chi_optical(:,:,w2),A(:,w1),inter)
@@ -104,6 +107,18 @@ program rixs
     write(4,'( *(2X, f14.6)\ )') omega2(w2),(results(w1,w2), w1=1,size(omega))
   end do
   close(4)
+  
+  if (inputparam%oscstr) then 
+    ! generate oscillator strenght
+    call generate_oscstr(optical,A,oscstr)
+    ! write oscillator strength to file
+    open(unit=6,file="exciton.txt",action="write",status="replace")
+    do lambda=1,hamsiz
+      write(6,'( *(2X, f14.6)\ )') optical%evals(lambda)*27.211d0,(abs(oscstr(lambda,w1)), w1=1,size(omega))
+    end do
+    close(6)
+  end if
+ 
   call hdf5_finalize()
 
 end program

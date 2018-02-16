@@ -59,7 +59,6 @@ module mod_matmul
     complex(8), intent(in) :: a(:), b(:)
     complex(8), intent(out) :: c
     !local variables
-    integer :: dim1, dim2
     complex(8) :: alpha, beta
     
     alpha=1.0d0

@@ -760,7 +760,7 @@ subroutine hdf5_write_array_c(a,ndims,dims,fname,path,nm)
     character(*), intent(in) :: nm
     integer(HID_T) :: h5_root_id,dataspace_id,dataset_id,group_id
     integer(HID_T) :: filetype
-    integer(SIZE_T) :: sdim
+    !integer(SIZE_T) :: sdim
     integer :: ierr, i
     integer(HSIZE_T), dimension(ndims) :: h_dims
     integer(HSIZE_T), dimension(ndims+1) :: data_dims

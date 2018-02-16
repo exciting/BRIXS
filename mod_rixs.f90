@@ -260,4 +260,36 @@ module mod_rixs
     deallocate(chi,pmat)
   end subroutine 
   !-----------------------------------------------------------------------------
+  subroutine generate_oscstr(object,A,oscstr)
+    implicit none
+    type(io), intent(in) :: object
+    complex(8), intent(in) :: A(:,:)
+    complex(8), intent(out) :: oscstr(:,:)
+    ! local variables
+    integer :: hamsiz, lambda, omega, dims(2)
+    complex(8) :: alpha1, alpha2, beta
+    complex(8), allocatable :: inter(:,:), inter2(:)
+    ! set paramteres
+    hamsiz=object%hamsize
+    alpha1=-1.0d0
+    alpha2=1.0d0
+    beta=0.0d0
+    allocate(inter(hamsiz,hamsiz))
+    allocate(inter2(hamsiz))
+    dims=shape(A)
+    ! loop over core frequencies
+    do lambda=1,dims(1)
+      ! generate eigvecxeigvec matrix
+      call zgemm('N','C',hamsiz,hamsiz,1,alpha1,object%eigvecs(:,lambda),hamsiz,object%eigvecs(:,lambda),&
+        &        hamsiz,beta,inter,hamsiz)
+      ! loop over excitons
+      do omega=1,dims(2)
+        ! generate eigvecxeigvecxA vector
+        call zgemm('N','N',hamsiz,1,hamsiz,alpha2,inter,hamsiz,A(:,omega),hamsiz,beta,inter2,hamsiz)
+        ! generate oscillator strength
+        call zgemm('C','N',1,1,hamsiz,alpha2,A(:,omega),hamsiz,inter2,hamsiz,beta,oscstr(lambda,omega),hamsiz)
+      end do
+    end do
+    deallocate(inter,inter2)
+  end subroutine
 end module 
