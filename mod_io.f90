@@ -171,6 +171,8 @@ module mod_io
     end do
     deallocate(eigvec_)
   end subroutine 
+  
+  !-----------------------------------------------------------------------------
   subroutine read_inputfile(object,fname)
     implicit none
     type(input), intent(out) :: object
@@ -222,5 +224,40 @@ module mod_io
       object%omega2(w)=(inter2(2)-inter2(1))/(inter2(3)-1.0d0)*(w-1) + inter2(1)
     end do
   end subroutine read_inputfile  
+  !-----------------------------------------------------------------------------
+
+  subroutine inspect_h5(object)
+    implicit none
+    type(io), intent(in) :: object
+    ! local variables
+    integer::  lo,ho,lu,hu
+
+    ! determine lowest and highest occupied/unoccupied band included
+    ! these could be different from the ones in the RIXS calculation 
+    ! for metallic systems
+    lu=minval(object%koulims(1,:))
+    hu=maxval(object%koulims(2,:))
+    lo=minval(object%koulims(3,:))
+    ho=maxval(object%koulims(4,:))
+    write(*,*) '************Transitions************'
+    write(*,*) 'No. of k-points:', object%nkmax
+    if (.not.(object%nkmax .eq. maxval(object%smap(3,:)))) then
+      write(*,*) 'Not all k-points included in BSE calculation!!'
+    end if
+    if ((object%lo .eq. lo) .and. (object%uo .eq. ho)) then
+      write(*,*) 'range of occupied bands:', object%lo, object%uo
+      write(*,*) 'no. of occupied bands:', object%no
+    else
+      write(*,*) 'WRONG enumeration of occupied states: (', object%lo, ',', object%uo, ') != (', lo, ',', ho, ')' 
+    end if
+    if ((object%lu .eq. lu) .and. (object%uu .eq. hu)) then
+      write(*,*) 'range of unoccupied bands:', object%lu, object%uu
+      write(*,*) 'no. of unoccupied bands:', object%nu
+    else
+      write(*,*) 'WRONG enumeration of unoccupied states: (', object%lu, ',', object%uu, ') != (', lu, ',', hu, ')' 
+    end if
+    write(*,*) 'total number of transitions:', object%hamsize
+    
+  end subroutine
 end module
 

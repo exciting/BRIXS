@@ -35,6 +35,15 @@ program rixs
   call set_param(core)
   call get_ismap(optical)
   call get_ismap(core)
+  ! inspect input objects
+  write(*,*) '**********************************'
+  write(*,*) '*      X-ray BSE Calculation     *'
+  write(*,*) '**********************************'
+  call inspect_h5(core)
+  write(*,*) '**********************************'
+  write(*,*) '*     Optics BSE Calculation     *'
+  write(*,*) '**********************************'
+  call inspect_h5(optical)
   ! read input file
   call read_inputfile(inputparam,'./rixs.in')
   ! set parameters
@@ -45,7 +54,7 @@ program rixs
   allocate(omega2(size(inputparam%omega2)))
   omega(:)=inputparam%omega(:) 
   omega2(:)=inputparam%omega2(:) 
-  !print *, 'omega2=', omega2
+  
   ! set polarization vector
   pol(1)=1.0d0
   pol(2)=0.0d0
