@@ -3,23 +3,19 @@ program rixs
   use mod_io
   use mod_rixs
   use mod_matmul
+  use mod_blocks
 
   implicit none
   real(8) :: broad, broad2
   real(8), allocatable :: omega(:), omega2(:)
   real(8) :: pol(3)
-  integer :: w, nkmax, nu, no, k, w1, w2
-  integer :: interdim(2), hamsiz, lambda
+  integer :: nkmax, nu, no, w1
+  integer :: interdim(2), lambda
   type(io) :: optical, core
   type(input) :: inputparam
-  complex(8), allocatable :: chi_optical(:,:,:), B(:,:), tprime(:,:,:)
-  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(:)
-  complex(8), allocatable :: inter(:), oscstr(:,:)
-  complex(8) :: inter2
-  real(8), allocatable :: results(:,:)
   integer(4), allocatable :: koulims_comb(:,:)
   character(1024) :: fname_core, fname_optical,fname_pmat
-  integer(4) :: nblocks_, blsz_
+  integer(4) :: nblocks_, blsz_, k, k2
   complex(8), allocatable :: oscstr_b(:,:)
   type(block1d) :: vecA_b, evals_b
   type(block2d) :: evecs_b
@@ -75,10 +71,13 @@ program rixs
   ! define blocks for oscillator strenght
   nblocks_=nkmax
   blsz_=nu*no
+  print *, 'calculating ', nblocks_, 'blocks of size ', blsz_
   allocate(oscstr_b(blsz_,size(omega)))
   ! open file
   open(unit=6,file="exciton.txt",action="write",status="replace")
+  print *, 'starting loop over blocks'
   do k=1, nblocks_
+    print *, 'most outer loop k=', k
     ! set up block for eigenvalues (needed only for file output)
     evals_b%nblocks=nblocks_
     evals_b%blocksize=blsz_
@@ -87,9 +86,12 @@ program rixs
     evals_b%offset=(k-1)*blsz_
     evals_b%id=k
     ! generate block of eigenvalues
+    print *, 'get eigenvalues'
     call get_evals_block(evals_b,fname_optical)
+    print *, 'eigenvalues obtained'
     ! generate block of oscillator strength
-    oscstr(:,:)=0.0d0 
+    oscstr_b(:,:)=0.0d0 
+    print *, 'Starting 2nd loop over blocks'
     do k2=1, nblocks_
       ! set up block for eigenvectors
       evecs_b%nblocks=nblocks_
@@ -111,19 +113,25 @@ program rixs
       vecA_b%id=k2
       
       ! generate block of eigenvectors
-      call  get_eigvecs2D_b(evecs_2D,fname_optical)
-      
+      print *, 'generate eigenvectors'
+      call  get_eigvecs2D_b(evecs_b,fname_optical)
+      print *, 'evecs obtained'
+      print *, 'start loop over frequencies' 
       do w1=1, size(omega)
+        print *, 'w1=', w1
         ! generate block of A vector
+        print *, 'generate block of A vector'
         call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,fname_pmat,fname_core,pol)
+        print *, 'block of A vector generated'
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
-        call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr(:,w1),blsz_)
+        call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr_b(:,w1),blsz_)
       end do ! w1
     end do ! k2
     do lambda=1, blsz_
-    write(6,'( *(2X, f14.6)\ )') evals_b%dcontent(lambda)*27.211d0,(abs(oscstr(lambda,w1)), w1=1,size(omega))
+      write(6,'( *(2X, f14.6)\ )') evals_b%dcontent(lambda)*27.211d0,(abs(oscstr_b(lambda,w1)), w1=1,size(omega))
+    end do ! lambda
   end do ! k  
   !close file and hdf5 interface
   close(6)

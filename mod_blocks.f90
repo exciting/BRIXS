@@ -263,20 +263,20 @@ module mod_blocks
     dsetname='pmat'
     write(cik, '(I4.4)') inblock2d%id(1)
     !determine size of matrix in hdf5 file
-      path='/pmat/'//trim(adjustl(cik))
-      call hdf5_get_dims(fname,path,trim(adjustl(dsetname)),dimensions)
-      !allocate intermediate transition matrix for each k-point
-      if (allocated(pmat_)) deallocate(pmat_)
-      allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)))
-      call hdf5_read(fname,path,dsetname,pmat_(1,1,1),shape(pmat_))
-      do i=1,no
-        do j=1,nu
-          inblock2d%zcontent(i,j)=pol(1)*pmat_(1,i+lo-1,j+lu-1)+&
-            &pol(2)*pmat_(2,i+lo-1,j+lu-1)+&
-            &pol(3)*pmat_(3,i+lo-1,j+lu-1)
-        end do
+    path='/pmat/'//trim(adjustl(cik))
+    call hdf5_get_dims(fname,path,trim(adjustl(dsetname)),dimensions)
+    !allocate intermediate transition matrix for each k-point
+    if (allocated(pmat_)) deallocate(pmat_)
+    allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)))
+    call hdf5_read(fname,path,dsetname,pmat_(1,1,1),shape(pmat_))
+    do i=1,no
+      do j=1,nu
+        inblock2d%zcontent(i,j)=pol(1)*pmat_(1,i+lo-1,j+lu-1)+&
+          &pol(2)*pmat_(2,i+lo-1,j+lu-1)+&
+          &pol(3)*pmat_(3,i+lo-1,j+lu-1)
       end do
-    
+    end do
+    deallocate(pmat_)
   end subroutine 
 
   !-----------------------------------------------------------------------------
@@ -404,6 +404,8 @@ module mod_blocks
       deallocate(bl2d_%zcontent,bl1d_%zcontent)
       print *, 'vecB block generated'
     end do ! loop over blocks
+    if (allocated(bl2d_%zcontent)) deallocate(bl2d_%zcontent)
+    if (allocated(bl1d_%zcontent)) deallocate(bl1d_%zcontent)
   end subroutine 
   !-----------------------------------------------------------------------------
   subroutine generate_Avector_b(inbl,omega,broad,core,optical,p_file,c_file,pol)
@@ -430,7 +432,7 @@ module mod_blocks
     
     ! set up block for B vector
     vecB_b%nblocks=inbl%nblocks
-    vecB_b%blocksize=inbl%blocksize
+    vecB_b%blocksize=core%no*core%nu
     vecB_b%il=inbl%il
     vecB_b%iu=inbl%iu
     vecB_b%offset=inbl%offset
@@ -461,7 +463,8 @@ module mod_blocks
     call matprod(matB_b%zcontent,tprime_b%zcontent,matA_b%zcontent)
     ! generate block of A vector
     call transform2vector_b(optical%koulims,optical%smap,matA_b,inbl)
-  
+    deallocate(koulims_comb) 
+    deallocate(vecB_b%zcontent,matB_b%zcontent,matA_b%zcontent)
   end subroutine
 
 

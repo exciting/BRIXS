@@ -445,7 +445,7 @@ contains
         offset_(1)=0
         offset_(2:ndims)=offset(:)
         
-        call hdf5_read_array_d(val,ndims,dims_,offset_,fname,path,dname)
+        call hdf5_read_array_block_d(val,ndims,dims_,offset_,fname,path,dname)
         deallocate(dims_, offset_)
     end subroutine
 !-------------------------------------------------------------------------------
@@ -1104,7 +1104,7 @@ subroutine hdf5_read_array_block_d(a,ndims,dims,offset,fname,path,nm)
 
     do i=1,ndims
       h_dims(i)=dims(i)
-      h_offset(i)=dims(i)
+      h_offset(i)=offset(i)
     enddo
     call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
     if (ierr.ne.0) then
