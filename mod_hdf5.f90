@@ -27,6 +27,12 @@ module mod_hdf5
         &                hdf5_read_l
     end interface
 
+    interface hdf5_read_block
+        module procedure hdf5_read_block_i4, &
+        &                hdf5_read_block_d,  &
+        &                hdf5_read_block_z
+    end interface
+
     public hdf5_initialize
     public hdf5_finalize
     public hdf5_create_file
@@ -383,6 +389,65 @@ contains
         deallocate(dims_)
     end subroutine
     
+!-------------------------------------------------------------------------------    
+    subroutine hdf5_read_block_i4(fname,path,dname,val,dims, offset)
+        use hdf5
+        implicit none
+        character(*), intent(in) :: fname
+        character(*), intent(in) :: path
+        character(*), intent(in) :: dname
+        integer(4), intent(out) :: val
+        integer(4), dimension(:), intent(in) :: dims
+        integer(4), dimension(:), intent(in) :: offset
+        ! internal variables
+        integer :: ndims
+        
+        ndims=size(dims)
+        call hdf5_read_array_block_i4(val,ndims,dims,offset,fname,path,dname)
+    end subroutine
+
+!-------------------------------------------------------------------------------    
+    subroutine hdf5_read_block_d(fname,path,dname,val,dims,offset)
+        use hdf5
+        implicit none
+        character(*), intent(in) :: fname
+        character(*), intent(in) :: path
+        character(*), intent(in) :: dname
+        real(8), intent(out) :: val
+        integer, dimension(:), intent(in) :: dims
+        integer, dimension(:), intent(in) :: offset
+        !internal variables
+        integer :: ndims
+          
+        ndims=size(dims)
+        call hdf5_read_array_block_d(val,ndims,dims,offset,fname,path,dname)
+    end subroutine
+
+!-------------------------------------------------------------------------------    
+    subroutine hdf5_read_block_z(fname,path,dname,val,dims,offset)
+        use hdf5
+        implicit none
+        character(*), intent(in) :: fname
+        character(*), intent(in) :: path
+        character(*), intent(in) :: dname
+        complex(8), intent(out) :: val
+        integer, dimension(:), intent(in) :: dims
+        integer, dimension(:), intent(in) :: offset
+        ! internal variables
+        integer :: ndims
+        integer, allocatable :: dims_(:), offset_(:)
+
+        ndims=size(dims)+1
+        allocate(dims_(ndims))
+        allocate(offset_(ndims))
+        dims_(1)=2
+        dims_(2:ndims)=dims(:)
+        offset_(1)=0
+        offset_(2:ndims)=offset(:)
+        
+        call hdf5_read_array_d(val,ndims,dims_,offset_,fname,path,dname)
+        deallocate(dims_, offset_)
+    end subroutine
 !-------------------------------------------------------------------------------
     subroutine hdf5_write_c(fname,path,dname,val,dims)
         use hdf5
@@ -940,4 +1005,161 @@ subroutine hdf5_read_array_c(a,ndims,dims,fname,path,nm)
     stop
 end subroutine
 
+!-------------------------------------------------------------------------------
+subroutine hdf5_read_array_block_i4(a,ndims,dims,offset,fname,path,nm)
+    use hdf5
+    implicit none
+    integer(4), intent(out) :: a(*)
+    integer, intent(in) :: ndims
+    integer, intent(in) :: dims(ndims)
+    integer, intent(in) :: offset(ndims)
+    character(*), intent(in) :: fname
+    character(*), intent(in) :: path
+    character(*), intent(in) :: nm
 
+    integer(hid_t) h5_root_id,dataset_id,group_id, dataspace_id
+    integer ierr,i
+    integer(HSIZE_T), dimension(ndims) :: h_dims, h_offset
+    character*100 errmsg
+
+    do i=1,ndims
+      h_dims(i)=dims(i)
+      h_offset(i)=offset(i)
+    enddo
+
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5fopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5gopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dopen_f(group_id,trim(nm),dataset_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5dopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dget_space_f(dataset_id,dataspace_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5dget_space_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,h_offset,h_dims,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5sselect_hyperslab_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,h_dims,ierr,file_space_id=dataspace_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dclose_f(dataset_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5dclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gclose_f(group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5gclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5fclose_f(h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5fclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    return
+    10 continue
+    write(*,*)
+    write(*,'(A)')trim(errmsg)
+    write(*,'("  ndims : ",I4)')ndims
+    write(*,'("  dims : ",10I4)')dims
+    write(*,'("  offset : ",10I4)')offset
+    write(*,'("  fname : ",A)')trim(fname)
+    write(*,'("  path : ",A)')trim(path)
+    write(*,'("  nm : ",A)')trim(nm)
+    stop
+end subroutine
+
+!-------------------------------------------------------------------------------
+subroutine hdf5_read_array_block_d(a,ndims,dims,offset,fname,path,nm)
+    use hdf5
+    implicit none
+    real(8), intent(out) :: a(*)
+    integer, intent(in) :: ndims
+    integer, intent(in) :: dims(ndims)
+    integer, intent(in) :: offset(ndims)
+    character(*), intent(in) :: fname
+    character(*), intent(in) :: path
+    character(*), intent(in) :: nm
+
+    integer(hid_t) h5_root_id,dataset_id,group_id, dataspace_id
+    integer ierr,i
+    integer(HSIZE_T), dimension(ndims) :: h_dims, h_offset
+    character*100 errmsg
+
+    do i=1,ndims
+      h_dims(i)=dims(i)
+      h_offset(i)=dims(i)
+    enddo
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dopen_f(group_id,trim(nm),dataset_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5dopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dget_space_f(dataset_id,dataspace_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5dget_space_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,h_offset,h_dims,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5sselect_hyperslab_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,h_dims,ierr,file_space_id=dataspace_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dclose_f(dataset_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5dclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gclose_f(group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5fclose_f(h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    return
+    10 continue
+    write(*,*)
+    write(*,'(A)')trim(errmsg)
+    write(*,'("  ndims : ",I4)')ndims
+    write(*,'("  dims : ",10I4)')dims
+    write(*,'("  offset : ",10I4)')offset
+    write(*,'("  fname : ",A)')trim(fname)
+    write(*,'("  path : ",A)')trim(path)
+    write(*,'("  nm : ",A)')trim(nm)
+    stop
+end subroutine

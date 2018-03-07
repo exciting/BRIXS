@@ -3,5 +3,6 @@
 *.mod
 #ignore the executable
 rixs
+rixs_b
 #ignore vim swp files
 .*.swp
