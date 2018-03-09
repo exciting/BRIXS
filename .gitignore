@@ -4,5 +4,6 @@
 #ignore the executable
 rixs
 rixs_b
+debug_b
 #ignore vim swp files
 .*.swp

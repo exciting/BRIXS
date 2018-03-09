@@ -1097,8 +1097,8 @@ subroutine hdf5_read_array_block_d(a,ndims,dims,offset,fname,path,nm)
     character(*), intent(in) :: path
     character(*), intent(in) :: nm
 
-    integer(hid_t) h5_root_id,dataset_id,group_id, dataspace_id
-    integer ierr,i
+    integer(hid_t) :: h5_root_id,dataset_id,group_id, dataspace_id, memspace_id
+    integer :: ierr,i    
     integer(HSIZE_T), dimension(ndims) :: h_dims, h_offset
     character*100 errmsg
 
@@ -1131,9 +1131,27 @@ subroutine hdf5_read_array_block_d(a,ndims,dims,offset,fname,path,nm)
       write(errmsg,'("Error(hdf5_read_array_i4): h5sselect_hyperslab_f returned ",I6)')ierr
       goto 10
     endif
-    call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,h_dims,ierr,file_space_id=dataspace_id)
+    ! create memory dataspace
+    call h5screate_simple_f(ndims,h_dims, memspace_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_i4): h5screate_simple_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,h_dims,ierr,memspace_id,dataspace_id)
     if (ierr.ne.0) then
       write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
+    ! close the dataspace
+    call h5sclose_f(dataspace_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    ! close the memory space
+    call h5sclose_f(memspace_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
       goto 10
     endif
     call h5dclose_f(dataset_id,ierr)

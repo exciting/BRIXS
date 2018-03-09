@@ -75,9 +75,9 @@ program rixs
   allocate(oscstr_b(blsz_,size(omega)))
   ! open file
   open(unit=6,file="exciton.txt",action="write",status="replace")
-  print *, 'starting loop over blocks'
+  print *, 'start loop over blocks'
   do k=1, nblocks_
-    print *, 'most outer loop k=', k
+    print *, 'calculating block ', k, '/', nblocks_
     ! set up block for eigenvalues (needed only for file output)
     evals_b%nblocks=nblocks_
     evals_b%blocksize=blsz_
@@ -86,12 +86,10 @@ program rixs
     evals_b%offset=(k-1)*blsz_
     evals_b%id=k
     ! generate block of eigenvalues
-    print *, 'get eigenvalues'
     call get_evals_block(evals_b,fname_optical)
-    print *, 'eigenvalues obtained'
     ! generate block of oscillator strength
     oscstr_b(:,:)=0.0d0 
-    print *, 'Starting 2nd loop over blocks'
+    print *, 'start loop over subblocks'
     do k2=1, nblocks_
       ! set up block for eigenvectors
       evecs_b%nblocks=nblocks_
@@ -111,22 +109,18 @@ program rixs
       vecA_b%iu=k2*blsz_
       vecA_b%offset=(k2-1)*blsz_
       vecA_b%id=k2
-      
+       
       ! generate block of eigenvectors
-      print *, 'generate eigenvectors'
-      call  get_eigvecs2D_b(evecs_b,fname_optical)
-      print *, 'evecs obtained'
-      print *, 'start loop over frequencies' 
+      call get_eigvecs2D_b(evecs_b,fname_optical)
+      print *, 'starting loop over frequencies'
       do w1=1, size(omega)
-        print *, 'w1=', w1
         ! generate block of A vector
-        print *, 'generate block of A vector'
         call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,fname_pmat,fname_core,pol)
-        print *, 'block of A vector generated'
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
         call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr_b(:,w1),blsz_)
+        print *, 'block of oscillator strength generated'
       end do ! w1
     end do ! k2
     do lambda=1, blsz_

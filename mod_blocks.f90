@@ -160,9 +160,7 @@ module mod_blocks
       ! Get dimension of eigvec for given lambda
       call hdf5_get_dims(fname,path,ci,dims_)
       ! Allocate intermediate eigenvector array
-      ! The first dimension is 2, since this is a complex array
       if (allocated(eigvec_)) deallocate(eigvec_)
-      !allocate(eigvec_(dims_(2),dims_(3)))
       allocate(eigvec_(inblock2d%blocksize))
       ! Get data
       offset_(1)=inblock2d%offset(1)
@@ -188,12 +186,13 @@ module mod_blocks
     integer(4) :: k,i,j,dimensions(4)
     character(len=1024) :: path, dsetname, cik
     complex(8), allocatable :: pmat_(:,:,:)
+    !complex(8) :: pmat_(3,2,35)
     integer :: stat_var
 
     ! allocate output
     if (allocated(inblock1d%zcontent)) deallocate(inblock1d%zcontent)
     allocate(inblock1d%zcontent(inblock1d%blocksize))
-    dsetname='pmat'
+    dsetname=trim(adjustl('pmat'))
     !get shapes
     dim_koulims=shape(koulims)
     dim_smap=shape(smap)
@@ -208,31 +207,23 @@ module mod_blocks
       
     ! here we assume that each k-pt is one block
     write(cik, '(I4.4)') inblock1d%id
-    print *, 'cik=', trim(cik)
     k=inblock1d%id
     !determine size of matrix in hdf5 file
-    path='/pmat/'//trim(adjustl(cik))
+    path=trim(adjustl('/pmat/'//trim(adjustl(cik))))
     call hdf5_get_dims(hdf5_file,path,trim(adjustl(dsetname)),dimensions)
-    print *, 'pmat dimensions are obtained'
-    print *, 'dimensions=', dimensions
     !allocate intermediate transition matrix for each k-point
     allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
-    print *, 'STATUS=', stat_var
-    print *, 'allocation is done'
     call hdf5_read(hdf5_file,path,dsetname,pmat_(1,1,1),shape(pmat_))
-    print *, 'pmat is read'
     ! write  transition matrix into file for the states included 
     ! in the BSE calculation
     do i=1, no
       do j=1, nu
-        print *, 'index=',ismap(j,i,k)-inblock1d%offset
         inblock1d%zcontent(ismap(j,i,k)-inblock1d%offset)=conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+&
             & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+&
             & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
       end do
     end do
-    deallocate(pmat_, stat=stat_var)
-    print *, 'STATUS (final)=', stat_var
+    deallocate(pmat_)
   end subroutine 
 !-----------------------------------------------------------------------------
   subroutine generate_tprime_block(inblock2d,pol,koulims,fname)
@@ -247,6 +238,7 @@ module mod_blocks
     integer(4) :: dimensions(4), inter(2)
     character(1024) :: cik, path, dsetname
     complex(8), allocatable :: pmat_(:,:,:)
+    !complex(8) :: pmat_(3,2,35)
     !determine sizes
     lu=koulims(1,1)
     uu=koulims(2,1)
@@ -301,9 +293,12 @@ module mod_blocks
     if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
     allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize))
     inblock2d%zcontent(:,:)=0.0d0
+    ! chi_block is calculated as follows:
+    ! $\chi^{ij}=\sum_k \hat{X}^{ik}\times\hat{Y}^{ii}\times[\hat{X}^{ki}]$
     do k=1, inblock2d%nblocks
       ! define the blocks for the summation
       ! block1 and block2 are blocks of the eigenvectors
+      block1%nblocks=inblock2d%nblocks
       block1%blocksize=blsz
       block1%il=inblock2d%il
       block1%iu=inblock2d%iu
@@ -314,6 +309,7 @@ module mod_blocks
       block1%id(1)=inblock2d%id(1)
       block1%id(2)=k
 
+      block2%nblocks=inblock2d%nblocks
       block2%blocksize=blsz
       block2%il=inblock2d%jl
       block2%iu=inblock2d%ju
@@ -324,38 +320,40 @@ module mod_blocks
       block2%id(1)=inblock2d%id(2)
       block2%id(2)=k
       ! block3 is a 1D block of the eigenvectors
+      block3%nblocks=inblock2d%nblocks
       block3%blocksize=blsz
       block3%il=(k-1)*blsz+1
-      block3%iu=inblock2d%ju
+      block3%iu=k*blsz
       block3%offset=(k-1)*blsz
       block3%id=k
-      
+       
       !get eigenvalues and eigenvectors
       call get_evals_block(block3,fname)
       call get_eigvecs2D_b(block1,fname)
       call get_eigvecs2D_b(block2,fname)
     
-    
-
       ! allocate array for hermetian conjugate of eigvecs
       inter(:,:)=0.0d0
       do i=1,blsz
-      inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
+        inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
       end do
       ! generate intermediate matrix
       alpha=1.0d0
       beta=0.0d0
-      call zgemm('N','C',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent,&
+
+      call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
           &        blsz,beta,inter2,blsz)
       alpha=1.0d0
       beta=1.0d0
-      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent,blsz,inter2,&
-        &        blsz,beta,inblock2d%zcontent,blsz)
+      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
+        &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
     end do ! loop over blocks
+    deallocate(block1%zcontent,block2%zcontent,block3%dcontent)
   end subroutine generate_chi_block
   !-----------------------------------------------------------------------------
   subroutine generate_Bvector_b(inbl,omega,broad,object,p_file,c_file, pol)
     use mod_io, only: io
+    use mod_matmul, only: matprod
     implicit none
     type(block1d), intent(inout) :: inbl
     real(8), intent(in) :: omega, broad, pol(3)
@@ -364,7 +362,10 @@ module mod_blocks
     !internal variables
     type(block2d) :: bl2d_
     type(block1d) :: bl1d_
+    complex(8) :: alpha, beta
     integer(4) :: k
+    alpha=1.0d0
+    beta=1.0d0
     ! allocate output
     if (allocated(inbl%zcontent)) deallocate(inbl%zcontent)
     allocate(inbl%zcontent(inbl%blocksize))
@@ -372,8 +373,7 @@ module mod_blocks
     ! loop over all blocks
     do k=1, inbl%nblocks
       ! create blocks
-      print *, 'subblock k=', k
-      bl2d_%nblocks=inbl%blocksize
+      bl2d_%nblocks=inbl%nblocks
       bl2d_%blocksize=inbl%blocksize
       bl2d_%il=inbl%il
       bl2d_%iu=inbl%iu
@@ -384,28 +384,25 @@ module mod_blocks
       bl2d_%id(1)=inbl%id
       bl2d_%id(2)=k
 
-      bl1d_%nblocks=inbl%blocksize
+      bl1d_%nblocks=inbl%nblocks
       bl1d_%blocksize=inbl%blocksize
       bl1d_%il=(k-1)*inbl%blocksize+1
       bl1d_%iu=k*inbl%blocksize
       bl1d_%offset=(k-1)*inbl%blocksize
       bl1d_%id=k
-  
       ! generate core chi block
-      print *, 'generate chi_block'
       call generate_chi_block(bl2d_,omega,broad,c_file)
-      print *, 'chi_block generated'
       ! generate t vector block
-      print *, 'generate tblock'
       call generate_tblock(bl1d_,object%koulims,object%smap,object%ismap,pol,p_file)
-      print *, 'tblock generated'
       ! generate B vector block
-      inbl%zcontent=inbl%zcontent+matmul(bl2d_%zcontent,bl1d_%zcontent)
+
+      call zgemm('n','n',inbl%blocksize,1,inbl%blocksize,alpha,bl2d_%zcontent,inbl%blocksize,bl1d_%zcontent &
+        &  ,inbl%blocksize,beta,inbl%zcontent,inbl%blocksize)
       deallocate(bl2d_%zcontent,bl1d_%zcontent)
-      print *, 'vecB block generated'
     end do ! loop over blocks
     if (allocated(bl2d_%zcontent)) deallocate(bl2d_%zcontent)
     if (allocated(bl1d_%zcontent)) deallocate(bl1d_%zcontent)
+    
   end subroutine 
   !-----------------------------------------------------------------------------
   subroutine generate_Avector_b(inbl,omega,broad,core,optical,p_file,c_file,pol)
@@ -446,13 +443,10 @@ module mod_blocks
     matA_b%id(1)=inbl%id
     matA_b%id(2)=0
     ! generate block of B vector
-    print *, 'call to generate_Bvector_b'
     call generate_Bvector_b(vecB_b,omega,broad,core,p_file,c_file, pol)
     ! generate block of B matrix
-    print *, 'call to transform2matrix'
     call transform2matrix_b(core%koulims,core%smap,vecB_b,matB_b)
     ! generate block of tprimegenerate_Bvector_b
-    print *, 'call to generate_tprime_block'
     call generate_tprime_block(tprime_b,pol,koulims_comb,p_file)
     ! allocate block of A matrix
     nu=optical%koulims(2,1)-optical%koulims(1,1)+1
@@ -466,8 +460,38 @@ module mod_blocks
     deallocate(koulims_comb) 
     deallocate(vecB_b%zcontent,matB_b%zcontent,matA_b%zcontent)
   end subroutine
+  
+  !-----------------------------------------------------------------------------
+  subroutine print_properties1d(block)
+    implicit none
+    type(block1d), intent(in) :: block
 
+    print *, '  blocksize=', block%blocksize
+    print *, '  nblocks=', block%nblocks
+    print *, '  il=', block%il
+    print *, '  iu=', block%iu
+    print *, '  offset=', block%offset
+    print *, '  id=', block%id
+    if (allocated(block%dcontent)) print *, ' dcontent=', size(block%dcontent)
+    if (allocated(block%zcontent)) print *, ' zcontent=', size(block%zcontent)
+  end subroutine
 
+  !-----------------------------------------------------------------------------
+  subroutine print_properties2d(block)
+    implicit none
+    type(block2d), intent(in) :: block
+
+    print *, '  blocksize=', block%blocksize
+    print *, '  nblocks=', block%nblocks
+    print *, '  il=', block%il
+    print *, '  iu=', block%iu
+    print *, '  jl=', block%jl
+    print *, '  ju=', block%ju
+    print *, '  offset=', block%offset
+    print *, '  id=', block%id
+    if (allocated(block%dcontent)) print *, ' dcontent=', shape(block%dcontent)
+    if (allocated(block%zcontent)) print *, ' zcontent=', shape(block%zcontent)
+  end subroutine
 
 
    
