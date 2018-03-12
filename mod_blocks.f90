@@ -140,13 +140,13 @@ module mod_blocks
   end subroutine
   !-----------------------------------------------------------------------------
   subroutine get_eigvecs2D_b(inblock2d,fname)
-    use mod_hdf5, only: hdf5_get_dims, hdf5_read_block
+    use mod_hdf5, only: hdf5_get_dims, hdf5_read_block, hdf5_read
     implicit none
     type(block2d), intent(inout) :: inblock2d
     character(len=1024), intent(in) :: fname
     !local variables
     complex(8), allocatable :: eigvec_(:)
-    integer(4) ::  i, dims_(2), offset_(1)
+    integer(4) ::  i, dims_(2), offset_(1), dim_(1)
     character(len=1024) :: path, dsetname
     character(256) :: ci
     ! allocate output
@@ -158,13 +158,16 @@ module mod_blocks
       path='eigvec-singlet-TDA-BAR-full/0001/rvec'
       dsetname=trim(adjustl(ci))
       ! Get dimension of eigvec for given lambda
-      call hdf5_get_dims(fname,path,ci,dims_)
+      !call hdf5_get_dims(fname,path,ci,dims_)
       ! Allocate intermediate eigenvector array
       if (allocated(eigvec_)) deallocate(eigvec_)
       allocate(eigvec_(inblock2d%blocksize))
+      !allocate(eigvec_(dims_(2)))
       ! Get data
       offset_(1)=inblock2d%offset(1)
-      call hdf5_read_block(fname,path,dsetname,eigvec_(1),shape(eigvec_),offset_)
+      dim_(1)=inblock2d%blocksize
+      !call hdf5_read_block(fname,path,dsetname,eigvec_(1),dim_,offset_)
+      call hdf5_read_block(fname,path,dsetname,eigvec_(1),dim_,offset_)
       ! Write data to final array
       inblock2d%zcontent(:,i)=eigvec_(:)
     end do
@@ -282,9 +285,11 @@ module mod_blocks
     ! internal variables
     type(block2d) :: block1, block2
     type(block1d) :: block3
-    complex(8), dimension(inblock2d%blocksize,inblock2d%blocksize) :: inter, inter2
-    integer(4) :: blsz,i, k
+    !complex(8), dimension(inblock2d%blocksize,inblock2d%blocksize) :: inter, inter2
+    complex(8) :: inter
+    integer(4) :: blsz,i,j, k
     complex(8) :: alpha, beta
+    real(8) :: start, finish
     
     ! shorthand notation for blocksize
     blsz=inblock2d%blocksize
@@ -333,22 +338,33 @@ module mod_blocks
       call get_eigvecs2D_b(block2,fname)
     
       ! allocate array for hermetian conjugate of eigvecs
-      inter(:,:)=0.0d0
-      do i=1,blsz
-        inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
-      end do
+      !inter(:,:)=0.0d0
+      !do i=1,blsz
+      !  inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
+      !end do
       ! generate intermediate matrix
+      do i=1,blsz
+        inter=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
+        do j=1,blsz
+          block2%zcontent(i,j)=inter*block2%zcontent(i,j)
+        end do
+      end do
       alpha=1.0d0
       beta=0.0d0
 
-      call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
-          &        blsz,beta,inter2,blsz)
+      !call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
+      !    &        blsz,beta,inter2,blsz)
+      !alpha=1.0d0
+      !beta=1.0d0
+      !call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
+      !  &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
       alpha=1.0d0
       beta=1.0d0
-      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
+      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,block2%zcontent,&
         &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
     end do ! loop over blocks
     deallocate(block1%zcontent,block2%zcontent,block3%dcontent)
+    
   end subroutine generate_chi_block
   !-----------------------------------------------------------------------------
   subroutine generate_Bvector_b(inbl,omega,broad,object,p_file,c_file, pol)
@@ -364,6 +380,7 @@ module mod_blocks
     type(block1d) :: bl1d_
     complex(8) :: alpha, beta
     integer(4) :: k
+    real(8) :: start, finish
     alpha=1.0d0
     beta=1.0d0
     ! allocate output
@@ -391,17 +408,20 @@ module mod_blocks
       bl1d_%offset=(k-1)*inbl%blocksize
       bl1d_%id=k
       ! generate core chi block
+      !call cpu_time(start)
       call generate_chi_block(bl2d_,omega,broad,c_file)
+      !call cpu_time(finish)
+      !print *, '        generate_chi_block:', finish-start, 'seconds'
       ! generate t vector block
+      !call cpu_time(start)
       call generate_tblock(bl1d_,object%koulims,object%smap,object%ismap,pol,p_file)
+      !call cpu_time(finish)
+      !print *, '        generate_tblock:', finish-start, 'seconds'
       ! generate B vector block
-
       call zgemm('n','n',inbl%blocksize,1,inbl%blocksize,alpha,bl2d_%zcontent,inbl%blocksize,bl1d_%zcontent &
         &  ,inbl%blocksize,beta,inbl%zcontent,inbl%blocksize)
       deallocate(bl2d_%zcontent,bl1d_%zcontent)
     end do ! loop over blocks
-    if (allocated(bl2d_%zcontent)) deallocate(bl2d_%zcontent)
-    if (allocated(bl1d_%zcontent)) deallocate(bl1d_%zcontent)
     
   end subroutine 
   !-----------------------------------------------------------------------------
@@ -418,6 +438,7 @@ module mod_blocks
     type(block2d) :: matB_b, tprime_b, matA_b
     integer(4) :: interdim(2), nkmax, nu, no
     integer(4), allocatable :: koulims_comb(:,:)
+    real(8) :: start, finish
     ! generate a combined map for t'
     interdim=shape(core%koulims)
     nkmax=interdim(2)
@@ -443,7 +464,11 @@ module mod_blocks
     matA_b%id(1)=inbl%id
     matA_b%id(2)=0
     ! generate block of B vector
+    call cpu_time(start)
     call generate_Bvector_b(vecB_b,omega,broad,core,p_file,c_file, pol)
+    call cpu_time(finish)
+    print *, 'generate_Bvector_b used', finish-start, 'seconds'
+    
     ! generate block of B matrix
     call transform2matrix_b(core%koulims,core%smap,vecB_b,matB_b)
     ! generate block of tprimegenerate_Bvector_b
@@ -493,6 +518,194 @@ module mod_blocks
     if (allocated(block%zcontent)) print *, ' zcontent=', shape(block%zcontent)
   end subroutine
 
+  !-----------------------------------------------------------------------------
+  subroutine get_eigvecs2D_b_quick(inblock2d,fname)
+    use hdf5
+    implicit none
+    type(block2d), intent(inout) :: inblock2d
+    character(len=1024), intent(in) :: fname
+    !local variables
+    !complex(8), allocatable :: eigvec_(:)
+    integer(hid_t) :: h5_root_id,dataset_id,group_id, dataspace_id, memspace_id
+    integer :: ierr,i,j    
+    integer(HSIZE_T), dimension(2) :: h_dims, h_offset
+    character*100 errmsg
+    real(8), allocatable :: eigvec_(:,:)
+    integer(4) ::  dims_(2), offset_(2), dim_(1), ndims
+    character(len=1024) :: path, dsetname
+    character(256) :: ci
+    ! allocate output
+    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
+    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize)) 
+    !allocate intermediate real matrix
+    allocate(eigvec_(2,inblock2d%blocksize))
+    eigvec_(:,:)=0.0d0
+    ! determine dimensions
+    ndims=2
+    dims_=(/2,inblock2d%blocksize/)
+    offset_=(/0,inblock2d%offset(1)/)
+    path='eigvec-singlet-TDA-BAR-full/0001/rvec'
+    do i=1,2
+      h_dims(i)=dims_(i)
+      h_offset(i)=offset_(i)
+    enddo
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    do i=1, inblock2d%blocksize
+      write(ci, '(I8.8)') i+inblock2d%offset(2)
+      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
+      dsetname=trim(adjustl(ci))
+      call h5dopen_f(group_id,trim(dsetname),dataset_id,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dopen_f returned ",I6)')ierr
+        goto 10
+      endif
+      call h5dget_space_f(dataset_id,dataspace_id, ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_i4): h5dget_space_f returned ",I6)')ierr
+        goto 10
+      endif
+      call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,h_offset,h_dims,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_i4): h5sselect_hyperslab_f returned ",I6)')ierr
+        goto 10
+      endif
+      ! create memory dataspace
+      call h5screate_simple_f(ndims,h_dims, memspace_id, ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_i4): h5screate_simple_f returned ",I6)')ierr
+        goto 10
+      endif
+      call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,eigvec_,h_dims,ierr,memspace_id,dataspace_id)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
+        goto 10
+      endif
+      ! write to output
+      do j=1, inblock2d%blocksize
+        inblock2d%zcontent(j,i)=cmplx(eigvec_(1,j),eigvec_(2,j))
+      end do
+      ! close the memory space
+      call h5sclose_f(memspace_id, ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
+        goto 10
+      endif
+      ! close the dataspace
+      call h5sclose_f(dataspace_id, ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
+        goto 10
+      endif
+      call h5dclose_f(dataset_id,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dclose_f returned ",I6)')ierr
+        goto 10
+      endif
+    end do
+    call h5gclose_f(group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5fclose_f(h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    deallocate(eigvec_)
+    return
+    10 continue
+    print *, 'problem with quick read!'
+  end subroutine 
 
+  !-----------------------------------------------------------------------------
+  subroutine get_eigvecs2D_b_quick2(inblock2d,fname)
+    use hdf5
+    implicit none
+    type(block2d), intent(inout) :: inblock2d
+    character(len=1024), intent(in) :: fname
+    !local variables
+    !complex(8), allocatable :: eigvec_(:)
+    integer(hid_t) :: h5_root_id,dataset_id,group_id, dataspace_id, memspace_id
+    integer :: ierr,i,j    
+    integer(HSIZE_T), dimension(2) :: h_dims, h_offset
+    character*100 errmsg
+    real(8), allocatable :: eigvec_(:,:)
+    integer(4) ::  dims_(2), offset_(2), dim_(1), ndims
+    character(len=1024) :: path, dsetname
+    character(256) :: ci
+    ! allocate output
+    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
+    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize)) 
+    !allocate intermediate real matrix
+    allocate(eigvec_(2,640))
+    eigvec_(:,:)=0.0d0
+    ! determine dimensions
+    ndims=2
+    dims_=(/2,inblock2d%blocksize/)
+    offset_=(/0,inblock2d%offset(1)/)
+    path='eigvec-singlet-TDA-BAR-full/0001/rvec'
+    do i=1,2
+      h_dims(i)=dims_(i)
+      h_offset(i)=offset_(i)
+    enddo
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gopen_f returned ",I6)')ierr
+      goto 10
+    endif
+    do i=1, inblock2d%blocksize
+      write(ci, '(I8.8)') i+inblock2d%offset(2)
+      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
+      dsetname=trim(adjustl(ci))
+      call h5dopen_f(group_id,trim(dsetname),dataset_id,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dopen_f returned ",I6)')ierr
+        goto 10
+      endif
+      call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,eigvec_,h_dims,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
+        goto 10
+      endif
+      ! write to output
+      do j=1, inblock2d%blocksize
+        inblock2d%zcontent(j,i)=cmplx(eigvec_(1,j+offset_(2)),eigvec_(2,j+offset_(2)))
+      end do
+      call h5dclose_f(dataset_id,ierr)
+      if (ierr.ne.0) then
+        write(errmsg,'("Error(hdf5_read_array_d): h5dclose_f returned ",I6)')ierr
+        goto 10
+      endif
+    end do
+    call h5gclose_f(group_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5gclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    call h5fclose_f(h5_root_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(hdf5_read_array_d): h5fclose_f returned ",I6)')ierr
+      goto 10
+    endif
+    deallocate(eigvec_)
+    return
+    10 continue
+    print *, 'problem with quick read!'
+  end subroutine 
    
 end module mod_blocks

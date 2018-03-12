@@ -1142,14 +1142,14 @@ subroutine hdf5_read_array_block_d(a,ndims,dims,offset,fname,path,nm)
       write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
       goto 10
     endif
-    ! close the dataspace
-    call h5sclose_f(dataspace_id, ierr)
+    ! close the memory space
+    call h5sclose_f(memspace_id, ierr)
     if (ierr.ne.0) then
       write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
       goto 10
     endif
-    ! close the memory space
-    call h5sclose_f(memspace_id, ierr)
+    ! close the dataspace
+    call h5sclose_f(dataspace_id, ierr)
     if (ierr.ne.0) then
       write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
       goto 10

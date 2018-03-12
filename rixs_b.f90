@@ -20,6 +20,7 @@ program rixs
   type(block1d) :: vecA_b, evals_b
   type(block2d) :: evecs_b
   complex(8) :: alpha, beta
+  real(8) :: start, finish
   call hdf5_initialize()
   
   !Specify file/dataset name
@@ -76,7 +77,8 @@ program rixs
   ! open file
   open(unit=6,file="exciton.txt",action="write",status="replace")
   print *, 'start loop over blocks'
-  do k=1, nblocks_
+  !do k=1, nblocks_
+  do k=1, 1
     print *, 'calculating block ', k, '/', nblocks_
     ! set up block for eigenvalues (needed only for file output)
     evals_b%nblocks=nblocks_
@@ -111,11 +113,17 @@ program rixs
       vecA_b%id=k2
        
       ! generate block of eigenvectors
+      call cpu_time(start)
       call get_eigvecs2D_b(evecs_b,fname_optical)
+      call cpu_time(finish)
+        print *, 'get_eigvecs2D_b used', finish-start, 'seconds'
       print *, 'starting loop over frequencies'
       do w1=1, size(omega)
         ! generate block of A vector
+        call cpu_time(start)
         call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,fname_pmat,fname_core,pol)
+        call cpu_time(finish)
+        print *, 'generate_Avector_b used', finish-start, 'seconds'
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0

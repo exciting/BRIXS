@@ -15,7 +15,7 @@ program rixs
   type(input) :: inputparam
   integer(4), allocatable :: koulims_comb(:,:)
   character(1024) :: fname_core, fname_optical,fname_pmat
-  integer(4) :: nblocks_, blsz_, blsz2_, k, k2, i, j
+  integer(4) :: nblocks_, blsz_, blsz2_, k, k2, k3, i, j
   type(block2d) ::chi_core_b, eigvec_b, matB_b, tprime_b, matA_b
   type(block1d) :: eval_b, t_block, vecB_b, vecA_b
   complex(8), allocatable :: chi_core(:,:,:), pmat(:), B(:,:)
@@ -81,54 +81,8 @@ program rixs
   ! calculate block (k,k2) block of chi_core
   k=1
   k2=5
-  ! set up block of core_chi
-  chi_core_b%nblocks=nblocks_
-  chi_core_b%blocksize=blsz2_
-  chi_core_b%il=(k-1)*blsz2_+1
-  chi_core_b%iu=k*blsz2_
-  chi_core_b%jl=(k2-1)*blsz2_+1
-  chi_core_b%ju=k2*blsz2_
-  chi_core_b%offset=(/ (k-1)*blsz2_, (k2-1)*blsz2_ /)
-  chi_core_b%id=(/k, k2/)
-  ! set eigenvectors block
-  eigvec_b%nblocks=nblocks_
-  eigvec_b%blocksize=blsz2_
-  eigvec_b%il=(k-1)*blsz2_+1
-  eigvec_b%iu=k*blsz2_
-  eigvec_b%jl=(k2-1)*blsz2_+1
-  eigvec_b%ju=k2*blsz2_
-  eigvec_b%offset=(/ (k-1)*blsz2_, (k2-1)*blsz2_ /)
-  eigvec_b%id=(/k, k2/)
-  ! set eigval block
-  eval_b%nblocks=nblocks_
-  eval_b%blocksize=blsz2_
-  eval_b%il=(k-1)*blsz2_+1
-  eval_b%iu=k*blsz2_
-  eval_b%offset=(k-1)*blsz2_
-  eval_b%id=k
-  ! set t block
-  t_block%nblocks=nblocks_
-  t_block%blocksize=blsz2_
-  t_block%il=(k-1)*blsz2_+1
-  t_block%iu=k*blsz2_
-  t_block%offset=(k-1)*blsz2_
-  t_block%id=k
-  ! set vecB block
-  vecB_b%nblocks=nblocks_
-  vecB_b%blocksize=blsz2_
-  vecB_b%il=(k-1)*blsz2_+1
-  vecB_b%iu=k*blsz2_
-  vecB_b%offset=(k-1)*blsz2_
-  vecB_b%id=k
-  ! set up block of tprime
-  tprime_b%nblocks=nblocks_
-  tprime_b%id=(/k, 0/) 
-  ! calculate block of eigvals
-  !call get_evals_block(eval_b,fname_core)
-  ! get block of t
-  !call generate_tblock(t_block,core%koulims,core%smap,core%ismap,pol,fname_pmat)
-  ! get block of eigenvectors
-  !do k2=1, nblocks_
+  do k3=1,10
+  blsz2_=k3*10
   cummulant=0.0d0
   cummulant2=0.0d0
   cummulant3=0.0d0
@@ -137,15 +91,13 @@ program rixs
     ! set eigvec_b block
     eigvec_b%nblocks=nblocks_
     eigvec_b%blocksize=blsz2_
-    eigvec_b%il=(k-1)*blsz2_+1
-    eigvec_b%iu=k*blsz2_
-    eigvec_b%jl=(k2-1)*blsz2_+1
-    eigvec_b%ju=k2*blsz2_
-    eigvec_b%offset=(/ (k-1)*blsz2_, (k2-1)*blsz2_ /)
-    eigvec_b%id=(/k, k2/)
+    eigvec_b%il=1
+    eigvec_b%iu=blsz2_
+    eigvec_b%jl=1
+    eigvec_b%ju=blsz2_
+    eigvec_b%offset=(/0, 0/)
+    eigvec_b%id=(/1,1/)
     call cpu_time(start)
-    !call generate_Avector_b(vecA_b,omega(1),broad,core,optical,fname_pmat,fname_core,pol)
-    !call generate_Bvector_b(vecB_b,omega(1),broad,core,fname_pmat,fname_core,pol)
     call get_eigvecs2D_b_quick(eigvec_b,fname_core)
     call cpu_time(finish)
     cummulant=cummulant+finish-start
@@ -162,6 +114,8 @@ program rixs
   print *, 'average run time:', cummulant/(nblocks_*nblocks_)
   print *, 'average run time2:', cummulant2/(nblocks_*nblocks_)
   print *, 'average run time3:', cummulant3/(nblocks_*nblocks_)
+  end do
+ 
   !end do
   ! calculate block of chi_core for omega(1)
   !call generate_chi_block(chi_core_b,omega(1),broad,fname_core)
@@ -178,10 +132,10 @@ program rixs
   !call get_evals(core, fname_core)
   ! get full matrix of eigenvectors
   !do k=1,nblocks_
-  !  call cpu_time(start)
-  !  call get_eigvecs(core,fname_core)
-  !  call cpu_time(finish)
-  !  print *,' loop ',k,':', (finish-start)*1000.0d0, 'msec'
+  call cpu_time(start)
+  call get_eigvecs(core,fname_core)
+  call cpu_time(finish)
+  print *,'global eigvecs:', (finish-start)*1000.0d0, 'msec'
   !end do
   ! calculate the full chi_core
   !call generate_chi(omega,broad,core,fname_core,chi_core)
