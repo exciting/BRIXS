@@ -111,7 +111,7 @@ program rixs
   
   ! write results to file
   open(unit=4,file="results.txt",action="write",status="replace")
-  write(4,'( *(2X, f14.6)\ )') (omega(w1), w1=1,size(omega))
+  write(4,'(A1, *(2X, f14.6)\ )') '#',(omega(w1), w1=1,size(omega))
   do w2=1,size(omega2)
     write(4,'( *(2X, f14.6)\ )') omega2(w2),(results(w1,w2), w1=1,size(omega))
   end do
