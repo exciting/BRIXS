@@ -12,6 +12,7 @@ module mod_io
     real(8), allocatable :: omega(:), omega2(:)
     real(8) :: broad, broad2
     logical :: oscstr
+    integer :: nblocks
   end type
   
 
@@ -207,6 +208,8 @@ module mod_io
            read(buffer, *, iostat=ios) object%broad2
         case ('do_oscstr')
            object%oscstr=.true.
+        case ('nblocks')
+           read(buffer, *, iostat=ios) object%nblocks
         case default
            print *, 'Skipping invalid label at line', line
         end select
