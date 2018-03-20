@@ -99,11 +99,12 @@ program rixs
   allocate(inter(hamsiz))
   allocate(results(size(omega),size(omega2)))
   allocate(oscstr(hamsiz,size(omega)))
- 
   !generate final spectrum
   do w1=1,size(omega)
     do w2=1,size(omega2)
       call matprod(chi_optical(:,:,w2),A(:,w1),inter)
+      !print *, 'inter(', w1, ',', w2, ')'
+      !print *, inter
       call matprod(A(:,w1),inter(:),inter2)
       results(w1,w2)=aimag(inter2)
     end do

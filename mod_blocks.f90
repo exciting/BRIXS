@@ -4,7 +4,9 @@ module mod_blocks
   type :: block1d
     integer(4) :: nblocks     ! number of blocks
     integer(4) :: blocksize   ! length of each block
-    integer(4) :: il, iu      ! absolute first & last index within block
+    integer(4) :: nk          ! number of k-pts per block
+    integer(4) :: il, iu      ! absolute first & last transition index within block
+    integer(4) :: kl, ku      ! absolute first & last k-index within block
     integer(4) :: offset      ! offset
     integer(4) :: id  ! ID (in this case number) of the block
     complex(8), allocatable :: zcontent(:)
@@ -14,26 +16,36 @@ module mod_blocks
   type :: block2d
     integer(4) :: nblocks     ! number of block
     integer(4) :: blocksize   ! size of each block is blocksize x blocksize
-    integer(4) :: il, iu, jl, ju ! absolute index ranges within the block  
+    integer(4) :: nk          ! number of k-pts per block
+    integer(4) :: il, iu, jl, ju ! absolute transition index ranges within the block  
+    integer(4) :: k1l, k1u, k2l, k2u ! absolute k-index within the block
     integer(4), dimension(2) :: offset    ! offset
     integer(4), dimension(2) :: id    ! 2-D ID of block
     complex(8), allocatable :: zcontent(:,:)
     real(8), allocatable :: dcontent(:,:)
   end type block2d
-  
+
+  type :: block3d
+    integer(4) :: nblocks                 ! number of blocks
+    integer(4) :: nk                      ! number of k-pts / block
+    integer(4), dimension(3) :: blocksize ! non-square 3D blocksize
+    integer(4) :: kl, ku                  ! absolute k-index within block
+    integer(4) :: id                      ! store the id of the block it was generated from
+    complex(8), allocatable :: zcontent(:,:,:)
+  end type block3d
   contains
   ! Methodenbereich
     !-----------------------------------------------------------------------------
-    subroutine transform2matrix_b(inkoulims,insmap,inbl1d,outbl2d)
+    subroutine transform2matrix_b(inkoulims,insmap,inbl1d,outbl3d)
       implicit none
       integer(4), intent(in) :: inkoulims(:,:)
       integer(4), intent(in) :: insmap(:,:)
       type(block1d), intent(in) :: inbl1d
-      type(block2d), intent(out) :: outbl2d
+      type(block3d), intent(out) :: outbl3d
 
       ! local variables
       integer(4) :: lu,uu,lo,uo,nu,no,nk0,nkmax,i
-      integer(4) :: dim_koulims(2),dim_smap(2),hamsiz,i1,i2
+      integer(4) :: dim_koulims(2),dim_smap(2),hamsiz,i1,i2, i3
   
       !get shapes
       dim_koulims=shape(inkoulims)
@@ -49,40 +61,35 @@ module mod_blocks
       nkmax=dim_koulims(2)
       hamsiz=dim_smap(2)
       ! generate the block output
-      ! blocksize cannot be defined because it is no longer a square matrix
-      ! offset=0 since for each k-point there is only one block
-      ! store the original block id in outbl2d%id(1)
-      outbl2d%nblocks=inbl1d%nblocks
-      outbl2d%il=1
-      outbl2d%iu=nu
-      outbl2d%il=1
-      outbl2d%ju=no
-      outbl2d%offset(:)=0
-      outbl2d%id(1)=inbl1d%id
-      outbl2d%id(2)=0
-      
+      outbl3d%nblocks=inbl1d%nblocks
+      outbl3d%nk=inbl1d%nk
+      outbl3d%blocksize=(/nu,no,inbl1d%nk/)
+      outbl3d%kl=inbl1d%kl
+      outbl3d%ku=inbl1d%ku
+      outbl3d%id=inbl1d%id
       ! allocate the output matrix
-      if (allocated(outbl2d%zcontent)) deallocate(outbl2d%zcontent)
-      allocate(outbl2d%zcontent(nu, no))
+      if (allocated(outbl3d%zcontent)) deallocate(outbl3d%zcontent)
+      allocate(outbl3d%zcontent(nu, no, inbl1d%nk))
 
       ! loop over all transitions
       do i=inbl1d%il, inbl1d%iu
         i1=insmap(1,i)-lu+1
         i2=insmap(2,i)-lo+1
-        outbl2d%zcontent(i1,i2)=inbl1d%zcontent(i-inbl1d%offset)
+        i3=insmap(3,i)-nk0+1
+        outbl3d%zcontent(i1,i2,i3-inbl1d%kl+1)=inbl1d%zcontent(i-inbl1d%offset)
       end do
     end subroutine 
     !-----------------------------------------------------------------------------
-    subroutine transform2vector_b(inkoulims,insmap,inbl2d,outbl1d)
+    subroutine transform2vector_b(inkoulims,insmap,inbl3d,outbl1d)
       implicit none
       integer(4), intent(in) :: inkoulims(:,:)
       integer(4), intent(in) :: insmap(:,:)
-      type(block2d), intent(in) :: inbl2d
-      type(block1d), intent(out) :: outbl1d
+      type(block3d), intent(in) :: inbl3d
+      type(block1d), intent(inout) :: outbl1d
 
       ! local variables
-      integer(4) :: lu,uu,lo,uo,nu,no,nk0,i
-      integer(4) :: dim_koulims(2),dim_smap(2),nkmax,hamsiz,i1,i2
+      integer(4) :: lu,uu,lo,uo,nu,no,nk0,i, blsz_
+      integer(4) :: dim_koulims(2),dim_smap(2),nkmax,hamsiz,i1,i2, i3
   
       !get shapes
       dim_koulims=shape(inkoulims)
@@ -97,14 +104,18 @@ module mod_blocks
       nk0=insmap(3,1)
       nkmax=dim_koulims(2)
       hamsiz=dim_smap(2)
-
+      ! store shorthand for blocksize
+      blsz_=inbl3d%blocksize(1)*inbl3d%blocksize(2)*inbl3d%blocksize(3)
       !generate the block output
-      outbl1d%nblocks=inbl2d%nblocks
-      outbl1d%blocksize=nu*no
-      outbl1d%il=(inbl2d%id(1)-1)*outbl1d%blocksize+1
-      outbl1d%iu=(inbl2d%id(1))*outbl1d%blocksize
-      outbl1d%offset=(inbl2d%id(1)-1)*outbl1d%blocksize
-      outbl1d%id=inbl2d%id(1)
+      outbl1d%nblocks=inbl3d%nblocks
+      outbl1d%blocksize=blsz_
+      outbl1d%nk=inbl3d%nk
+      outbl1d%il=(inbl3d%id-1)*blsz_+1
+      outbl1d%iu=(inbl3d%id)*blsz_
+      outbl1d%kl=inbl3d%kl
+      outbl1d%ku=inbl3d%ku
+      outbl1d%offset=(inbl3d%id-1)*blsz_
+      outbl1d%id=inbl3d%id
 
       ! allocate the output matrix
       if (allocated(outbl1d%zcontent)) deallocate(outbl1d%zcontent)
@@ -114,7 +125,8 @@ module mod_blocks
       do i=outbl1d%il, outbl1d%iu
         i1=insmap(1,i)-lu+1
         i2=insmap(2,i)-lo+1
-        outbl1d%zcontent(i-outbl1d%offset)=inbl2d%zcontent(i1,i2)
+        i3=insmap(3,i)-nk0+1-inbl3d%kl+1
+        outbl1d%zcontent(i-outbl1d%offset)=inbl3d%zcontent(i1,i2,i3)
       end do
     end subroutine 
 
@@ -146,7 +158,7 @@ module mod_blocks
     character(len=1024), intent(in) :: fname
     !local variables
     complex(8), allocatable :: eigvec_(:)
-    integer(4) ::  i, dims_(2), offset_(1), dim_(1)
+    integer(4) ::  i, offset_(1), dim_(1)
     character(len=1024) :: path, dsetname
     character(256) :: ci
     ! allocate output
@@ -207,38 +219,38 @@ module mod_blocks
     nu=uu-lu+1
     no=uo-lo+1
     nk0=smap(3,1)
-      
-    ! here we assume that each k-pt is one block
-    write(cik, '(I4.4)') inblock1d%id
-    k=inblock1d%id
-    !determine size of matrix in hdf5 file
-    path=trim(adjustl('/pmat/'//trim(adjustl(cik))))
-    call hdf5_get_dims(hdf5_file,path,trim(adjustl(dsetname)),dimensions)
-    !allocate intermediate transition matrix for each k-point
-    allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
-    call hdf5_read(hdf5_file,path,dsetname,pmat_(1,1,1),shape(pmat_))
-    ! write  transition matrix into file for the states included 
-    ! in the BSE calculation
-    do i=1, no
-      do j=1, nu
-        inblock1d%zcontent(ismap(j,i,k)-inblock1d%offset)=conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+&
+    do k=inblock1d%kl, inblock1d%ku
+      write(cik, '(I4.4)') k
+      !determine size of matrix in hdf5 file
+      path=trim(adjustl('/pmat/'//trim(adjustl(cik))))
+      call hdf5_get_dims(hdf5_file,path,trim(adjustl(dsetname)),dimensions)
+      !allocate intermediate transition matrix for each k-point
+      if (allocated(pmat_)) deallocate(pmat_)
+      allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
+      call hdf5_read(hdf5_file,path,dsetname,pmat_(1,1,1),shape(pmat_))
+      ! write  transition matrix into file for the states included 
+      ! in the BSE calculation
+      do i=1, no
+        do j=1, nu
+          inblock1d%zcontent(ismap(j,i,k)-inblock1d%offset)=conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+&
             & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+&
             & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
+        end do
       end do
     end do
     deallocate(pmat_)
   end subroutine 
 !-----------------------------------------------------------------------------
-  subroutine generate_tprime_block(inblock2d,pol,koulims,fname)
+  subroutine generate_tprime_block(in3d,pol,koulims,fname)
     use mod_hdf5
     implicit none
     real(8), intent(in) :: pol(3)
     integer(4), intent(in) :: koulims(:,:)
     character(1024), intent(in) :: fname
-    type(block2d), intent(inout) :: inblock2d
+    type(block3d), intent(inout) :: in3d
     ! local variables
     integer(4) :: lu, uu, lo, uo, nu, no, nkmax, i,j
-    integer(4) :: dimensions(4), inter(2)
+    integer(4) :: dimensions(4), inter(2), nk_, k
     character(1024) :: cik, path, dsetname
     complex(8), allocatable :: pmat_(:,:,:)
     !complex(8) :: pmat_(3,2,35)
@@ -251,26 +263,29 @@ module mod_blocks
     no=uo-lo+1
     inter=shape(koulims)
     nkmax=inter(2)
+    nk_=in3d%nk
     ! allocate output array
-    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
-    allocate(inblock2d%zcontent(no,nu))
-    
+    if (allocated(in3d%zcontent)) deallocate(in3d%zcontent)
+    allocate(in3d%zcontent(no,nu,nk_))
+    in3d%blocksize=(/no, nu, nk_/)
     dsetname='pmat'
-    write(cik, '(I4.4)') inblock2d%id(1)
-    !determine size of matrix in hdf5 file
-    path='/pmat/'//trim(adjustl(cik))
-    call hdf5_get_dims(fname,path,trim(adjustl(dsetname)),dimensions)
-    !allocate intermediate transition matrix for each k-point
-    if (allocated(pmat_)) deallocate(pmat_)
-    allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)))
-    call hdf5_read(fname,path,dsetname,pmat_(1,1,1),shape(pmat_))
-    do i=1,no
-      do j=1,nu
-        inblock2d%zcontent(i,j)=pol(1)*pmat_(1,i+lo-1,j+lu-1)+&
-          &pol(2)*pmat_(2,i+lo-1,j+lu-1)+&
-          &pol(3)*pmat_(3,i+lo-1,j+lu-1)
+    do k=in3d%kl, in3d%ku
+      write(cik, '(I4.4)') k
+      !determine size of matrix in hdf5 file
+      path='/pmat/'//trim(adjustl(cik))
+      call hdf5_get_dims(fname,path,trim(adjustl(dsetname)),dimensions)
+      !allocate intermediate transition matrix for each k-point
+      if (allocated(pmat_)) deallocate(pmat_)
+      allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)))
+      call hdf5_read(fname,path,dsetname,pmat_(1,1,1),shape(pmat_))
+      do i=1,no
+        do j=1,nu
+          in3d%zcontent(i,j,k-in3d%kl+1)=pol(1)*pmat_(1,i+lo-1,j+lu-1)+&
+            & pol(2)*pmat_(2,i+lo-1,j+lu-1)+&
+            & pol(3)*pmat_(3,i+lo-1,j+lu-1)
+        end do
       end do
-    end do
+     end do
     deallocate(pmat_)
   end subroutine 
 
@@ -285,11 +300,10 @@ module mod_blocks
     ! internal variables
     type(block2d) :: block1, block2
     type(block1d) :: block3
-    !complex(8), dimension(inblock2d%blocksize,inblock2d%blocksize) :: inter, inter2
-    complex(8) :: inter
-    integer(4) :: blsz,i,j, k
+    complex(8), dimension(inblock2d%blocksize,inblock2d%blocksize) :: inter, inter2
+    !complex(8) :: inter
+    integer(4) :: blsz,i, k
     complex(8) :: alpha, beta
-    real(8) :: start, finish
     
     ! shorthand notation for blocksize
     blsz=inblock2d%blocksize
@@ -305,10 +319,15 @@ module mod_blocks
       ! block1 and block2 are blocks of the eigenvectors
       block1%nblocks=inblock2d%nblocks
       block1%blocksize=blsz
+      block1%nk=inblock2d%nk
       block1%il=inblock2d%il
       block1%iu=inblock2d%iu
+      block1%k1l=inblock2d%k1l
+      block1%k1u=inblock2d%k1u
       block1%jl=(k-1)*blsz+1
       block1%ju=k*blsz
+      block1%k2l=(k-1)*block1%nk+1
+      block1%k2u=k*block1%nk
       block1%offset(1)=inblock2d%offset(1)
       block1%offset(2)=(k-1)*blsz
       block1%id(1)=inblock2d%id(1)
@@ -316,10 +335,15 @@ module mod_blocks
 
       block2%nblocks=inblock2d%nblocks
       block2%blocksize=blsz
+      block2%nk=inblock2d%nk
       block2%il=inblock2d%jl
       block2%iu=inblock2d%ju
+      block2%k1l=inblock2d%k2l
+      block2%k1u=inblock2d%k2u
       block2%jl=(k-1)*blsz+1
       block2%ju=k*blsz
+      block2%k2l=(k-1)*block2%nk+1
+      block2%k2u=k*block2%nk
       block2%offset(1)=inblock2d%offset(2)
       block2%offset(2)=(k-1)*blsz
       block2%id(1)=inblock2d%id(2)
@@ -327,8 +351,11 @@ module mod_blocks
       ! block3 is a 1D block of the eigenvectors
       block3%nblocks=inblock2d%nblocks
       block3%blocksize=blsz
+      block3%nk=inblock2d%nk
       block3%il=(k-1)*blsz+1
       block3%iu=k*blsz
+      block3%kl=(k-1)*block3%nk+1
+      block3%ku=k*block3%nk
       block3%offset=(k-1)*blsz
       block3%id=k
        
@@ -338,30 +365,30 @@ module mod_blocks
       call get_eigvecs2D_b(block2,fname)
     
       ! allocate array for hermetian conjugate of eigvecs
-      !inter(:,:)=0.0d0
-      !do i=1,blsz
-      !  inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
-      !end do
-      ! generate intermediate matrix
+      inter(:,:)=0.0d0
       do i=1,blsz
-        inter=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
-        do j=1,blsz
-          block2%zcontent(i,j)=inter*block2%zcontent(i,j)
-        end do
+        inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
       end do
+      ! generate intermediate matrix
+      !do i=1,blsz
+      !  inter=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
+      !   do j=1,blsz
+      !    block2%zcontent(i,j)=inter*block2%zcontent(i,j)
+      !  end do
+      !end do
       alpha=1.0d0
       beta=0.0d0
 
-      !call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
-      !    &        blsz,beta,inter2,blsz)
-      !alpha=1.0d0
-      !beta=1.0d0
-      !call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
-      !  &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
+      call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
+          &        blsz,beta,inter2,blsz)
       alpha=1.0d0
       beta=1.0d0
-      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,block2%zcontent,&
+      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
         &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
+      !alpha=1.0d0
+      !beta=1.0d0
+      !call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,block2%zcontent,&
+      !  &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
     end do ! loop over blocks
     deallocate(block1%zcontent,block2%zcontent,block3%dcontent)
     
@@ -380,7 +407,6 @@ module mod_blocks
     type(block1d) :: bl1d_
     complex(8) :: alpha, beta
     integer(4) :: k
-    real(8) :: start, finish
     alpha=1.0d0
     beta=1.0d0
     ! allocate output
@@ -392,10 +418,15 @@ module mod_blocks
       ! create blocks
       bl2d_%nblocks=inbl%nblocks
       bl2d_%blocksize=inbl%blocksize
+      bl2d_%nk=inbl%nk
       bl2d_%il=inbl%il
       bl2d_%iu=inbl%iu
+      bl2d_%k1l=inbl%kl
+      bl2d_%k1u=inbl%ku
       bl2d_%jl=(k-1)*inbl%blocksize+1
       bl2d_%ju=k*inbl%blocksize
+      bl2d_%k2l=(k-1)*bl2d_%nk
+      bl2d_%k2u=k*bl2d_%nk
       bl2d_%offset(1)=inbl%offset
       bl2d_%offset(2)=(k-1)*inbl%blocksize
       bl2d_%id(1)=inbl%id
@@ -403,8 +434,11 @@ module mod_blocks
 
       bl1d_%nblocks=inbl%nblocks
       bl1d_%blocksize=inbl%blocksize
+      bl1d_%nk=inbl%nk
       bl1d_%il=(k-1)*inbl%blocksize+1
       bl1d_%iu=k*inbl%blocksize
+      bl1d_%kl=(k-1)*bl1d_%nk+1
+      bl1d_%ku=k*bl1d_%nk
       bl1d_%offset=(k-1)*inbl%blocksize
       bl1d_%id=k
       ! generate core chi block
@@ -435,10 +469,9 @@ module mod_blocks
     character(1024), intent(in) :: p_file, c_file
     ! internal variables
     type(block1d) :: vecB_b
-    type(block2d) :: matB_b, tprime_b, matA_b
-    integer(4) :: interdim(2), nkmax, nu, no
+    type(block3d)  :: tprime_b, matB_b,  matA_b
+    integer(4) :: interdim(2), nkmax, nu, no, nk, k
     integer(4), allocatable :: koulims_comb(:,:)
-    real(8) :: start, finish
     ! generate a combined map for t'
     interdim=shape(core%koulims)
     nkmax=interdim(2)
@@ -450,24 +483,28 @@ module mod_blocks
     
     ! set up block for B vector
     vecB_b%nblocks=inbl%nblocks
-    vecB_b%blocksize=core%no*core%nu
+    vecB_b%blocksize=core%no*core%nu*inbl%nk
+    vecB_b%nk=inbl%nk
     vecB_b%il=inbl%il
     vecB_b%iu=inbl%iu
+    vecB_b%kl=inbl%kl
+    vecB_b%ku=inbl%ku
     vecB_b%offset=inbl%offset
     vecB_b%id=inbl%id
     ! set up block for t' matrix
     tprime_b%nblocks=inbl%nblocks
-    tprime_b%id(1)=inbl%id
-    tprime_b%id(2)=0
+    tprime_b%nk=inbl%nk
+    tprime_b%kl=inbl%kl
+    tprime_b%ku=inbl%ku
+    tprime_b%id=inbl%id
     ! set up block for A matrix
     matA_b%nblocks=inbl%nblocks
-    matA_b%id(1)=inbl%id
-    matA_b%id(2)=0
+    matA_b%nk=inbl%nk
+    matA_b%kl=inbl%kl
+    matA_b%ku=inbl%ku
+    matA_b%id=inbl%id
     ! generate block of B vector
-    call cpu_time(start)
     call generate_Bvector_b(vecB_b,omega,broad,core,p_file,c_file, pol)
-    call cpu_time(finish)
-    print *, 'generate_Bvector_b used', finish-start, 'seconds'
     
     ! generate block of B matrix
     call transform2matrix_b(core%koulims,core%smap,vecB_b,matB_b)
@@ -476,14 +513,83 @@ module mod_blocks
     ! allocate block of A matrix
     nu=optical%koulims(2,1)-optical%koulims(1,1)+1
     no=optical%koulims(4,1)-optical%koulims(3,1)+1
+    nk=inbl%nk
     if (allocated(matA_b%zcontent)) deallocate(matA_b%zcontent)
-    allocate(matA_b%zcontent(nu,no))
-    ! generate block of A matrix
-    call matprod(matB_b%zcontent,tprime_b%zcontent,matA_b%zcontent)
-    ! generate block of A vector
+    allocate(matA_b%zcontent(nu,no,nk))
+    matA_b%nblocks=inbl%nblocks
+    matA_b%nk=inbl%nk
+    matA_b%blocksize=(/nu, no, nk/)
+    matA_b%kl=inbl%kl
+    matA_b%ku=inbl%ku
+    matA_b%id=inbl%id
+
+    do k=1, nk
+      ! generate block of A matrix
+      call matprod(matB_b%zcontent(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))
+    end do
+    
+      ! generate block of A vector
     call transform2vector_b(optical%koulims,optical%smap,matA_b,inbl)
     deallocate(koulims_comb) 
     deallocate(vecB_b%zcontent,matB_b%zcontent,matA_b%zcontent)
+  end subroutine
+  
+  !-----------------------------------------------------------------------------
+  subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, broad, core, optical, fname_pmat, fname_core, &
+     & fname_optical, pol, oscstr_b)
+    use mod_io, only: io
+    integer, intent(in) :: nblocks, blsz, nk, k
+    real(8), intent(in) :: omega(:)
+    real(8), intent(in) :: broad, pol(3)
+    type(io), intent(in) :: core, optical
+    character(1024) :: fname_pmat, fname_core, fname_optical
+    complex(8), intent(out) :: oscstr_b(:,:)
+    ! internal variables
+    type(block2d) :: evecs_b
+    type(block1d) :: vecA_b
+    integer :: k2, w
+    complex(8) :: alpha, beta
+    
+    ! loop over blocks
+    do k2=1, nblocks
+      ! set up block for eigenvectors
+      evecs_b%nblocks=nblocks
+      evecs_b%blocksize=blsz
+      evecs_b%nk=nk
+      evecs_b%il=(k2-1)*blsz+1
+      evecs_b%iu=k2*blsz
+      evecs_b%k1l=(k2-1)*nk+1
+      evecs_b%k1u=k2*nk
+      evecs_b%jl=(k-1)*blsz+1
+      evecs_b%ju=k*blsz
+      evecs_b%k2l=(k-1)*nk+1
+      evecs_b%k2u=k*nk
+      evecs_b%offset(1)=(k2-1)*blsz
+      evecs_b%offset(2)=(k-1)*blsz
+      evecs_b%id(1)=k2
+      evecs_b%id(2)=k
+      !set up block for A matrix
+      vecA_b%nblocks=nblocks
+      vecA_b%blocksize=blsz
+      vecA_b%nk=nk
+      vecA_b%il=(k2-1)*blsz+1
+      vecA_b%iu=k2*blsz
+      vecA_b%kl=(k2-1)*nk+1
+      vecA_b%ku=k2*nk
+      vecA_b%offset=(k2-1)*blsz
+      vecA_b%id=k2
+      
+      ! generate block of eigenvectors
+      call get_eigvecs2D_b(evecs_b,fname_optical)
+      do w=1, size(omega)
+        ! generate block of A vector
+        call generate_Avector_b(vecA_b,omega(w),broad,core,optical,fname_pmat,fname_core,pol)
+        ! generate block of oscstr
+        alpha=1.0d0
+        beta=1.0d0
+        call zgemm('C','N',blsz,1,blsz,alpha,evecs_b%zcontent,blsz,vecA_b%zcontent,blsz,beta,oscstr_b(:,w),blsz)
+      end do ! w
+    end do ! k2
   end subroutine
   
   !-----------------------------------------------------------------------------
@@ -531,7 +637,7 @@ module mod_blocks
     integer(HSIZE_T), dimension(2) :: h_dims, h_offset
     character*100 errmsg
     real(8), allocatable :: eigvec_(:,:)
-    integer(4) ::  dims_(2), offset_(2), dim_(1), ndims
+    integer(4) ::  dims_(2), offset_(2), ndims
     character(len=1024) :: path, dsetname
     character(256) :: ci
     ! allocate output
@@ -635,12 +741,12 @@ module mod_blocks
     character(len=1024), intent(in) :: fname
     !local variables
     !complex(8), allocatable :: eigvec_(:)
-    integer(hid_t) :: h5_root_id,dataset_id,group_id, dataspace_id, memspace_id
+    integer(hid_t) :: h5_root_id,dataset_id,group_id
     integer :: ierr,i,j    
     integer(HSIZE_T), dimension(2) :: h_dims, h_offset
     character*100 errmsg
     real(8), allocatable :: eigvec_(:,:)
-    integer(4) ::  dims_(2), offset_(2), dim_(1), ndims
+    integer(4) ::  dims_(2), offset_(2), ndims
     character(len=1024) :: path, dsetname
     character(256) :: ci
     ! allocate output

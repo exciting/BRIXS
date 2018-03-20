@@ -267,8 +267,9 @@ module mod_rixs
     complex(8), intent(out) :: oscstr(:,:)
     ! local variables
     integer :: hamsiz, lambda, omega, dims(2)
-    complex(8) :: alpha1, alpha2, beta
+    complex(8) :: alpha1, alpha2, beta, alpha
     complex(8), allocatable :: inter(:,:), inter2(:)
+    complex(8), allocatable :: oscstr2(:,:)
     ! set paramteres
     hamsiz=object%hamsize
     alpha1=-1.0d0
@@ -288,6 +289,18 @@ module mod_rixs
         call zgemm('N','N',hamsiz,1,hamsiz,alpha2,inter,hamsiz,A(:,omega),hamsiz,beta,inter2,hamsiz)
         ! generate oscillator strength
         call zgemm('C','N',1,1,hamsiz,alpha2,A(:,omega),hamsiz,inter2,hamsiz,beta,oscstr(lambda,omega),hamsiz)
+      end do
+    end do
+    ! test other way of calculating
+    allocate(oscstr2(dims(1),dims(2)))
+    do omega=1,dims(2)
+      alpha=1.0
+      beta=0.0
+      call zgemm('C','N',hamsiz,1,hamsiz,alpha,object%eigvecs,hamsiz,A(:,omega),hamsiz,beta,oscstr2(:,omega),hamsiz)
+    end do
+    do omega=1,dims(2)
+      do lambda=1,dims(1)
+        print *, 'oscstr(', lambda, ',', omega,')=', abs(oscstr(lambda,omega))-abs(oscstr2(lambda,omega))**2
       end do
     end do
     deallocate(inter,inter2)

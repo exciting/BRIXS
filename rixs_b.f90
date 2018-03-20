@@ -15,7 +15,7 @@ program rixs
   type(input) :: inputparam
   integer(4), allocatable :: koulims_comb(:,:)
   character(1024) :: fname_core, fname_optical,fname_pmat
-  integer(4) :: nblocks_, blsz_, k, k2
+  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k
   complex(8), allocatable :: oscstr_b(:,:)
   type(block1d) :: vecA_b, evals_b
   type(block2d) :: evecs_b
@@ -70,21 +70,27 @@ program rixs
   nu=optical%koulims(2,1)-optical%koulims(1,1)+1
   no=optical%koulims(4,1)-optical%koulims(3,1)+1
   ! define blocks for oscillator strenght
-  nblocks_=nkmax
-  blsz_=nu*no
+  nk_=16
+  blsz_k=nu*no
+  blsz_=nu*no*nk_
+  nblocks_=nkmax/nk_
   print *, 'calculating ', nblocks_, 'blocks of size ', blsz_
   allocate(oscstr_b(blsz_,size(omega)))
+  oscstr_b(:,:)=0.0d0
   ! open file
   open(unit=6,file="exciton.txt",action="write",status="replace")
   print *, 'start loop over blocks'
   !do k=1, nblocks_
-  do k=1, 1
+  do k=1, nblocks_
     print *, 'calculating block ', k, '/', nblocks_
     ! set up block for eigenvalues (needed only for file output)
     evals_b%nblocks=nblocks_
     evals_b%blocksize=blsz_
+    evals_b%nk=nk_
     evals_b%il=(k-1)*blsz_+1
     evals_b%iu=k*blsz_
+    evals_b%kl=(k-1)*nk_+1
+    evals_b%ku=k*nk_
     evals_b%offset=(k-1)*blsz_
     evals_b%id=k
     ! generate block of eigenvalues
@@ -96,43 +102,45 @@ program rixs
       ! set up block for eigenvectors
       evecs_b%nblocks=nblocks_
       evecs_b%blocksize=blsz_
+      evecs_b%nk=nk_
       evecs_b%il=(k2-1)*blsz_+1
       evecs_b%iu=k2*blsz_
+      evecs_b%k1l=(k2-1)*nk_+1
+      evecs_b%k1u=k2*nk_
       evecs_b%jl=(k-1)*blsz_+1
       evecs_b%ju=k*blsz_
+      evecs_b%k2l=(k-1)*nk_+1
+      evecs_b%k2u=k*nk_
       evecs_b%offset(1)=(k2-1)*blsz_
-      evecs_b%offset(2)=(k2-1)*blsz_
+      evecs_b%offset(2)=(k-1)*blsz_
       evecs_b%id(1)=k2
-      evecs_b%id(2)=k2
+      evecs_b%id(2)=k
       !set up block for A matrix
       vecA_b%nblocks=nblocks_
       vecA_b%blocksize=blsz_
+      vecA_b%nk=nk_
       vecA_b%il=(k2-1)*blsz_+1
       vecA_b%iu=k2*blsz_
+      vecA_b%kl=(k2-1)*nk_+1
+      vecA_b%ku=k2*nk_
       vecA_b%offset=(k2-1)*blsz_
       vecA_b%id=k2
        
       ! generate block of eigenvectors
-      call cpu_time(start)
       call get_eigvecs2D_b(evecs_b,fname_optical)
-      call cpu_time(finish)
-        print *, 'get_eigvecs2D_b used', finish-start, 'seconds'
-      print *, 'starting loop over frequencies'
       do w1=1, size(omega)
         ! generate block of A vector
         call cpu_time(start)
         call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,fname_pmat,fname_core,pol)
         call cpu_time(finish)
-        print *, 'generate_Avector_b used', finish-start, 'seconds'
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
         call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr_b(:,w1),blsz_)
-        print *, 'block of oscillator strength generated'
       end do ! w1
     end do ! k2
     do lambda=1, blsz_
-      write(6,'( *(2X, f14.6)\ )') evals_b%dcontent(lambda)*27.211d0,(abs(oscstr_b(lambda,w1)), w1=1,size(omega))
+      write(6,'( *(2X, f14.6)\ )') evals_b%dcontent(lambda)*27.211d0,(abs(oscstr_b(lambda,w1))**2, w1=1,size(omega))
     end do ! lambda
   end do ! k  
   !close file and hdf5 interface
