@@ -20,7 +20,7 @@ program rixs
   type(block1d) :: vecA_b, evals_b
   type(block2d) :: evecs_b
   complex(8) :: alpha, beta
-  real(8) :: start, finish
+  real(8) :: start, finish, test
   call hdf5_initialize()
   
   !Specify file/dataset name
@@ -55,7 +55,6 @@ program rixs
   allocate(omega2(size(inputparam%omega2)))
   omega(:)=inputparam%omega(:) 
   omega2(:)=inputparam%omega2(:) 
-  
   ! set polarization vector
   pol(1)=1.0d0
   pol(2)=0.0d0
@@ -69,11 +68,17 @@ program rixs
   koulims_comb(4,:)=core%koulims(4,:)
   nu=optical%koulims(2,1)-optical%koulims(1,1)+1
   no=optical%koulims(4,1)-optical%koulims(3,1)+1
+  ! test whether the blocksize is possible
+  test=float(nkmax)/float(inputparam%nblocks)
+  if (float(floor(test)) .ne. test) then
+    print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
+    stop
+  end if 
   ! define blocks for oscillator strenght
-  nk_=16
+  nk_=nkmax/inputparam%nblocks
   blsz_k=nu*no
   blsz_=nu*no*nk_
-  nblocks_=nkmax/nk_
+  nblocks_=inputparam%nblocks
   print *, 'calculating ', nblocks_, 'blocks of size ', blsz_
   allocate(oscstr_b(blsz_,size(omega)))
   oscstr_b(:,:)=0.0d0
