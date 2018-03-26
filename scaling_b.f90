@@ -64,7 +64,7 @@ program scaling_b
   ! open file
   open(unit=6,file="scaling.txt",action="write",status="replace")
  
-  do exponent_=1,4
+  do exponent_=1,5
     runtime=0.0d0
     runtime2=0.0d0
     nblocks_=2**exponent_
