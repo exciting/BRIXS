@@ -593,6 +593,66 @@ module mod_blocks
   end subroutine
   
   !-----------------------------------------------------------------------------
+  subroutine put_block1d(in1d,fname,groupname)
+    use mod_hdf5
+    implicit none
+    type(block1d), intent(in) :: in1d
+    character(len=1024), intent(in) :: fname, groupname
+    ! local variables
+    character(len=1024) :: gname_, id_
+    ! create group if needed
+    write(id_, '(I4.4)') in1d%id
+    ! create group for block
+    call hdf5_create_group(fname,groupname,id_)
+    gname_=trim(adjustl(groupname))//'/'//trim(adjustl(id_))//"/"
+    ! write metadata
+    call hdf5_write(fname,gname_,"nblocks",in1d%nblocks)
+    call hdf5_write(fname,gname_,"blocksize",in1d%blocksize)
+    call hdf5_write(fname,gname_,"nk",in1d%nk)
+    call hdf5_write(fname,gname_,"il",in1d%il)
+    call hdf5_write(fname,gname_,"iu",in1d%iu)
+    call hdf5_write(fname,gname_,"kl",in1d%kl)
+    call hdf5_write(fname,gname_,"ku",in1d%ku)
+    call hdf5_write(fname,gname_,"offset",in1d%offset)
+    ! write content
+    if (allocated(in1d%zcontent)) then
+      call hdf5_write(fname,gname_,"zcontent",in1d%zcontent(1),shape(in1d%zcontent))
+    else
+      call hdf5_write(fname,gname_,"dcontent",in1d%dcontent(1),shape(in1d%dcontent))
+    end if
+
+  end subroutine
+  
+  !-----------------------------------------------------------------------------
+  subroutine get_block1d(in1d,fname,groupname)
+    use mod_hdf5
+    implicit none
+    type(block1d), intent(inout) :: in1d
+    character(len=1024), intent(in) :: fname, groupname
+    ! local variables
+    character(len=1024) :: gname_, id_, group_
+    ! get groupname 
+    write(id_, '(I4.4)') in1d%id
+    gname_=trim(adjustl(groupname))//'/'//trim(adjustl(id_))//"/"
+    
+    ! read metadata
+    call hdf5_read(fname,gname_,"nblocks",in1d%nblocks)
+    call hdf5_read(fname,gname_,"blocksize",in1d%blocksize)
+    call hdf5_read(fname,gname_,"nk",in1d%nk)
+    call hdf5_read(fname,gname_,"il",in1d%il)
+    call hdf5_read(fname,gname_,"iu",in1d%iu)
+    call hdf5_read(fname,gname_,"kl",in1d%kl)
+    call hdf5_read(fname,gname_,"ku",in1d%ku)
+    call hdf5_read(fname,gname_,"offset",in1d%offset)
+    ! allocate array if necessary
+    if (allocated(in1d%zcontent)) deallocate(in1d%zcontent)
+    allocate(in1d%zcontent(in1d%blocksize))
+    ! read content
+    call hdf5_read(fname,gname_,"zcontent",in1d%zcontent(1),shape(in1d%zcontent))
+
+  end subroutine
+
+  !-----------------------------------------------------------------------------
   subroutine print_properties1d(block)
     implicit none
     type(block1d), intent(in) :: block
@@ -733,85 +793,4 @@ module mod_blocks
     print *, 'problem with quick read!'
   end subroutine 
 
-  !-----------------------------------------------------------------------------
-  subroutine get_eigvecs2D_b_quick2(inblock2d,fname)
-    use hdf5
-    implicit none
-    type(block2d), intent(inout) :: inblock2d
-    character(len=1024), intent(in) :: fname
-    !local variables
-    !complex(8), allocatable :: eigvec_(:)
-    integer(hid_t) :: h5_root_id,dataset_id,group_id
-    integer :: ierr,i,j    
-    integer(HSIZE_T), dimension(2) :: h_dims, h_offset
-    character*100 errmsg
-    real(8), allocatable :: eigvec_(:,:)
-    integer(4) ::  dims_(2), offset_(2), ndims
-    character(len=1024) :: path, dsetname
-    character(256) :: ci
-    ! allocate output
-    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
-    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize)) 
-    !allocate intermediate real matrix
-    allocate(eigvec_(2,640))
-    eigvec_(:,:)=0.0d0
-    ! determine dimensions
-    ndims=2
-    dims_=(/2,inblock2d%blocksize/)
-    offset_=(/0,inblock2d%offset(1)/)
-    path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-    do i=1,2
-      h_dims(i)=dims_(i)
-      h_offset(i)=offset_(i)
-    enddo
-    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5fopen_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5gopen_f returned ",I6)')ierr
-      goto 10
-    endif
-    do i=1, inblock2d%blocksize
-      write(ci, '(I8.8)') i+inblock2d%offset(2)
-      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-      dsetname=trim(adjustl(ci))
-      call h5dopen_f(group_id,trim(dsetname),dataset_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dopen_f returned ",I6)')ierr
-        goto 10
-      endif
-      call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,eigvec_,h_dims,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
-        goto 10
-      endif
-      ! write to output
-      do j=1, inblock2d%blocksize
-        inblock2d%zcontent(j,i)=cmplx(eigvec_(1,j+offset_(2)),eigvec_(2,j+offset_(2)))
-      end do
-      call h5dclose_f(dataset_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dclose_f returned ",I6)')ierr
-        goto 10
-      endif
-    end do
-    call h5gclose_f(group_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5gclose_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5fclose_f(h5_root_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5fclose_f returned ",I6)')ierr
-      goto 10
-    endif
-    deallocate(eigvec_)
-    return
-    10 continue
-    print *, 'problem with quick read!'
-  end subroutine 
-   
 end module mod_blocks
