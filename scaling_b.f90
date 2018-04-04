@@ -64,7 +64,7 @@ program scaling_b
   ! open file
   open(unit=6,file="scaling.txt",action="write",status="replace")
  
-  do exponent_=1,4
+  do exponent_=1,5
     write (ichr, '(I4.2)') exponent_
     fname_output=trim(adjustl('./rixs-'//trim(adjustl(ichr))//'.h5'))
     ! create output file, beacause it cannot be created in subroutine rixs2
