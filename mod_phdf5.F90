@@ -5,7 +5,8 @@ module mod_phdf5
   end interface
   interface phdf5_read
     module procedure phdf5_read_d, &
-        &            phdf5_read_z
+        &            phdf5_read_z, &
+        &            phdf5_read_i
   end interface
   ! initialize and finalize interface
   public phdf5_initialize
@@ -48,7 +49,7 @@ contains
     use hdf5
     use mpi
     implicit none
-    character(1024), intent(in) :: fname
+    character(*), intent(in) :: fname
     logical, intent(in) :: fparallel
     integer(hid_t), intent(out) :: file_id
     integer, optional :: comm
@@ -104,7 +105,7 @@ contains
     use hdf5
     use mpi
     implicit none
-    character(1024), intent(in) :: fname
+    character(*), intent(in) :: fname
     logical, intent(in) :: fparallel
     integer(hid_t), intent(out) :: file_id
     integer, optional :: comm
@@ -129,7 +130,7 @@ contains
         goto 10
       endif    
       ! create the file collectively
-      call h5fopen_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr,access_prp=plist_id)
+      call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,file_id,ierr,access_prp=plist_id)
       if (ierr.ne.0) then
         write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
         goto 10
@@ -162,7 +163,7 @@ contains
     ! local variable
     integer :: ierr
     character*100 :: errmsg
-
+    
     call h5fclose_f(file_id,ierr)
     if (ierr.ne.0) then
       write(errmsg,'("Error(phdf5_close_file): h5fclose_f returned ",I6)')ierr
@@ -222,7 +223,7 @@ contains
         integer(hid_t), intent(in) :: file_id
         character(*), intent(in) :: path
         character(*), intent(in) :: gname
-        integer(hid_t):: h5_root_id, h5_group_id
+        integer(hid_t):: h5_group_id
         integer ierr
  
         call h5gopen_f(file_id,trim(path),h5_group_id,ierr)
@@ -230,12 +231,12 @@ contains
           write(*,'("Error(phdf5_exist_group): h5gopen_f returned ",I6)')ierr
           goto 10
         endif
-        call h5lexists_f(h5_group_id,trim(gname),hdf5_exist_group,ierr)
+        call h5lexists_f(h5_group_id,trim(gname),phdf5_exist_group,ierr)
         if (ierr.ne.0) then
           write(*,'("Error(phdf5_exist_group): h5lexists_f returned ",I6)')ierr
           goto 10
         endif
-        call h5fclose_f(h5_root_id,ierr)
+        call h5gclose_f(h5_group_id,ierr)
         if (ierr.ne.0) then
           write(*,'("Error(phdf5_exist_group): h5fclose_f returned ",I6)')ierr
           goto 10
@@ -252,7 +253,6 @@ contains
   subroutine phdf5_finalize
     use hdf5
     implicit none
-    integer(hid_t), intent(in) :: file_id
     ! local variable
     integer :: ierr
     character*100 :: errmsg
@@ -265,7 +265,6 @@ contains
     return
     10 continue
     write(*,'(A)')trim(errmsg)
-    write(*,'("  file_id : ",I4)')file_id
     stop
   
   end subroutine 
@@ -276,7 +275,7 @@ contains
     integer, intent(in) :: ndims
     integer, dimension(ndims), intent(in) :: dims
     logical, intent(in) :: fcomplex
-    character(1024), intent(in) :: dname, path
+    character(*), intent(in) :: dname, path
     integer(hid_t), intent(in) :: file_id
     integer(hid_t), intent(out) :: dataset_id
     !local variables
@@ -339,7 +338,7 @@ contains
     integer, intent(in) :: ndims
     integer, intent(in) :: dims(ndims)
     logical, intent(in) :: fcomplex
-    character(1024), intent(in) :: dname, path
+    character(*), intent(in) :: dname, path
     integer(hid_t), intent(in) :: file_id
     integer(hid_t), intent(out) :: dataset_id
     !local variables
@@ -474,6 +473,29 @@ contains
   end subroutine
 
 !-----------------------------------------------------------------------------
+  subroutine phdf5_read_i(val,fparallel,dims,dimsg,offset,dataset_id)
+    use hdf5
+    implicit none
+    integer(4), intent(out) :: val
+    logical, intent(in) :: fparallel
+    integer(4), dimension(:), intent(in) :: dims, dimsg, offset
+    integer(hid_t), intent(in) :: dataset_id
+    ! local variables
+    integer(hsize_t), allocatable, dimension(:) :: dims_, dimsg_, offset_
+    integer(4) :: ndims_
+    ! get number of dimensions & allocate hdf5 size arrays
+    ndims_=size(dims)
+    allocate(dims_(ndims_),dimsg_(ndims_),offset_(ndims_))
+    ! set local arrays
+    dims_(:)=dims(:)
+    dimsg_(:)=dimsg(:)
+    offset_(:)=offset(:)
+    ! write to hdf5
+    call phdf5_read_array_i(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    !deallocate arrays
+    deallocate(dims_,dimsg_,offset_)
+  end subroutine
+!-----------------------------------------------------------------------------
   subroutine phdf5_read_z(val,fparallel,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
@@ -525,7 +547,7 @@ contains
           goto 10
         endif
         ! open dataset
-        call h5dopen_f(group_id,sname,dset_id,ierr)
+        call h5dopen_f(group_id,datasetname,dset_id,ierr)
         if (ierr.ne.0) then
           write(errmsg,'("Error(phdf5_get_dims): h5dopen_f returned ",I6)')ierr
           goto 10
@@ -549,18 +571,27 @@ contains
         end do
         call h5sclose_f(dspace_id, ierr)
         if (ierr.ne.0) then
-          write(errmsg,'("Error(hdf5_create_group): h5sget_space_f returned ",I6)')ierr
+          write(errmsg,'("Error(hdf5_get_dims): h5sclose_f returned ",I6)')ierr
           goto 10
         endif
         call h5dclose_f(dset_id, ierr)
+        if (ierr.ne.0) then
+          write(errmsg,'("Error(hdf5_get_dims): h5dclose_f returned ",I6)')ierr
+          goto 10
+        endif
+        call h5gclose_f(group_id, ierr)
+        if (ierr.ne.0) then
+          write(errmsg,'("Error(hdf5_get_dims): h5gclose_f returned ",I6)')ierr
+          goto 10
+        endif
         
         deallocate(dims_,maxdims_)
         return
         10 continue
         write(*,'(A)')trim(errmsg)
-        write(*,'("  fname : ",A)')trim(fname)
+        write(*,'("  file_id : ",I4)')file_id
         write(*,'("  path  : ",A)')trim(path)
-        write(*,'("  sname    : ",A)')trim(sname)
+        write(*,'("  datasetname    : ",A)')trim(datasetname)
         write(*,'("  dims  : ",10I4)')dims
         stop
         
@@ -632,6 +663,42 @@ subroutine phdf5_read_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   ! serial read
   else
     call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
+  end if
+  ! close memory space and dataspace
+  call h5sclose_f(dataspace_id,ierr)
+  call h5sclose_f(memspace_id,ierr) 
+end subroutine
+
+!-----------------------------------------------------------------------------
+subroutine phdf5_read_array_i(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
+  use hdf5
+  implicit none
+  integer(4), intent(out) :: a(*)
+  logical, intent(in) :: fparallel
+  integer(4), intent(in) :: ndims
+  integer(hsize_t), intent(in) :: dims(ndims), dimsg(ndims), offset(ndims)
+  integer(hid_t), intent(in) :: dataset_id
+  ! local variables
+  integer(4) :: ierr
+  integer(hid_t) :: memspace_id, dataspace_id, plist_id
+  ! create memoryspace
+  call h5screate_simple_f(ndims,dims,memspace_id,ierr)
+  ! select hyperslab in file
+  call h5dget_space_f(dataset_id,dataspace_id,ierr)
+  call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,offset,dims,ierr)
+  ! read from hyperslab
+  ! MPI read
+  if (fparallel) then
+    ! create property list for individual dataset write
+    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+    ! read dataset into memory
+    call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+    ! close the property list
+    call h5pclose_f(plist_id,ierr)
+  ! serial read
+  else
+    call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id)
   end if
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)

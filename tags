@@ -4,422 +4,436 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-10	mod_blocks.f90	/^    10 continue$/;"	l	subroutine:get_eigvecs2D_b_quick	file:
-10	mod_hdf5.f90	/^        10 continue$/;"	l	function:hdf5_exist_group	file:
-10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_create_file	file:
-10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_create_group	file:
-10	mod_hdf5.f90	/^        10 continue$/;"	l	subroutine:hdf5_get_dims	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_block_d	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_block_i4	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_c	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_d	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_i4	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_c	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_d	file:
-10	mod_hdf5.f90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_i4	file:
-10	mod_phdf5.f90	/^    10 continue$/;"	l	subroutine:phdf5_finalize	file:
-10	mod_phdf5.f90	/^    10 continue$/;"	l	subroutine:phdf5_initialize	file:
-10	mod_phdf5.f90	/^    10 continue$/;"	l	subroutine:phdf5_setup_read	file:
-10	mod_phdf5.f90	/^    10 continue$/;"	l	subroutine:phdf5_setup_write	file:
-A	debug_b.f90	/^  complex(8), allocatable :: A_/;"	v	program:rixs
-A	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(/;"	v	program:rixs
-A_inter	debug_b.f90	/^  complex(8), allocatable :: A_inter(/;"	v	program:rixs
-A_inter	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(:,:,:),A_inter(/;"	v	program:rixs
-A_matrix	debug_b.f90	/^  complex(8), allocatable :: A_inter(:), A(:,:), A_matrix(/;"	v	program:rixs
-A_matrix	rixs.f90	/^  complex(8), allocatable :: B_matrix(:,:,:),A(:,:), A_matrix(/;"	v	program:rixs
-B	debug_b.f90	/^  complex(8), allocatable :: chi_core(:,:,:), pmat(:), B(/;"	v	program:rixs
-B	rixs.f90	/^  complex(8), allocatable :: chi_optical(:,:,:), B(/;"	v	program:rixs
-B_matrix	debug_b.f90	/^  complex(8), allocatable :: B_matrix(/;"	v	program:rixs
-B_matrix	rixs.f90	/^  complex(8), allocatable :: B_matrix(/;"	v	program:rixs
-alpha	debug_b.f90	/^  complex(8) :: alpha,/;"	v	program:rixs
-alpha	rixs_b.f90	/^  complex(8) :: alpha,/;"	v	program:rixs
-alpha	rixs_b2.f90	/^  complex(8) :: alpha,/;"	v	program:rixs_b2
-alpha	rixs_bp.f90	/^  complex(8) :: alpha,/;"	v	program:rixs_b2
-beta	debug_b.f90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs
-beta	rixs_b.f90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs
-beta	rixs_b2.f90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs_b2
-beta	rixs_bp.f90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs_b2
-block1d	mod_blocks.f90	/^  type :: block1d$/;"	t	module:mod_blocks
-block2d	mod_blocks.f90	/^  type :: block2d$/;"	t	module:mod_blocks
-block3d	mod_blocks.f90	/^  type :: block3d$/;"	t	module:mod_blocks
-blocksize	mod_blocks.f90	/^    integer(4) :: blocksize /;"	k	type:block1d
-blocksize	mod_blocks.f90	/^    integer(4) :: blocksize /;"	k	type:block2d
-blocksize	mod_blocks.f90	/^    integer(4), dimension(3) :: blocksize /;"	k	type:block3d
-blsz2_	debug_b.f90	/^  integer(4) :: nblocks_, blsz_, blsz2_,/;"	v	program:rixs
-blsz_	debug_b.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs
-blsz_	rixs_b.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs
-blsz_	rixs_b2.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs_b2
-blsz_	rixs_bp.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs_b2
-blsz_	scaling_b.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:scaling_b
-blsz_	scaling_single.f90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:scaling_b
-blsz_k	debug_b.f90	/^  integer(4) :: nk_, blsz_k,/;"	v	program:rixs
-blsz_k	rixs_b.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs
-blsz_k	rixs_b2.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs_b2
-blsz_k	rixs_bp.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs_b2
-blsz_k	scaling_b.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k$/;"	v	program:scaling_b
-blsz_k	scaling_single.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k$/;"	v	program:scaling_b
-broad	debug_b.f90	/^  real(8) :: broad,/;"	v	program:rixs
-broad	mod_io.f90	/^    real(8) :: broad,/;"	k	type:input
-broad	rixs.f90	/^  real(8) :: broad,/;"	v	program:rixs
-broad	rixs_b.f90	/^  real(8) :: broad,/;"	v	program:rixs
-broad	rixs_b2.f90	/^  real(8) :: broad,/;"	v	program:rixs_b2
-broad	rixs_bp.f90	/^  real(8) :: broad,/;"	v	program:rixs_b2
-broad	scaling_b.f90	/^  real(8) :: broad,/;"	v	program:scaling_b
-broad	scaling_single.f90	/^  real(8) :: broad,/;"	v	program:scaling_b
-broad2	debug_b.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
-broad2	mod_io.f90	/^    real(8) :: broad, broad2$/;"	k	type:input
-broad2	rixs.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
-broad2	rixs_b.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
-broad2	rixs_b2.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs_b2
-broad2	rixs_bp.f90	/^  real(8) :: broad, broad2$/;"	v	program:rixs_b2
-broad2	scaling_b.f90	/^  real(8) :: broad, broad2$/;"	v	program:scaling_b
-broad2	scaling_single.f90	/^  real(8) :: broad, broad2$/;"	v	program:scaling_b
-chi_core	debug_b.f90	/^  complex(8), allocatable :: chi_core(/;"	v	program:rixs
-chi_core_b	debug_b.f90	/^  type(block2d) ::chi_core_b,/;"	v	program:rixs
-chi_optical	rixs.f90	/^  complex(8), allocatable :: chi_optical(/;"	v	program:rixs
-core	debug_b.f90	/^  type(io) :: optical, core$/;"	v	program:rixs
-core	rixs.f90	/^  type(io) :: optical, core$/;"	v	program:rixs
-core	rixs_b.f90	/^  type(io) :: optical, core$/;"	v	program:rixs
-core	rixs_b2.f90	/^  type(io) :: optical, core$/;"	v	program:rixs_b2
-core	rixs_bp.f90	/^  type(io) :: optical, core$/;"	v	program:rixs_b2
-core	scaling_b.f90	/^  type(io) :: optical, core$/;"	v	program:scaling_b
-core	scaling_single.f90	/^  type(io) :: optical, core$/;"	v	program:scaling_b
-dcontent	mod_blocks.f90	/^    real(8), allocatable :: dcontent(/;"	k	type:block1d
-dcontent	mod_blocks.f90	/^    real(8), allocatable :: dcontent(/;"	k	type:block2d
-eigvec2_b	debug_b.f90	/^  type(block2d) ::chi_core_b, eigvec_b, eigvec2_b$/;"	v	program:rixs
-eigvec_b	debug_b.f90	/^  type(block2d) ::chi_core_b, eigvec_b,/;"	v	program:rixs
-eigvecs	mod_io.f90	/^    complex(8), allocatable :: eigvecs(/;"	k	type:io
-eval_b	debug_b.f90	/^  type(block1d) :: eval_b,/;"	v	program:rixs
-evals	mod_io.f90	/^    real(8), allocatable :: evals(/;"	k	type:io
-evals_b	rixs_b.f90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs
-evals_b	rixs_b2.f90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs_b2
-evals_b	rixs_bp.f90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs_b2
-evecs_b	rixs_b.f90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs
-evecs_b	rixs_b2.f90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs_b2
-evecs_b	rixs_bp.f90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs_b2
-evecs_b	scaling_b.f90	/^  type(block2d) :: evecs_b$/;"	v	program:scaling_b
-evecs_b	scaling_single.f90	/^  type(block2d) :: evecs_b$/;"	v	program:scaling_b
-exponent_	scaling_b.f90	/^  integer :: nkmax, nu, no, exponent_,/;"	v	program:scaling_b
-exponent_	scaling_single.f90	/^  integer :: nkmax, nu, no, exponent_,/;"	v	program:scaling_b
-finish	rixs_b.f90	/^  real(8) :: start, finish,/;"	v	program:rixs
-finish	rixs_b2.f90	/^  real(8) :: start, finish,/;"	v	program:rixs_b2
-finish	rixs_bp.f90	/^  real(8) :: start, finish,/;"	v	program:rixs_b2
-finish	scaling_b.f90	/^  real(8) :: start, finish,/;"	v	program:scaling_b
-finish	scaling_single.f90	/^  real(8) :: start, finish,/;"	v	program:scaling_b
-fname_core	debug_b.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs
-fname_core	rixs.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs
-fname_core	rixs_b.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs
-fname_core	rixs_b2.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs_b2
-fname_core	rixs_bp.f90	/^  character(1024) :: fname_core,/;"	v	program:rixs_b2
-fname_core	scaling_b.f90	/^  character(1024) :: fname_core,/;"	v	program:scaling_b
-fname_core	scaling_single.f90	/^  character(1024) :: fname_core,/;"	v	program:scaling_b
-fname_optical	debug_b.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
-fname_optical	rixs.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
-fname_optical	rixs_b.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
-fname_optical	rixs_b2.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs_b2
-fname_optical	rixs_bp.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs_b2
-fname_optical	scaling_b.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:scaling_b
-fname_optical	scaling_single.f90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:scaling_b
-fname_output	rixs_b2.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output,/;"	v	program:rixs_b2
-fname_output	rixs_bp.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output,/;"	v	program:rixs_b2
-fname_output	scaling_b.f90	/^  character(1024) :: ichr, fname_output$/;"	v	program:scaling_b
-fname_output	scaling_single.f90	/^  character(1024) :: ichr, fname_output$/;"	v	program:scaling_b
-fname_pmat	debug_b.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
-fname_pmat	rixs.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
-fname_pmat	rixs_b.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
-fname_pmat	rixs_b2.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat,/;"	v	program:rixs_b2
-fname_pmat	rixs_bp.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat,/;"	v	program:rixs_b2
-fname_pmat	scaling_b.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:scaling_b
-fname_pmat	scaling_single.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:scaling_b
-generate_Avector_b	mod_blocks.f90	/^  subroutine generate_Avector_b(/;"	s	module:mod_blocks
-generate_Bvector	mod_rixs.f90	/^  subroutine generate_Bvector(/;"	s	module:mod_rixs
-generate_Bvector_b	mod_blocks.f90	/^  subroutine generate_Bvector_b(/;"	s	module:mod_blocks
-generate_chi	mod_rixs.f90	/^  subroutine generate_chi(/;"	s	module:mod_rixs
-generate_chi_block	mod_blocks.f90	/^  subroutine generate_chi_block(/;"	s	module:mod_blocks
-generate_oscstr	mod_rixs.f90	/^  subroutine generate_oscstr(/;"	s	module:mod_rixs
-generate_oscstr_b	mod_blocks.f90	/^  subroutine generate_oscstr_b(/;"	s	module:mod_blocks
-generate_t	mod_rixs.f90	/^  subroutine generate_t(/;"	s	module:mod_rixs
-generate_tblock	mod_blocks.f90	/^  subroutine generate_tblock(/;"	s	module:mod_blocks
-generate_tprime	mod_rixs.f90	/^  subroutine generate_tprime(/;"	s	module:mod_rixs
-generate_tprime_block	mod_blocks.f90	/^  subroutine generate_tprime_block(/;"	s	module:mod_blocks
-get_block1d	mod_blocks.f90	/^  subroutine get_block1d(/;"	s	module:mod_blocks
-get_block2d	mod_blocks.f90	/^  subroutine get_block2d(/;"	s	module:mod_blocks
-get_eigvecs	mod_io.f90	/^  subroutine get_eigvecs(/;"	s	module:mod_io
-get_eigvecs2D_b	mod_blocks.f90	/^  subroutine get_eigvecs2D_b(/;"	s	module:mod_blocks
-get_eigvecs2D_b_quick	mod_blocks.f90	/^  subroutine get_eigvecs2D_b_quick(/;"	s	module:mod_blocks
-get_evals	mod_io.f90	/^  subroutine get_evals(/;"	s	module:mod_io
-get_evals_block	mod_blocks.f90	/^    subroutine get_evals_block(/;"	s	module:mod_blocks
-get_ismap	mod_io.f90	/^  subroutine get_ismap(/;"	s	module:mod_io
-get_koulims	mod_io.f90	/^  subroutine get_koulims(/;"	s	module:mod_io
-get_smap	mod_io.f90	/^  subroutine get_smap(/;"	s	module:mod_io
-gname	rixs_b2.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &$/;"	v	program:rixs_b2
-gname	rixs_bp.f90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &$/;"	v	program:rixs_b2
-gname2	rixs_b2.f90	/^   & gname, gname2,/;"	v	program:rixs_b2
-gname2	rixs_bp.f90	/^   & gname, gname2,/;"	v	program:rixs_b2
-gname3	rixs_b2.f90	/^   & gname, gname2, gname3,/;"	v	program:rixs_b2
-gname3	rixs_bp.f90	/^   & gname, gname2, gname3,/;"	v	program:rixs_b2
-hamsiz	debug_b.f90	/^  integer(4) :: nk_, blsz_k, hamsiz,/;"	v	program:rixs
-hamsiz	rixs.f90	/^  integer :: interdim(2), hamsiz,/;"	v	program:rixs
-hamsize	mod_io.f90	/^    integer(4) :: hamsize,/;"	k	type:io
-hdf5_create_file	mod_hdf5.f90	/^    subroutine hdf5_create_file(/;"	s	module:mod_hdf5
-hdf5_create_group	mod_hdf5.f90	/^    subroutine hdf5_create_group(/;"	s	module:mod_hdf5
-hdf5_exist_group	mod_hdf5.f90	/^    logical function hdf5_exist_group(/;"	f	module:mod_hdf5
-hdf5_finalize	mod_hdf5.f90	/^    subroutine hdf5_finalize$/;"	s	module:mod_hdf5
-hdf5_get_dims	mod_hdf5.f90	/^    subroutine hdf5_get_dims(/;"	s	module:mod_hdf5
-hdf5_initialize	mod_hdf5.f90	/^    subroutine hdf5_initialize$/;"	s	module:mod_hdf5
-hdf5_read_array_block_d	mod_hdf5.f90	/^subroutine hdf5_read_array_block_d(/;"	s
-hdf5_read_array_block_i4	mod_hdf5.f90	/^subroutine hdf5_read_array_block_i4(/;"	s
-hdf5_read_array_c	mod_hdf5.f90	/^subroutine hdf5_read_array_c(/;"	s
-hdf5_read_array_d	mod_hdf5.f90	/^subroutine hdf5_read_array_d(/;"	s
-hdf5_read_array_i4	mod_hdf5.f90	/^subroutine hdf5_read_array_i4(/;"	s
-hdf5_read_block_d	mod_hdf5.f90	/^    subroutine hdf5_read_block_d(/;"	s	module:mod_hdf5
-hdf5_read_block_i4	mod_hdf5.f90	/^    subroutine hdf5_read_block_i4(/;"	s	module:mod_hdf5
-hdf5_read_block_z	mod_hdf5.f90	/^    subroutine hdf5_read_block_z(/;"	s	module:mod_hdf5
-hdf5_read_c	mod_hdf5.f90	/^    subroutine hdf5_read_c(/;"	s	module:mod_hdf5
-hdf5_read_d	mod_hdf5.f90	/^    subroutine hdf5_read_d(/;"	s	module:mod_hdf5
-hdf5_read_i4	mod_hdf5.f90	/^    subroutine hdf5_read_i4(/;"	s	module:mod_hdf5
-hdf5_read_l	mod_hdf5.f90	/^    subroutine hdf5_read_l(/;"	s	module:mod_hdf5
-hdf5_read_z	mod_hdf5.f90	/^    subroutine hdf5_read_z(/;"	s	module:mod_hdf5
-hdf5_write_array_c	mod_hdf5.f90	/^subroutine hdf5_write_array_c(/;"	s
-hdf5_write_array_d	mod_hdf5.f90	/^subroutine hdf5_write_array_d(/;"	s
-hdf5_write_array_i4	mod_hdf5.f90	/^subroutine hdf5_write_array_i4(/;"	s
-hdf5_write_c	mod_hdf5.f90	/^    subroutine hdf5_write_c(/;"	s	module:mod_hdf5
-hdf5_write_d	mod_hdf5.f90	/^    subroutine hdf5_write_d(/;"	s	module:mod_hdf5
-hdf5_write_i4	mod_hdf5.f90	/^    subroutine hdf5_write_i4(/;"	s	module:mod_hdf5
-hdf5_write_l	mod_hdf5.f90	/^    subroutine hdf5_write_l(/;"	s	module:mod_hdf5
-hdf5_write_z	mod_hdf5.f90	/^    subroutine hdf5_write_z(/;"	s	module:mod_hdf5
-i	debug_b.f90	/^  in/;"	v	program:rixs
-i	scaling_b.f90	/^  in/;"	v	program:scaling_b
-i	scaling_single.f90	/^  in/;"	v	program:scaling_b
-ichr	scaling_b.f90	/^  character(1024) :: ichr,/;"	v	program:scaling_b
-ichr	scaling_single.f90	/^  character(1024) :: ichr,/;"	v	program:scaling_b
-id	mod_blocks.f90	/^    integer(4) :: id /;"	k	type:block1d
-id	mod_blocks.f90	/^    integer(4) :: id /;"	k	type:block3d
-id	mod_blocks.f90	/^    integer(4), dimension(2) :: id /;"	k	type:block2d
-ik	rixs_b2.f90	/^   & gname, gname2, gname3, ik$/;"	v	program:rixs_b2
-ik	rixs_bp.f90	/^   & gname, gname2, gname3, ik$/;"	v	program:rixs_b2
-il	mod_blocks.f90	/^    integer(4) :: il,/;"	k	type:block1d
-il	mod_blocks.f90	/^    integer(4) :: il,/;"	k	type:block2d
-input	mod_io.f90	/^  type :: input$/;"	t	module:mod_io
-inputparam	debug_b.f90	/^  type(input) :: inputparam$/;"	v	program:rixs
-inputparam	rixs.f90	/^  type(input) :: inputparam$/;"	v	program:rixs
-inputparam	rixs_b.f90	/^  type(input) :: inputparam$/;"	v	program:rixs
-inputparam	rixs_b2.f90	/^  type(input) :: inputparam$/;"	v	program:rixs_b2
-inputparam	rixs_bp.f90	/^  type(input) :: inputparam$/;"	v	program:rixs_b2
-inputparam	scaling_b.f90	/^  type(input) :: inputparam$/;"	v	program:scaling_b
-inputparam	scaling_single.f90	/^  type(input) :: inputparam$/;"	v	program:scaling_b
-inspect_h5	mod_io.f90	/^  subroutine inspect_h5(/;"	s	module:mod_io
-inter	rixs.f90	/^  complex(8), allocatable :: inter(/;"	v	program:rixs
-inter2	rixs.f90	/^  complex(8) :: inter2$/;"	v	program:rixs
-interdim	debug_b.f90	/^  integer :: interdim(/;"	v	program:rixs
-interdim	rixs.f90	/^  integer :: interdim(/;"	v	program:rixs
-interdim	rixs_b.f90	/^  integer :: interdim(/;"	v	program:rixs
-interdim	rixs_b2.f90	/^  integer :: interdim(/;"	v	program:rixs_b2
-interdim	rixs_bp.f90	/^  integer :: interdim(/;"	v	program:rixs_b2
-interdim	scaling_b.f90	/^  integer :: interdim(/;"	v	program:scaling_b
-interdim	scaling_single.f90	/^  integer :: interdim(/;"	v	program:scaling_b
-io	mod_io.f90	/^  type :: io$/;"	t	module:mod_io
-ismap	mod_io.f90	/^    integer(4), allocatable :: smap(:,:), ismap(/;"	k	type:io
-iu	mod_blocks.f90	/^    integer(4) :: il, iu /;"	k	type:block1d
-iu	mod_blocks.f90	/^    integer(4) :: il, iu,/;"	k	type:block2d
-jl	mod_blocks.f90	/^    integer(4) :: il, iu, jl,/;"	k	type:block2d
-ju	mod_blocks.f90	/^    integer(4) :: il, iu, jl, ju /;"	k	type:block2d
-k	debug_b.f90	/^  integer(4) :: nblocks/;"	v	program:rixs
-k	rixs.f90	/^  integer :: w, nkm/;"	v	program:rixs
-k	rixs_b.f90	/^  integer(4) :: nblocks/;"	v	program:rixs
-k	rixs_b2.f90	/^  integer(4) :: nblocks/;"	v	program:rixs_b2
-k	rixs_bp.f90	/^  integer(4) :: nblocks/;"	v	program:rixs_b2
-k	scaling_b.f90	/^  integer(4) :: nblocks/;"	v	program:scaling_b
-k	scaling_single.f90	/^  integer(4) :: nblocks/;"	v	program:scaling_b
-k1l	mod_blocks.f90	/^    integer(4) :: k1l,/;"	k	type:block2d
-k1u	mod_blocks.f90	/^    integer(4) :: k1l, k1u,/;"	k	type:block2d
-k2	debug_b.f90	/^  integer(4) :: nblocks_, blsz_, blsz2_, k, k2,/;"	v	program:rixs
-k2	rixs_b.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs
-k2	rixs_b2.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs_b2
-k2	rixs_bp.f90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs_b2
-k2l	mod_blocks.f90	/^    integer(4) :: k1l, k1u, k2l,/;"	k	type:block2d
-k2u	mod_blocks.f90	/^    integer(4) :: k1l, k1u, k2l, k2u /;"	k	type:block2d
-k3	debug_b.f90	/^  integer(4) :: nk_, blsz_k, hamsiz, k3$/;"	v	program:rixs
-kl	mod_blocks.f90	/^    integer(4) :: kl,/;"	k	type:block1d
-kl	mod_blocks.f90	/^    integer(4) :: kl,/;"	k	type:block3d
-koulims	mod_io.f90	/^    integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(/;"	k	type:io
-koulims_comb	debug_b.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
-koulims_comb	rixs.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
-koulims_comb	rixs_b.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
-koulims_comb	rixs_b2.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs_b2
-koulims_comb	rixs_bp.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs_b2
-koulims_comb	scaling_b.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:scaling_b
-koulims_comb	scaling_single.f90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:scaling_b
-ku	mod_blocks.f90	/^    integer(4) :: kl, ku /;"	k	type:block1d
-ku	mod_blocks.f90	/^    integer(4) :: kl, ku /;"	k	type:block3d
-lambda	rixs.f90	/^  integer :: interdim(2), hamsiz, lambda$/;"	v	program:rixs
-lambda	rixs_b.f90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs
-lambda	rixs_b2.f90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs_b2
-lambda	rixs_bp.f90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs_b2
-lo	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,/;"	k	type:io
-lu	mod_io.f90	/^    integer(4) :: hamsize, lu,/;"	k	type:io
-matA_b	debug_b.f90	/^  type(block3d) :: matB_b, matA_b,/;"	v	program:rixs
-matB_b	debug_b.f90	/^  type(block3d) :: matB_b,/;"	v	program:rixs
-matprod_matmat	mod_matmul.f90	/^  subroutine matprod_matmat(/;"	s	module:mod_matmul
-matprod_matvec	mod_matmul.f90	/^  subroutine matprod_matvec(/;"	s	module:mod_matmul
-matprod_vecvec	mod_matmul.f90	/^  subroutine matprod_vecvec(/;"	s	module:mod_matmul
-mod_blocks	mod_blocks.f90	/^module mod_blocks$/;"	m
-mod_hdf5	mod_hdf5.f90	/^module mod_hdf5$/;"	m
-mod_io	mod_io.f90	/^module mod_io$/;"	m
-mod_matmul	mod_matmul.f90	/^module mod_matmul$/;"	m
-mod_phdf5	mod_phdf5.f90	/^module mod_phdf5$/;"	m
-mod_rixs	mod_rixs.f90	/^module mod_rixs$/;"	m
-nblocks	mod_blocks.f90	/^    integer(4) :: nblocks /;"	k	type:block1d
-nblocks	mod_blocks.f90	/^    integer(4) :: nblocks /;"	k	type:block2d
-nblocks	mod_blocks.f90	/^    integer(4) :: nblocks /;"	k	type:block3d
-nblocks	mod_io.f90	/^    integer :: nblocks$/;"	k	type:input
-nblocks_	debug_b.f90	/^  integer(4) :: nblocks_,/;"	v	program:rixs
-nblocks_	rixs_b.f90	/^  integer(4) :: nblocks_,/;"	v	program:rixs
-nblocks_	rixs_b2.f90	/^  integer(4) :: nblocks_,/;"	v	program:rixs_b2
-nblocks_	rixs_bp.f90	/^  integer(4) :: nblocks_,/;"	v	program:rixs_b2
-nblocks_	scaling_b.f90	/^  integer(4) :: nblocks_,/;"	v	program:scaling_b
-nblocks_	scaling_single.f90	/^  integer(4) :: nblocks_,/;"	v	program:scaling_b
-nk	mod_blocks.f90	/^    integer(4) :: nk /;"	k	type:block1d
-nk	mod_blocks.f90	/^    integer(4) :: nk /;"	k	type:block2d
-nk	mod_blocks.f90	/^    integer(4) :: nk /;"	k	type:block3d
-nk0	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0,/;"	k	type:io
-nk_	debug_b.f90	/^  integer(4) :: nk_,/;"	v	program:rixs
-nk_	rixs_b.f90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs
-nk_	rixs_b2.f90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs_b2
-nk_	rixs_bp.f90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs_b2
-nk_	scaling_b.f90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:scaling_b
-nk_	scaling_single.f90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:scaling_b
-nkmax	debug_b.f90	/^  integer :: nkmax,/;"	v	program:rixs
-nkmax	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax,/;"	k	type:io
-nkmax	rixs.f90	/^  integer :: w, nkmax,/;"	v	program:rixs
-nkmax	rixs_b.f90	/^  integer :: nkmax,/;"	v	program:rixs
-nkmax	rixs_b2.f90	/^  integer :: nkmax,/;"	v	program:rixs_b2
-nkmax	rixs_bp.f90	/^  integer :: nkmax,/;"	v	program:rixs_b2
-nkmax	scaling_b.f90	/^  integer :: nkmax,/;"	v	program:scaling_b
-nkmax	scaling_single.f90	/^  integer :: nkmax,/;"	v	program:scaling_b
-no	debug_b.f90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs
-no	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no$/;"	k	type:io
-no	rixs.f90	/^  integer :: w, nkmax, nu, no,/;"	v	program:rixs
-no	rixs_b.f90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs
-no	rixs_b2.f90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs_b2
-no	rixs_bp.f90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs_b2
-no	scaling_b.f90	/^  integer :: nkmax, nu, no,/;"	v	program:scaling_b
-no	scaling_single.f90	/^  integer :: nkmax, nu, no,/;"	v	program:scaling_b
-no2	debug_b.f90	/^  integer :: nkmax, nu, no, nu2, no2$/;"	v	program:rixs
-nu	debug_b.f90	/^  integer :: nkmax, nu,/;"	v	program:rixs
-nu	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu,/;"	k	type:io
-nu	rixs.f90	/^  integer :: w, nkmax, nu,/;"	v	program:rixs
-nu	rixs_b.f90	/^  integer :: nkmax, nu,/;"	v	program:rixs
-nu	rixs_b2.f90	/^  integer :: nkmax, nu,/;"	v	program:rixs_b2
-nu	rixs_bp.f90	/^  integer :: nkmax, nu,/;"	v	program:rixs_b2
-nu	scaling_b.f90	/^  integer :: nkmax, nu,/;"	v	program:scaling_b
-nu	scaling_single.f90	/^  integer :: nkmax, nu,/;"	v	program:scaling_b
-nu2	debug_b.f90	/^  integer :: nkmax, nu, no, nu2,/;"	v	program:rixs
-offset	mod_blocks.f90	/^    integer(4) :: offset /;"	k	type:block1d
-offset	mod_blocks.f90	/^    integer(4), dimension(2) :: offset /;"	k	type:block2d
-omega	debug_b.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
-omega	mod_io.f90	/^    real(8), allocatable :: omega(/;"	k	type:input
-omega	rixs.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
-omega	rixs_b.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
-omega	rixs_b2.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs_b2
-omega	rixs_bp.f90	/^  real(8), allocatable :: omega(/;"	v	program:rixs_b2
-omega	scaling_b.f90	/^  real(8), allocatable :: omega(/;"	v	program:scaling_b
-omega	scaling_single.f90	/^  real(8), allocatable :: omega(/;"	v	program:scaling_b
-omega2	debug_b.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
-omega2	mod_io.f90	/^    real(8), allocatable :: omega(:), omega2(/;"	k	type:input
-omega2	rixs.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
-omega2	rixs_b.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
-omega2	rixs_b2.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs_b2
-omega2	rixs_bp.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs_b2
-omega2	scaling_b.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:scaling_b
-omega2	scaling_single.f90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:scaling_b
-optical	debug_b.f90	/^  type(io) :: optical,/;"	v	program:rixs
-optical	rixs.f90	/^  type(io) :: optical,/;"	v	program:rixs
-optical	rixs_b.f90	/^  type(io) :: optical,/;"	v	program:rixs
-optical	rixs_b2.f90	/^  type(io) :: optical,/;"	v	program:rixs_b2
-optical	rixs_bp.f90	/^  type(io) :: optical,/;"	v	program:rixs_b2
-optical	scaling_b.f90	/^  type(io) :: optical,/;"	v	program:scaling_b
-optical	scaling_single.f90	/^  type(io) :: optical,/;"	v	program:scaling_b
-oscstr	debug_b.f90	/^  complex(8), allocatable :: oscstr_/;"	v	program:rixs
-oscstr	mod_io.f90	/^    logical :: oscstr$/;"	k	type:input
-oscstr	rixs.f90	/^  complex(8), allocatable :: inter(:), oscstr(/;"	v	program:rixs
-oscstr_b	debug_b.f90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:rixs
-oscstr_b	rixs_b.f90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:rixs
-oscstr_b	rixs_b2.f90	/^  type(block1d) :: oscstr_b$/;"	v	program:rixs_b2
-oscstr_b	rixs_bp.f90	/^  type(block1d) :: oscstr_b$/;"	v	program:rixs_b2
-oscstr_b	scaling_b.f90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:scaling_b
-oscstr_b	scaling_single.f90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:scaling_b
-phdf5_cleanup	mod_phdf5.f90	/^  subroutine phdf5_cleanup(/;"	s	module:mod_phdf5
-phdf5_finalize	mod_phdf5.f90	/^  subroutine phdf5_finalize(/;"	s	module:mod_phdf5
-phdf5_initialize	mod_phdf5.f90	/^  subroutine phdf5_initialize(/;"	s	module:mod_phdf5
-phdf5_read_array_d	mod_phdf5.f90	/^subroutine phdf5_read_array_d(/;"	s
-phdf5_read_d	mod_phdf5.f90	/^  subroutine phdf5_read_d(/;"	s	module:mod_phdf5
-phdf5_read_z	mod_phdf5.f90	/^  subroutine phdf5_read_z(/;"	s	module:mod_phdf5
-phdf5_setup_read	mod_phdf5.f90	/^  subroutine phdf5_setup_read(/;"	s	module:mod_phdf5
-phdf5_setup_write	mod_phdf5.f90	/^  subroutine phdf5_setup_write(/;"	s	module:mod_phdf5
-phdf5_write_array_d	mod_phdf5.f90	/^subroutine phdf5_write_array_d(/;"	s
-phdf5_write_d	mod_phdf5.f90	/^  subroutine phdf5_write_d(/;"	s	module:mod_phdf5
-phdf5_write_z	mod_phdf5.f90	/^  subroutine phdf5_write_z(/;"	s	module:mod_phdf5
-pmat	debug_b.f90	/^  complex(8), allocatable :: chi_core(:,:,:), pmat(/;"	v	program:rixs
-pol	debug_b.f90	/^  real(8) :: pol(/;"	v	program:rixs
-pol	rixs.f90	/^  real(8) :: pol(/;"	v	program:rixs
-pol	rixs_b.f90	/^  real(8) :: pol(/;"	v	program:rixs
-pol	rixs_b2.f90	/^  real(8) :: pol(/;"	v	program:rixs_b2
-pol	rixs_bp.f90	/^  real(8) :: pol(/;"	v	program:rixs_b2
-pol	scaling_b.f90	/^  real(8) :: pol(/;"	v	program:scaling_b
-pol	scaling_single.f90	/^  real(8) :: pol(/;"	v	program:scaling_b
-print_properties1d	mod_blocks.f90	/^  subroutine print_properties1d(/;"	s	module:mod_blocks
-print_properties2d	mod_blocks.f90	/^  subroutine print_properties2d(/;"	s	module:mod_blocks
-put_block1d	mod_blocks.f90	/^  subroutine put_block1d(/;"	s	module:mod_blocks
-put_block2d	mod_blocks.f90	/^  subroutine put_block2d(/;"	s	module:mod_blocks
-read_inputfile	mod_io.f90	/^  subroutine read_inputfile(/;"	s	module:mod_io
-results	rixs.f90	/^  real(8), allocatable :: results(/;"	v	program:rixs
-rixs	debug_b.f90	/^program rixs$/;"	p
-rixs	rixs.f90	/^program rixs$/;"	p
-rixs	rixs_b.f90	/^program rixs$/;"	p
-rixs	scaling_b.f90	/^subroutine rixs(/;"	s
-rixs2	scaling_b.f90	/^subroutine rixs2(/;"	s
-rixs_b2	rixs_b2.f90	/^program rixs_b2$/;"	p
-rixs_b2	rixs_bp.f90	/^program rixs_b2$/;"	p
-runtime	scaling_b.f90	/^  real(8) :: start, finish, runtime,/;"	v	program:scaling_b
-runtime	scaling_single.f90	/^  real(8) :: start, finish, runtime,/;"	v	program:scaling_b
-runtime2	scaling_b.f90	/^  real(8) :: start, finish, runtime, runtime2,/;"	v	program:scaling_b
-runtime2	scaling_single.f90	/^  real(8) :: start, finish, runtime, runtime2,/;"	v	program:scaling_b
-runtime3	scaling_b.f90	/^  real(8) :: start, finish, runtime, runtime2, runtime3$/;"	v	program:scaling_b
-runtime3	scaling_single.f90	/^  real(8) :: start, finish, runtime, runtime2, runtime3$/;"	v	program:scaling_b
-scaling_b	scaling_b.f90	/^program scaling_b$/;"	p
-scaling_b	scaling_single.f90	/^program scaling_b$/;"	p
-set_param	mod_io.f90	/^  subroutine set_param(/;"	s	module:mod_io
-smap	mod_io.f90	/^    integer(4), allocatable :: smap(/;"	k	type:io
-start	rixs_b.f90	/^  real(8) :: start,/;"	v	program:rixs
-start	rixs_b2.f90	/^  real(8) :: start,/;"	v	program:rixs_b2
-start	rixs_bp.f90	/^  real(8) :: start,/;"	v	program:rixs_b2
-start	scaling_b.f90	/^  real(8) :: start,/;"	v	program:scaling_b
-start	scaling_single.f90	/^  real(8) :: start,/;"	v	program:scaling_b
-t_block	debug_b.f90	/^  type(block1d) :: eval_b, t_block,/;"	v	program:rixs
-test	rixs_b.f90	/^  real(8) :: start, finish, test$/;"	v	program:rixs
-test	rixs_b2.f90	/^  real(8) :: start, finish, test$/;"	v	program:rixs_b2
-test	rixs_bp.f90	/^  real(8) :: start, finish, test$/;"	v	program:rixs_b2
-tprime	debug_b.f90	/^  complex(8), allocatable :: B_matrix(:,:,:), tprime(/;"	v	program:rixs
-tprime	rixs.f90	/^  complex(8), allocatable :: chi_optical(:,:,:), B(:,:), tprime(/;"	v	program:rixs
-tprime_b	debug_b.f90	/^  type(block3d) :: matB_b, matA_b, tprime_b$/;"	v	program:rixs
-transform2matrix	mod_rixs.f90	/^  subroutine transform2matrix(/;"	s	module:mod_rixs
-transform2matrix_b	mod_blocks.f90	/^    subroutine transform2matrix_b(/;"	s	module:mod_blocks
-transform2vector	mod_rixs.f90	/^  subroutine transform2vector(/;"	s	module:mod_rixs
-transform2vector_b	mod_blocks.f90	/^    subroutine transform2vector_b(/;"	s	module:mod_blocks
-uo	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,lo,uo,/;"	k	type:io
-uu	mod_io.f90	/^    integer(4) :: hamsize, lu,uu,/;"	k	type:io
-vecA_b	debug_b.f90	/^  type(block1d) :: eval_b, t_block, vecB_b, vecA_b$/;"	v	program:rixs
-vecA_b	rixs_b.f90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs
-vecA_b	rixs_b2.f90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs_b2
-vecA_b	rixs_bp.f90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs_b2
-vecB_b	debug_b.f90	/^  type(block1d) :: eval_b, t_block, vecB_b,/;"	v	program:rixs
-w	rixs.f90	/^  integer :: w,/;"	v	program:rixs
-w1	rixs.f90	/^  integer :: w, nkmax, nu, no, k, w1,/;"	v	program:rixs
-w1	rixs_b.f90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs
-w1	rixs_b2.f90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs_b2
-w1	rixs_bp.f90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs_b2
-w2	rixs.f90	/^  integer :: w, nkmax, nu, no, k, w1, w2$/;"	v	program:rixs
-zcontent	mod_blocks.f90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block1d
-zcontent	mod_blocks.f90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block2d
-zcontent	mod_blocks.f90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block3d
+10	mod_blocks.F90	/^    10 continue$/;"	l	subroutine:get_eigvecs2D_b_quick	file:
+10	mod_hdf5.F90	/^        10 continue$/;"	l	function:hdf5_exist_group	file:
+10	mod_hdf5.F90	/^        10 continue$/;"	l	subroutine:hdf5_create_file	file:
+10	mod_hdf5.F90	/^        10 continue$/;"	l	subroutine:hdf5_create_group	file:
+10	mod_hdf5.F90	/^        10 continue$/;"	l	subroutine:hdf5_get_dims	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_block_d	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_block_i4	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_c	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_d	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_read_array_i4	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_c	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_d	file:
+10	mod_hdf5.F90	/^    10 continue$/;"	l	subroutine:hdf5_write_array_i4	file:
+10	mod_phdf5.F90	/^        10 continue$/;"	l	function:phdf5_exist_group	file:
+10	mod_phdf5.F90	/^        10 continue$/;"	l	subroutine:phdf5_get_dims	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_close_file	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_create_file	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_create_group	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_finalize	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_initialize	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_open_file	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_setup_read	file:
+10	mod_phdf5.F90	/^    10 continue$/;"	l	subroutine:phdf5_setup_write	file:
+A	debug_b.F90	/^  complex(8), allocatable :: A_/;"	v	program:rixs
+A_inter	debug_b.F90	/^  complex(8), allocatable :: A_inter(/;"	v	program:rixs
+A_matrix	debug_b.F90	/^  complex(8), allocatable :: A_inter(:), A(:,:), A_matrix(/;"	v	program:rixs
+B	debug_b.F90	/^  complex(8), allocatable :: chi_core(:,:,:), pmat(:), B(/;"	v	program:rixs
+B_matrix	debug_b.F90	/^  complex(8), allocatable :: B_matrix(/;"	v	program:rixs
+alpha	debug_b.F90	/^  complex(8) :: alpha,/;"	v	program:rixs
+alpha	rixs_b.F90	/^  complex(8) :: alpha,/;"	v	program:rixs
+alpha	rixs_b2.F90	/^  complex(8) :: alpha,/;"	v	program:rixs_b2
+alpha	rixs_bp.F90	/^  complex(8) :: alpha,/;"	v	program:rixs_b2
+barrier	modmpi.F90	/^    subroutine barrier(/;"	s	module:modmpi
+beta	debug_b.F90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs
+beta	rixs_b.F90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs
+beta	rixs_b2.F90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs_b2
+beta	rixs_bp.F90	/^  complex(8) :: alpha, beta$/;"	v	program:rixs_b2
+block1d	mod_blocks.F90	/^  type :: block1d$/;"	t	module:mod_blocks
+block2d	mod_blocks.F90	/^  type :: block2d$/;"	t	module:mod_blocks
+block3d	mod_blocks.F90	/^  type :: block3d$/;"	t	module:mod_blocks
+blocksize	mod_blocks.F90	/^    integer(4) :: blocksize /;"	k	type:block1d
+blocksize	mod_blocks.F90	/^    integer(4) :: blocksize /;"	k	type:block2d
+blocksize	mod_blocks.F90	/^    integer(4), dimension(3) :: blocksize /;"	k	type:block3d
+blsz2_	debug_b.F90	/^  integer(4) :: nblocks_, blsz_, blsz2_,/;"	v	program:rixs
+blsz_	debug_b.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs
+blsz_	rixs_b.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs
+blsz_	rixs_b2.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs_b2
+blsz_	rixs_bp.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:rixs_b2
+blsz_	scaling_b.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:scaling_b
+blsz_	scaling_single.F90	/^  integer(4) :: nblocks_, blsz_,/;"	v	program:scaling_b
+blsz_k	debug_b.F90	/^  integer(4) :: nk_, blsz_k,/;"	v	program:rixs
+blsz_k	rixs_b.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs
+blsz_k	rixs_b2.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs_b2
+blsz_k	rixs_bp.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k$/;"	v	program:rixs_b2
+blsz_k	scaling_b.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k$/;"	v	program:scaling_b
+blsz_k	scaling_single.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k$/;"	v	program:scaling_b
+broad	debug_b.F90	/^  real(8) :: broad,/;"	v	program:rixs
+broad	mod_io.F90	/^    real(8) :: broad,/;"	k	type:input
+broad	rixs_b.F90	/^  real(8) :: broad,/;"	v	program:rixs
+broad	rixs_b2.F90	/^  real(8) :: broad,/;"	v	program:rixs_b2
+broad	rixs_bp.F90	/^  real(8) :: broad,/;"	v	program:rixs_b2
+broad	scaling_b.F90	/^  real(8) :: broad,/;"	v	program:scaling_b
+broad	scaling_single.F90	/^  real(8) :: broad,/;"	v	program:scaling_b
+broad2	debug_b.F90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
+broad2	mod_io.F90	/^    real(8) :: broad, broad2$/;"	k	type:input
+broad2	rixs_b.F90	/^  real(8) :: broad, broad2$/;"	v	program:rixs
+broad2	rixs_b2.F90	/^  real(8) :: broad, broad2$/;"	v	program:rixs_b2
+broad2	rixs_bp.F90	/^  real(8) :: broad, broad2$/;"	v	program:rixs_b2
+broad2	scaling_b.F90	/^  real(8) :: broad, broad2$/;"	v	program:scaling_b
+broad2	scaling_single.F90	/^  real(8) :: broad, broad2$/;"	v	program:scaling_b
+chi_core	debug_b.F90	/^  complex(8), allocatable :: chi_core(/;"	v	program:rixs
+chi_core_b	debug_b.F90	/^  type(block2d) ::chi_core_b,/;"	v	program:rixs
+comm	modmpi.F90	/^    integer :: comm$/;"	k	type:mpiinfo
+core	debug_b.F90	/^  type(io) :: optical, core$/;"	v	program:rixs
+core	rixs_b.F90	/^  type(io) :: optical, core$/;"	v	program:rixs
+core	rixs_b2.F90	/^  type(io) :: optical, core$/;"	v	program:rixs_b2
+core	rixs_bp.F90	/^  type(io) :: optical, core$/;"	v	program:rixs_b2
+core	scaling_b.F90	/^  type(io) :: optical, core$/;"	v	program:scaling_b
+core	scaling_single.F90	/^  type(io) :: optical, core$/;"	v	program:scaling_b
+core_id	rixs_bp.F90	/^  integer(hid_t) :: core_id,/;"	v	program:rixs_b2
+dataset_id	rixs_bp.F90	/^  integer(hid_t) :: dataset_id,/;"	v	program:rixs_b2
+datasetname	rixs_bp.F90	/^   & fname_inter, gname, gname2, gname3, ik, datasetname /;"	v	program:rixs_b2
+dcontent	mod_blocks.F90	/^    real(8), allocatable :: dcontent(/;"	k	type:block1d
+dcontent	mod_blocks.F90	/^    real(8), allocatable :: dcontent(/;"	k	type:block2d
+eigvec2_b	debug_b.F90	/^  type(block2d) ::chi_core_b, eigvec_b, eigvec2_b$/;"	v	program:rixs
+eigvec_b	debug_b.F90	/^  type(block2d) ::chi_core_b, eigvec_b,/;"	v	program:rixs
+eigvecs	mod_io.F90	/^    complex(8), allocatable :: eigvecs(/;"	k	type:io
+energy_id	rixs_bp.F90	/^  integer(hid_t) :: dataset_id, energy_id,/;"	v	program:rixs_b2
+eval_b	debug_b.F90	/^  type(block1d) :: eval_b,/;"	v	program:rixs
+evals	mod_io.F90	/^    real(8), allocatable :: evals(/;"	k	type:io
+evals_b	rixs_b.F90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs
+evals_b	rixs_b2.F90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs_b2
+evals_b	rixs_bp.F90	/^  type(block1d) :: vecA_b, evals_b$/;"	v	program:rixs_b2
+evecs_b	rixs_b.F90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs
+evecs_b	rixs_b2.F90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs_b2
+evecs_b	rixs_bp.F90	/^  type(block2d) :: evecs_b$/;"	v	program:rixs_b2
+evecs_b	scaling_b.F90	/^  type(block2d) :: evecs_b$/;"	v	program:scaling_b
+evecs_b	scaling_single.F90	/^  type(block2d) :: evecs_b$/;"	v	program:scaling_b
+exponent_	scaling_b.F90	/^  integer :: nkmax, nu, no, exponent_,/;"	v	program:scaling_b
+exponent_	scaling_single.F90	/^  integer :: nkmax, nu, no, exponent_,/;"	v	program:scaling_b
+finish	rixs_b.F90	/^  real(8) :: start, finish,/;"	v	program:rixs
+finish	rixs_b2.F90	/^  real(8) :: start, finish,/;"	v	program:rixs_b2
+finish	rixs_bp.F90	/^  real(8) :: start, finish,/;"	v	program:rixs_b2
+finish	scaling_b.F90	/^  real(8) :: start, finish,/;"	v	program:scaling_b
+finish	scaling_single.F90	/^  real(8) :: start, finish,/;"	v	program:scaling_b
+finitmpi	modmpi.F90	/^    subroutine finitmpi$/;"	s	module:modmpi
+firstinnode	modmpi.F90	/^  logical :: splittfile, firstinnode$/;"	v	module:modmpi
+firstinnode_comm	modmpi.F90	/^  integer(4) :: firstinnode_comm$/;"	v	module:modmpi
+firstofset	modmpi.F90	/^    function firstofset(/;"	f	module:modmpi
+fname_core	debug_b.F90	/^  character(1024) :: fname_core,/;"	v	program:rixs
+fname_core	rixs_b.F90	/^  character(1024) :: fname_core,/;"	v	program:rixs
+fname_core	rixs_b2.F90	/^  character(1024) :: fname_core,/;"	v	program:rixs_b2
+fname_core	rixs_bp.F90	/^  character(1024) :: fname_core,/;"	v	program:rixs_b2
+fname_core	scaling_b.F90	/^  character(1024) :: fname_core,/;"	v	program:scaling_b
+fname_core	scaling_single.F90	/^  character(1024) :: fname_core,/;"	v	program:scaling_b
+fname_inter	rixs_bp.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &$/;"	v	program:rixs_b2
+fname_optical	debug_b.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
+fname_optical	rixs_b.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs
+fname_optical	rixs_b2.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs_b2
+fname_optical	rixs_bp.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:rixs_b2
+fname_optical	scaling_b.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:scaling_b
+fname_optical	scaling_single.F90	/^  character(1024) :: fname_core, fname_optical,/;"	v	program:scaling_b
+fname_output	rixs_b2.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output,/;"	v	program:rixs_b2
+fname_output	rixs_bp.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output,/;"	v	program:rixs_b2
+fname_output	scaling_b.F90	/^  character(1024) :: ichr, fname_output$/;"	v	program:scaling_b
+fname_output	scaling_single.F90	/^  character(1024) :: ichr, fname_output$/;"	v	program:scaling_b
+fname_pmat	debug_b.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
+fname_pmat	rixs_b.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:rixs
+fname_pmat	rixs_b2.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat,/;"	v	program:rixs_b2
+fname_pmat	rixs_bp.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat,/;"	v	program:rixs_b2
+fname_pmat	scaling_b.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:scaling_b
+fname_pmat	scaling_single.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat$/;"	v	program:scaling_b
+generate_Avector_b	mod_blocks.F90	/^  subroutine generate_Avector_b(/;"	s	module:mod_blocks
+generate_Bvector_b	mod_blocks.F90	/^  subroutine generate_Bvector_b(/;"	s	module:mod_blocks
+generate_chi_block	mod_blocks.F90	/^  subroutine generate_chi_block(/;"	s	module:mod_blocks
+generate_oscstr_b	mod_blocks.F90	/^  subroutine generate_oscstr_b(/;"	s	module:mod_blocks
+generate_tblock	mod_blocks.F90	/^  subroutine generate_tblock(/;"	s	module:mod_blocks
+generate_tprime_block	mod_blocks.F90	/^  subroutine generate_tprime_block(/;"	s	module:mod_blocks
+get_block1d	mod_blocks.F90	/^  subroutine get_block1d(/;"	s	module:mod_blocks
+get_block2d	mod_blocks.F90	/^  subroutine get_block2d(/;"	s	module:mod_blocks
+get_eigvecs2D_b	mod_blocks.F90	/^  subroutine get_eigvecs2D_b(/;"	s	module:mod_blocks
+get_eigvecs2D_b_quick	mod_blocks.F90	/^  subroutine get_eigvecs2D_b_quick(/;"	s	module:mod_blocks
+get_evals_block	mod_blocks.F90	/^    subroutine get_evals_block(/;"	s	module:mod_blocks
+get_ismap	mod_io.F90	/^  subroutine get_ismap(/;"	s	module:mod_io
+get_koulims	mod_io.F90	/^  subroutine get_koulims(/;"	s	module:mod_io
+get_smap	mod_io.F90	/^  subroutine get_smap(/;"	s	module:mod_io
+gname	rixs_b2.F90	/^  character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &$/;"	v	program:rixs_b2
+gname	rixs_bp.F90	/^   & fname_inter, gname,/;"	v	program:rixs_b2
+gname2	rixs_b2.F90	/^   & gname, gname2,/;"	v	program:rixs_b2
+gname2	rixs_bp.F90	/^   & fname_inter, gname, gname2,/;"	v	program:rixs_b2
+gname3	rixs_b2.F90	/^   & gname, gname2, gname3,/;"	v	program:rixs_b2
+gname3	rixs_bp.F90	/^   & fname_inter, gname, gname2, gname3,/;"	v	program:rixs_b2
+hamsiz	debug_b.F90	/^  integer(4) :: nk_, blsz_k, hamsiz,/;"	v	program:rixs
+hamsize	mod_io.F90	/^    integer(4) :: hamsize,/;"	k	type:io
+hdf5_create_file	mod_hdf5.F90	/^    subroutine hdf5_create_file(/;"	s	module:mod_hdf5
+hdf5_create_group	mod_hdf5.F90	/^    subroutine hdf5_create_group(/;"	s	module:mod_hdf5
+hdf5_exist_group	mod_hdf5.F90	/^    logical function hdf5_exist_group(/;"	f	module:mod_hdf5
+hdf5_finalize	mod_hdf5.F90	/^    subroutine hdf5_finalize$/;"	s	module:mod_hdf5
+hdf5_get_dims	mod_hdf5.F90	/^    subroutine hdf5_get_dims(/;"	s	module:mod_hdf5
+hdf5_initialize	mod_hdf5.F90	/^    subroutine hdf5_initialize$/;"	s	module:mod_hdf5
+hdf5_read_array_block_d	mod_hdf5.F90	/^subroutine hdf5_read_array_block_d(/;"	s
+hdf5_read_array_block_i4	mod_hdf5.F90	/^subroutine hdf5_read_array_block_i4(/;"	s
+hdf5_read_array_c	mod_hdf5.F90	/^subroutine hdf5_read_array_c(/;"	s
+hdf5_read_array_d	mod_hdf5.F90	/^subroutine hdf5_read_array_d(/;"	s
+hdf5_read_array_i4	mod_hdf5.F90	/^subroutine hdf5_read_array_i4(/;"	s
+hdf5_read_block_d	mod_hdf5.F90	/^    subroutine hdf5_read_block_d(/;"	s	module:mod_hdf5
+hdf5_read_block_i4	mod_hdf5.F90	/^    subroutine hdf5_read_block_i4(/;"	s	module:mod_hdf5
+hdf5_read_block_z	mod_hdf5.F90	/^    subroutine hdf5_read_block_z(/;"	s	module:mod_hdf5
+hdf5_read_c	mod_hdf5.F90	/^    subroutine hdf5_read_c(/;"	s	module:mod_hdf5
+hdf5_read_d	mod_hdf5.F90	/^    subroutine hdf5_read_d(/;"	s	module:mod_hdf5
+hdf5_read_i4	mod_hdf5.F90	/^    subroutine hdf5_read_i4(/;"	s	module:mod_hdf5
+hdf5_read_l	mod_hdf5.F90	/^    subroutine hdf5_read_l(/;"	s	module:mod_hdf5
+hdf5_read_z	mod_hdf5.F90	/^    subroutine hdf5_read_z(/;"	s	module:mod_hdf5
+hdf5_write_array_c	mod_hdf5.F90	/^subroutine hdf5_write_array_c(/;"	s
+hdf5_write_array_d	mod_hdf5.F90	/^subroutine hdf5_write_array_d(/;"	s
+hdf5_write_array_i4	mod_hdf5.F90	/^subroutine hdf5_write_array_i4(/;"	s
+hdf5_write_c	mod_hdf5.F90	/^    subroutine hdf5_write_c(/;"	s	module:mod_hdf5
+hdf5_write_d	mod_hdf5.F90	/^    subroutine hdf5_write_d(/;"	s	module:mod_hdf5
+hdf5_write_i4	mod_hdf5.F90	/^    subroutine hdf5_write_i4(/;"	s	module:mod_hdf5
+hdf5_write_l	mod_hdf5.F90	/^    subroutine hdf5_write_l(/;"	s	module:mod_hdf5
+hdf5_write_z	mod_hdf5.F90	/^    subroutine hdf5_write_z(/;"	s	module:mod_hdf5
+i	debug_b.F90	/^  in/;"	v	program:rixs
+i	scaling_b.F90	/^  in/;"	v	program:scaling_b
+i	scaling_single.F90	/^  in/;"	v	program:scaling_b
+ichr	scaling_b.F90	/^  character(1024) :: ichr,/;"	v	program:scaling_b
+ichr	scaling_single.F90	/^  character(1024) :: ichr,/;"	v	program:scaling_b
+id	mod_blocks.F90	/^    integer(4) :: id /;"	k	type:block1d
+id	mod_blocks.F90	/^    integer(4) :: id /;"	k	type:block3d
+id	mod_blocks.F90	/^    integer(4), dimension(2) :: id /;"	k	type:block2d
+id	modmpi.F90	/^    integer(4) :: id$/;"	k	type:procgroup
+ierr	modmpi.F90	/^    integer(4) :: ierr$/;"	k	type:mpiinfo
+ierr	modmpi.F90	/^  integer(4) :: ierr$/;"	v	module:modmpi
+ik	rixs_b2.F90	/^   & gname, gname2, gname3, ik$/;"	v	program:rixs_b2
+ik	rixs_bp.F90	/^   & fname_inter, gname, gname2, gname3, ik,/;"	v	program:rixs_b2
+il	mod_blocks.F90	/^    integer(4) :: il,/;"	k	type:block1d
+il	mod_blocks.F90	/^    integer(4) :: il,/;"	k	type:block2d
+initmpi	modmpi.F90	/^    subroutine initmpi$/;"	s	module:modmpi
+input	mod_io.F90	/^  type :: input$/;"	t	module:mod_io
+inputparam	debug_b.F90	/^  type(input) :: inputparam$/;"	v	program:rixs
+inputparam	rixs_b.F90	/^  type(input) :: inputparam$/;"	v	program:rixs
+inputparam	rixs_b2.F90	/^  type(input) :: inputparam$/;"	v	program:rixs_b2
+inputparam	rixs_bp.F90	/^  type(input) :: inputparam$/;"	v	program:rixs_b2
+inputparam	scaling_b.F90	/^  type(input) :: inputparam$/;"	v	program:scaling_b
+inputparam	scaling_single.F90	/^  type(input) :: inputparam$/;"	v	program:scaling_b
+inspect_h5	mod_io.F90	/^  subroutine inspect_h5(/;"	s	module:mod_io
+inter_id	rixs_bp.F90	/^  integer(hid_t) :: core_id, optical_id, pmat_id, output_id, inter_id$/;"	v	program:rixs_b2
+interdim	debug_b.F90	/^  integer :: interdim(/;"	v	program:rixs
+interdim	rixs_b.F90	/^  integer :: interdim(/;"	v	program:rixs
+interdim	rixs_b2.F90	/^  integer :: interdim(/;"	v	program:rixs_b2
+interdim	rixs_bp.F90	/^  integer :: interdim(/;"	v	program:rixs_b2
+interdim	scaling_b.F90	/^  integer :: interdim(/;"	v	program:scaling_b
+interdim	scaling_single.F90	/^  integer :: interdim(/;"	v	program:scaling_b
+io	mod_io.F90	/^  type :: io$/;"	t	module:mod_io
+ismap	mod_io.F90	/^    integer(4), allocatable :: smap(:,:), ismap(/;"	k	type:io
+iu	mod_blocks.F90	/^    integer(4) :: il, iu /;"	k	type:block1d
+iu	mod_blocks.F90	/^    integer(4) :: il, iu,/;"	k	type:block2d
+jl	mod_blocks.F90	/^    integer(4) :: il, iu, jl,/;"	k	type:block2d
+ju	mod_blocks.F90	/^    integer(4) :: il, iu, jl, ju /;"	k	type:block2d
+k	debug_b.F90	/^  integer(4) :: nblocks/;"	v	program:rixs
+k	rixs_b.F90	/^  integer(4) :: nblocks/;"	v	program:rixs
+k	rixs_b2.F90	/^  integer(4) :: nblocks/;"	v	program:rixs_b2
+k	rixs_bp.F90	/^  integer(4) :: nblocks/;"	v	program:rixs_b2
+k	scaling_b.F90	/^  integer(4) :: nblocks/;"	v	program:scaling_b
+k	scaling_single.F90	/^  integer(4) :: nblocks/;"	v	program:scaling_b
+k1l	mod_blocks.F90	/^    integer(4) :: k1l,/;"	k	type:block2d
+k1u	mod_blocks.F90	/^    integer(4) :: k1l, k1u,/;"	k	type:block2d
+k2	debug_b.F90	/^  integer(4) :: nblocks_, blsz_, blsz2_, k, k2,/;"	v	program:rixs
+k2	rixs_b.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs
+k2	rixs_b2.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs_b2
+k2	rixs_bp.F90	/^  integer(4) :: nblocks_, blsz_,nk_, k, k2,/;"	v	program:rixs_b2
+k2l	mod_blocks.F90	/^    integer(4) :: k1l, k1u, k2l,/;"	k	type:block2d
+k2u	mod_blocks.F90	/^    integer(4) :: k1l, k1u, k2l, k2u /;"	k	type:block2d
+k3	debug_b.F90	/^  integer(4) :: nk_, blsz_k, hamsiz, k3$/;"	v	program:rixs
+kl	mod_blocks.F90	/^    integer(4) :: kl,/;"	k	type:block1d
+kl	mod_blocks.F90	/^    integer(4) :: kl,/;"	k	type:block3d
+koulims	mod_io.F90	/^    integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(/;"	k	type:io
+koulims_comb	debug_b.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
+koulims_comb	rixs_b.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs
+koulims_comb	rixs_b2.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs_b2
+koulims_comb	rixs_bp.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:rixs_b2
+koulims_comb	scaling_b.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:scaling_b
+koulims_comb	scaling_single.F90	/^  integer(4), allocatable :: koulims_comb(/;"	v	program:scaling_b
+ku	mod_blocks.F90	/^    integer(4) :: kl, ku /;"	k	type:block1d
+ku	mod_blocks.F90	/^    integer(4) :: kl, ku /;"	k	type:block3d
+lambda	rixs_b.F90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs
+lambda	rixs_b2.F90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs_b2
+lambda	rixs_bp.F90	/^  integer :: interdim(2), lambda$/;"	v	program:rixs_b2
+lastofset	modmpi.F90	/^    function lastofset(/;"	f	module:modmpi
+lastproc	modmpi.F90	/^    function lastproc(/;"	f	module:modmpi
+lo	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,/;"	k	type:io
+lu	mod_io.F90	/^    integer(4) :: hamsize, lu,/;"	k	type:io
+matA_b	debug_b.F90	/^  type(block3d) :: matB_b, matA_b,/;"	v	program:rixs
+matB_b	debug_b.F90	/^  type(block3d) :: matB_b,/;"	v	program:rixs
+matprod_matmat	mod_matmul.F90	/^  subroutine matprod_matmat(/;"	s	module:mod_matmul
+matprod_matvec	mod_matmul.F90	/^  subroutine matprod_matvec(/;"	s	module:mod_matmul
+matprod_vecvec	mod_matmul.F90	/^  subroutine matprod_vecvec(/;"	s	module:mod_matmul
+matsize_	rixs_bp.F90	/^  integer :: matsize_(/;"	v	program:rixs_b2
+mod_blocks	mod_blocks.F90	/^module mod_blocks$/;"	m
+mod_hdf5	mod_hdf5.F90	/^module mod_hdf5$/;"	m
+mod_io	mod_io.F90	/^module mod_io$/;"	m
+mod_matmul	mod_matmul.F90	/^module mod_matmul$/;"	m
+mod_phdf5	mod_phdf5.F90	/^module mod_phdf5$/;"	m
+mod_rixs	mod_rixs.F90	/^module mod_rixs$/;"	m
+modmpi	modmpi.F90	/^module modmpi$/;"	m
+mpi	modmpi.F90	/^    type(mpii/;"	k	type:procgroup
+mpi_allgatherv_ifc	modmpi.F90	/^    subroutine mpi_allgatherv_ifc(/;"	s	module:modmpi
+mpiglobal	modmpi.F90	/^  type(mpiinfo) :: mpiglobal$/;"	v	module:modmpi
+mpiinfo	modmpi.F90	/^  type mpiinfo$/;"	t	module:modmpi
+mpiintercom	modmpi.F90	/^    type(mpiinfo) :: mpiintercom$/;"	k	type:procgroup
+mpinodes	modmpi.F90	/^  type(procgroup) :: mpinodes$/;"	v	module:modmpi
+nblocks	mod_blocks.F90	/^    integer(4) :: nblocks /;"	k	type:block1d
+nblocks	mod_blocks.F90	/^    integer(4) :: nblocks /;"	k	type:block2d
+nblocks	mod_blocks.F90	/^    integer(4) :: nblocks /;"	k	type:block3d
+nblocks	mod_io.F90	/^    integer :: nblocks$/;"	k	type:input
+nblocks_	debug_b.F90	/^  integer(4) :: nblocks_,/;"	v	program:rixs
+nblocks_	rixs_b.F90	/^  integer(4) :: nblocks_,/;"	v	program:rixs
+nblocks_	rixs_b2.F90	/^  integer(4) :: nblocks_,/;"	v	program:rixs_b2
+nblocks_	rixs_bp.F90	/^  integer(4) :: nblocks_,/;"	v	program:rixs_b2
+nblocks_	scaling_b.F90	/^  integer(4) :: nblocks_,/;"	v	program:scaling_b
+nblocks_	scaling_single.F90	/^  integer(4) :: nblocks_,/;"	v	program:scaling_b
+ngroups	modmpi.F90	/^    integer(4) :: ngroups /;"	k	type:procgroup
+nk	mod_blocks.F90	/^    integer(4) :: nk /;"	k	type:block1d
+nk	mod_blocks.F90	/^    integer(4) :: nk /;"	k	type:block2d
+nk	mod_blocks.F90	/^    integer(4) :: nk /;"	k	type:block3d
+nk0	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0,/;"	k	type:io
+nk_	debug_b.F90	/^  integer(4) :: nk_,/;"	v	program:rixs
+nk_	rixs_b.F90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs
+nk_	rixs_b2.F90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs_b2
+nk_	rixs_bp.F90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:rixs_b2
+nk_	scaling_b.F90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:scaling_b
+nk_	scaling_single.F90	/^  integer(4) :: nblocks_, blsz_,nk_,/;"	v	program:scaling_b
+nkmax	debug_b.F90	/^  integer :: nkmax,/;"	v	program:rixs
+nkmax	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax,/;"	k	type:io
+nkmax	rixs_b.F90	/^  integer :: nkmax,/;"	v	program:rixs
+nkmax	rixs_b2.F90	/^  integer :: nkmax,/;"	v	program:rixs_b2
+nkmax	rixs_bp.F90	/^  integer :: nkmax,/;"	v	program:rixs_b2
+nkmax	scaling_b.F90	/^  integer :: nkmax,/;"	v	program:scaling_b
+nkmax	scaling_single.F90	/^  integer :: nkmax,/;"	v	program:scaling_b
+no	debug_b.F90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs
+no	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no$/;"	k	type:io
+no	rixs_b.F90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs
+no	rixs_b2.F90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs_b2
+no	rixs_bp.F90	/^  integer :: nkmax, nu, no,/;"	v	program:rixs_b2
+no	scaling_b.F90	/^  integer :: nkmax, nu, no,/;"	v	program:scaling_b
+no	scaling_single.F90	/^  integer :: nkmax, nu, no,/;"	v	program:scaling_b
+no2	debug_b.F90	/^  integer :: nkmax, nu, no, nu2, no2$/;"	v	program:rixs
+nofset	modmpi.F90	/^    function nofset(/;"	f	module:modmpi
+nu	debug_b.F90	/^  integer :: nkmax, nu,/;"	v	program:rixs
+nu	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu,/;"	k	type:io
+nu	rixs_b.F90	/^  integer :: nkmax, nu,/;"	v	program:rixs
+nu	rixs_b2.F90	/^  integer :: nkmax, nu,/;"	v	program:rixs_b2
+nu	rixs_bp.F90	/^  integer :: nkmax, nu,/;"	v	program:rixs_b2
+nu	scaling_b.F90	/^  integer :: nkmax, nu,/;"	v	program:scaling_b
+nu	scaling_single.F90	/^  integer :: nkmax, nu,/;"	v	program:scaling_b
+nu2	debug_b.F90	/^  integer :: nkmax, nu, no, nu2,/;"	v	program:rixs
+offset	mod_blocks.F90	/^    integer(4) :: offset /;"	k	type:block1d
+offset	mod_blocks.F90	/^    integer(4), dimension(2) :: offset /;"	k	type:block2d
+omega	debug_b.F90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
+omega	mod_io.F90	/^    real(8), allocatable :: omega(/;"	k	type:input
+omega	rixs_b.F90	/^  real(8), allocatable :: omega(/;"	v	program:rixs
+omega	rixs_b2.F90	/^  real(8), allocatable :: omega(/;"	v	program:rixs_b2
+omega	rixs_bp.F90	/^  real(8), allocatable :: omega(/;"	v	program:rixs_b2
+omega	scaling_b.F90	/^  real(8), allocatable :: omega(/;"	v	program:scaling_b
+omega	scaling_single.F90	/^  real(8), allocatable :: omega(/;"	v	program:scaling_b
+omega2	debug_b.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
+omega2	mod_io.F90	/^    real(8), allocatable :: omega(:), omega2(/;"	k	type:input
+omega2	rixs_b.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs
+omega2	rixs_b2.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs_b2
+omega2	rixs_bp.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:rixs_b2
+omega2	scaling_b.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:scaling_b
+omega2	scaling_single.F90	/^  real(8), allocatable :: omega(:), omega2(/;"	v	program:scaling_b
+optical	debug_b.F90	/^  type(io) :: optical,/;"	v	program:rixs
+optical	rixs_b.F90	/^  type(io) :: optical,/;"	v	program:rixs
+optical	rixs_b2.F90	/^  type(io) :: optical,/;"	v	program:rixs_b2
+optical	rixs_bp.F90	/^  type(io) :: optical,/;"	v	program:rixs_b2
+optical	scaling_b.F90	/^  type(io) :: optical,/;"	v	program:scaling_b
+optical	scaling_single.F90	/^  type(io) :: optical,/;"	v	program:scaling_b
+optical_id	rixs_bp.F90	/^  integer(hid_t) :: core_id, optical_id,/;"	v	program:rixs_b2
+oscstr	debug_b.F90	/^  complex(8), allocatable :: oscstr_/;"	v	program:rixs
+oscstr	mod_io.F90	/^    logical :: oscstr$/;"	k	type:input
+oscstr_b	debug_b.F90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:rixs
+oscstr_b	rixs_b.F90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:rixs
+oscstr_b	rixs_b2.F90	/^  type(block1d) :: oscstr_b$/;"	v	program:rixs_b2
+oscstr_b	rixs_bp.F90	/^  type(block1d) :: oscstr_b$/;"	v	program:rixs_b2
+oscstr_b	scaling_b.F90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:scaling_b
+oscstr_b	scaling_single.F90	/^  complex(8), allocatable :: oscstr_b(/;"	v	program:scaling_b
+oscstr_id	rixs_bp.F90	/^  integer(hid_t) :: dataset_id, energy_id, oscstr_id,/;"	v	program:rixs_b2
+output_id	rixs_bp.F90	/^  integer(hid_t) :: core_id, optical_id, pmat_id, output_id,/;"	v	program:rixs_b2
+phdf5_cleanup	mod_phdf5.F90	/^  subroutine phdf5_cleanup(/;"	s	module:mod_phdf5
+phdf5_close_file	mod_phdf5.F90	/^  subroutine phdf5_close_file(/;"	s	module:mod_phdf5
+phdf5_create_file	mod_phdf5.F90	/^  subroutine phdf5_create_file(/;"	s	module:mod_phdf5
+phdf5_create_group	mod_phdf5.F90	/^  subroutine phdf5_create_group(/;"	s	module:mod_phdf5
+phdf5_exist_group	mod_phdf5.F90	/^    logical function phdf5_exist_group(/;"	f	module:mod_phdf5
+phdf5_finalize	mod_phdf5.F90	/^  subroutine phdf5_finalize$/;"	s	module:mod_phdf5
+phdf5_get_dims	mod_phdf5.F90	/^    subroutine phdf5_get_dims(/;"	s	module:mod_phdf5
+phdf5_initialize	mod_phdf5.F90	/^  subroutine phdf5_initialize$/;"	s	module:mod_phdf5
+phdf5_open_file	mod_phdf5.F90	/^  subroutine phdf5_open_file(/;"	s	module:mod_phdf5
+phdf5_read_array_d	mod_phdf5.F90	/^subroutine phdf5_read_array_d(/;"	s
+phdf5_read_array_i	mod_phdf5.F90	/^subroutine phdf5_read_array_i(/;"	s
+phdf5_read_d	mod_phdf5.F90	/^  subroutine phdf5_read_d(/;"	s	module:mod_phdf5
+phdf5_read_i	mod_phdf5.F90	/^  subroutine phdf5_read_i(/;"	s	module:mod_phdf5
+phdf5_read_z	mod_phdf5.F90	/^  subroutine phdf5_read_z(/;"	s	module:mod_phdf5
+phdf5_setup_read	mod_phdf5.F90	/^  subroutine phdf5_setup_read(/;"	s	module:mod_phdf5
+phdf5_setup_write	mod_phdf5.F90	/^  subroutine phdf5_setup_write(/;"	s	module:mod_phdf5
+phdf5_write_array_d	mod_phdf5.F90	/^subroutine phdf5_write_array_d(/;"	s
+phdf5_write_d	mod_phdf5.F90	/^  subroutine phdf5_write_d(/;"	s	module:mod_phdf5
+phdf5_write_z	mod_phdf5.F90	/^  subroutine phdf5_write_z(/;"	s	module:mod_phdf5
+pmat	debug_b.F90	/^  complex(8), allocatable :: chi_core(:,:,:), pmat(/;"	v	program:rixs
+pmat_id	rixs_bp.F90	/^  integer(hid_t) :: core_id, optical_id, pmat_id,/;"	v	program:rixs_b2
+pol	debug_b.F90	/^  real(8) :: pol(/;"	v	program:rixs
+pol	rixs_b.F90	/^  real(8) :: pol(/;"	v	program:rixs
+pol	rixs_b2.F90	/^  real(8) :: pol(/;"	v	program:rixs_b2
+pol	rixs_bp.F90	/^  real(8) :: pol(/;"	v	program:rixs_b2
+pol	scaling_b.F90	/^  real(8) :: pol(/;"	v	program:scaling_b
+pol	scaling_single.F90	/^  real(8) :: pol(/;"	v	program:scaling_b
+print_properties1d	mod_blocks.F90	/^  subroutine print_properties1d(/;"	s	module:mod_blocks
+print_properties2d	mod_blocks.F90	/^  subroutine print_properties2d(/;"	s	module:mod_blocks
+procgroup	modmpi.F90	/^  type procgroup$/;"	t	module:modmpi
+procofindex	modmpi.F90	/^    function procofindex(/;"	f	module:modmpi
+procs	modmpi.F90	/^    integer(4) :: procs$/;"	k	type:mpiinfo
+procs	modmpi.F90	/^  integer(4) :: procs$/;"	v	module:modmpi
+put_block1d	mod_blocks.F90	/^  subroutine put_block1d(/;"	s	module:mod_blocks
+put_block2d	mod_blocks.F90	/^  subroutine put_block2d(/;"	s	module:mod_blocks
+rank	modmpi.F90	/^    integer(4) :: rank$/;"	k	type:mpiinfo
+rank	modmpi.F90	/^  integer(4) :: rank$/;"	v	module:modmpi
+read_inputfile	mod_io.F90	/^  subroutine read_inputfile(/;"	s	module:mod_io
+rixs	debug_b.F90	/^program rixs$/;"	p
+rixs	rixs_b.F90	/^program rixs$/;"	p
+rixs	scaling_b.F90	/^subroutine rixs(/;"	s
+rixs2	scaling_b.F90	/^subroutine rixs2(/;"	s
+rixs_b2	rixs_b2.F90	/^program rixs_b2$/;"	p
+rixs_b2	rixs_bp.F90	/^program rixs_b2$/;"	p
+runtime	scaling_b.F90	/^  real(8) :: start, finish, runtime,/;"	v	program:scaling_b
+runtime	scaling_single.F90	/^  real(8) :: start, finish, runtime,/;"	v	program:scaling_b
+runtime2	scaling_b.F90	/^  real(8) :: start, finish, runtime, runtime2,/;"	v	program:scaling_b
+runtime2	scaling_single.F90	/^  real(8) :: start, finish, runtime, runtime2,/;"	v	program:scaling_b
+runtime3	scaling_b.F90	/^  real(8) :: start, finish, runtime, runtime2, runtime3$/;"	v	program:scaling_b
+runtime3	scaling_single.F90	/^  real(8) :: start, finish, runtime, runtime2, runtime3$/;"	v	program:scaling_b
+scaling_b	scaling_b.F90	/^program scaling_b$/;"	p
+scaling_b	scaling_single.F90	/^program scaling_b$/;"	p
+set_param	mod_io.F90	/^  subroutine set_param(/;"	s	module:mod_io
+smap	mod_io.F90	/^    integer(4), allocatable :: smap(/;"	k	type:io
+splittfile	modmpi.F90	/^  logical :: splittfile,/;"	v	module:modmpi
+start	rixs_b.F90	/^  real(8) :: start,/;"	v	program:rixs
+start	rixs_b2.F90	/^  real(8) :: start,/;"	v	program:rixs_b2
+start	rixs_bp.F90	/^  real(8) :: start,/;"	v	program:rixs_b2
+start	scaling_b.F90	/^  real(8) :: start,/;"	v	program:scaling_b
+start	scaling_single.F90	/^  real(8) :: start,/;"	v	program:scaling_b
+t_block	debug_b.F90	/^  type(block1d) :: eval_b, t_block,/;"	v	program:rixs
+terminate	modmpi.F90	/^    subroutine terminate$/;"	s	module:modmpi
+test	rixs_b.F90	/^  real(8) :: start, finish, test$/;"	v	program:rixs
+test	rixs_b2.F90	/^  real(8) :: start, finish, test$/;"	v	program:rixs_b2
+test	rixs_bp.F90	/^  real(8) :: start, finish, test$/;"	v	program:rixs_b2
+tprime	debug_b.F90	/^  complex(8), allocatable :: B_matrix(:,:,:), tprime(/;"	v	program:rixs
+tprime_b	debug_b.F90	/^  type(block3d) :: matB_b, matA_b, tprime_b$/;"	v	program:rixs
+transform2matrix	mod_rixs.F90	/^  subroutine transform2matrix(/;"	s	module:mod_rixs
+transform2matrix_b	mod_blocks.F90	/^    subroutine transform2matrix_b(/;"	s	module:mod_blocks
+transform2vector	mod_rixs.F90	/^  subroutine transform2vector(/;"	s	module:mod_rixs
+transform2vector_b	mod_blocks.F90	/^    subroutine transform2vector_b(/;"	s	module:mod_blocks
+uo	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,lo,uo,/;"	k	type:io
+uu	mod_io.F90	/^    integer(4) :: hamsize, lu,uu,/;"	k	type:io
+vecA_b	debug_b.F90	/^  type(block1d) :: eval_b, t_block, vecB_b, vecA_b$/;"	v	program:rixs
+vecA_b	rixs_b.F90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs
+vecA_b	rixs_b2.F90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs_b2
+vecA_b	rixs_bp.F90	/^  type(block1d) :: vecA_b,/;"	v	program:rixs_b2
+vecA_id	rixs_bp.F90	/^  integer(hid_t) :: dataset_id, energy_id, oscstr_id, vecA_id$/;"	v	program:rixs_b2
+vecB_b	debug_b.F90	/^  type(block1d) :: eval_b, t_block, vecB_b,/;"	v	program:rixs
+w1	rixs_b.F90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs
+w1	rixs_b2.F90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs_b2
+w1	rixs_bp.F90	/^  integer :: nkmax, nu, no, w1$/;"	v	program:rixs_b2
+zcontent	mod_blocks.F90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block1d
+zcontent	mod_blocks.F90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block2d
+zcontent	mod_blocks.F90	/^    complex(8), allocatable :: zcontent(/;"	k	type:block3d

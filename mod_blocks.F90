@@ -161,7 +161,7 @@ module mod_blocks
   end subroutine
   !-----------------------------------------------------------------------------
   subroutine get_eigvecs2D_b(inblock2d,file_id)
-    use mod_hdf5, only: hdf5_get_dims, hdf5_read_block, hdf5_read
+    use mod_phdf5, only:  phdf5_setup_read, phdf5_read, phdf5_cleanup 
     use hdf5, only: hid_t
     implicit none
     type(block2d), intent(inout) :: inblock2d
@@ -204,7 +204,7 @@ module mod_blocks
   !-----------------------------------------------------------------------------
   subroutine generate_tblock(inblock1d,koulims,smap,ismap,pol,file_id)
     use hdf5, only: hid_t
-    use mod_hdf5
+    use mod_phdf5
     implicit none
     type(block1d), intent(inout) :: inblock1d
     integer(4), intent(in) :: koulims(:,:)
@@ -248,7 +248,7 @@ module mod_blocks
       if (allocated(pmat_)) deallocate(pmat_)
       allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
       call phdf5_setup_read(3,dimsg_,.true.,dsetname,path,file_id,dataset_id)
-      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset,dataset_id)
+      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset_,dataset_id)
       call phdf5_cleanup(dataset_id)
       ! write  transition matrix into file for the states included 
       ! in the BSE calculation
@@ -264,7 +264,7 @@ module mod_blocks
   end subroutine 
 !-----------------------------------------------------------------------------
   subroutine generate_tprime_block(in3d,pol,koulims,file_id)
-    use mod_hdf5
+    use mod_phdf5
     use hdf5, only: hid_t
     implicit none
     real(8), intent(in) :: pol(3)
@@ -299,7 +299,7 @@ module mod_blocks
       !determine size of matrix in hdf5 file
       path='/pmat/'//trim(adjustl(cik))
       call phdf5_get_dims(file_id,path,trim(adjustl(dsetname)),dimensions)
-      dismg_=(/dimensions(2), dimensions(3), dimensions(4)/)
+      dimsg_=(/dimensions(2), dimensions(3), dimensions(4)/)
       offset_=(/0, 0, 0/)
       !allocate intermediate transition matrix for each k-point
       if (allocated(pmat_)) deallocate(pmat_)
@@ -322,7 +322,7 @@ module mod_blocks
   end subroutine 
 
   !-----------------------------------------------------------------------------
-  subroutine generate_chi_block(inblock2d,omega,broad,fname)
+  subroutine generate_chi_block(inblock2d,omega,broad,file_id)
     use mod_io, only: io
     use hdf5, only: hid_t
     implicit none
@@ -563,14 +563,15 @@ module mod_blocks
   end subroutine
   
   !-----------------------------------------------------------------------------
-  subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, broad, core, optical, fname_pmat, fname_core, &
-     & fname_optical, pol, oscstr_b)
+  subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, broad, core, optical, pmat_id, core_id, &
+     & optical_id, pol, oscstr_b)
     use mod_io, only: io
+    use hdf5, only: hid_t
     integer, intent(in) :: nblocks, blsz, nk, k
     real(8), intent(in) :: omega(:)
     real(8), intent(in) :: broad, pol(3)
     type(io), intent(in) :: core, optical
-    character(1024) :: fname_pmat, fname_core, fname_optical
+    integer(hid_t), intent(in) :: pmat_id, core_id, optical_id
     complex(8), intent(out) :: oscstr_b(:,:)
     ! internal variables
     type(block2d) :: evecs_b
@@ -608,10 +609,10 @@ module mod_blocks
       vecA_b%id=k2
       
       ! generate block of eigenvectors
-      call get_eigvecs2D_b(evecs_b,fname_optical)
+      call get_eigvecs2D_b(evecs_b,optical_id)
       do w=1, size(omega)
         ! generate block of A vector
-        call generate_Avector_b(vecA_b,omega(w),broad,core,optical,fname_pmat,fname_core,pol)
+        call generate_Avector_b(vecA_b,omega(w),broad,core,optical,pmat_id,core_id,pol)
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0

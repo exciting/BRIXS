@@ -1,5 +1,4 @@
 module mod_io
-  use mod_hdf5
   implicit none
   
   type :: io
@@ -20,49 +19,65 @@ module mod_io
   public get_koulims
   public get_smap
   public get_ismap
-  public get_evals
-  public get_eigvecs
     
   contains
   ! Methodenbereich
   !-----------------------------------------------------------------------------
-  subroutine get_koulims(object,fname)
+  subroutine get_koulims(object,file_id)
+    use hdf5, only: hid_t
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
     implicit none
     type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     !local variables
-    integer(4) :: dims(2)
+    integer(4) :: dims(2), offset_(2)
+    integer(hid_t) :: dataset_id
     character(len=1024) :: path, dsetname
-    
+    !set fake offset
+    offset_=(/ 0, 0 /)
     !get sizes of koulims
     path=trim(adjustl('eigvec-singlet-TDA-BAR-full/0001/parameters'))
     dsetname=trim(adjustl('koulims'))
-    call hdf5_get_dims(trim(adjustl(fname)),path,dsetname,dims)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%koulims)) deallocate(object%koulims)
     allocate(object%koulims(dims(1),dims(2)))
-    ! get data
-    call hdf5_read(trim(adjustl(fname)),path,dsetname,object%koulims(1,1),dims)
+    !open dataset
+    call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
+    !get data
+    call phdf5_read(object%koulims(1,1),.true.,dims,dims,offset_,dataset_id)
+    ! close dataset
+    call phdf5_cleanup(dataset_id)
   end subroutine
   
   !-----------------------------------------------------------------------------
-  subroutine get_smap(object,fname)
+  subroutine get_smap(object,file_id)
+    use hdf5, only: hid_t
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
     implicit none
     type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     !local variables
-    integer(4) :: dims(2)
+    integer(4) :: dims(2), offset_(2)
+    integer(hid_t) :: dataset_id
     character(len=1024) :: path, dsetname
-    
+    ! set fake offset
+    offset_=(/ 0, 0/)
     !get sizes of koulims
     path='eigvec-singlet-TDA-BAR-full/0001/parameters'
     dsetname='smap'
-    call hdf5_get_dims(fname,path,dsetname,dims)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%smap)) deallocate(object%smap)
     allocate(object%smap(dims(1),dims(2)))
+    ! open dataset
+    call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
-    call hdf5_read(fname,path,dsetname,object%smap(1,1),dims)
+    call phdf5_read(object%smap(1,1),.true.,dims,dims,offset_,dataset_id)
+    ! close dataset
+    call phdf5_cleanup(dataset_id)
   end subroutine 
 
   !-----------------------------------------------------------------------------
@@ -113,69 +128,9 @@ module mod_io
     end if
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine get_evals(object,fname)
-    implicit none
-    type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
-    !local variables
-    integer(4) :: dim_(1)
-    character(len=1024) :: path, dsetname
-    
-    !get sizes of koulims
-    path='eigvec-singlet-TDA-BAR-full/0001'
-    dsetname='evals'
-    call hdf5_get_dims(fname,path,dsetname,dim_)
-    !allocate output
-    if (allocated(object%evals)) deallocate(object%evals)
-    allocate(object%evals(dim_(1)))
-    ! get data
-    call hdf5_read(fname,path,dsetname,object%evals(1),dim_)
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-  subroutine get_eigvecs(object,fname)
-    implicit none
-    type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
-    !local variables
-    complex(8), allocatable :: eigvec_(:)
-    integer(4) :: dim_(1), i, dims_(2)
-    character(len=1024) :: path, dsetname
-    character(256) :: ci
-    
-    !get size of eigvecs
-    ! IMPORTANT: Here, I assume that all of the BSE eigvecs are included in the
-    !            hdf5 file
-
-    path='eigvec-singlet-TDA-BAR-full/0001'
-    dsetname='evals'
-    call hdf5_get_dims(fname,path,dsetname,dim_)
-    !allocate output
-    if (allocated(object%eigvecs)) deallocate(object%eigvecs)
-    allocate(object%eigvecs(dim_(1),dim_(1)))
-    ! get data
-    do i=1, dim_(1)
-      write(ci, '(I8.8)') i
-      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-      dsetname=trim(adjustl(ci))
-      ! Get dimension of eigvec for given lambda
-      call hdf5_get_dims(fname,path,ci,dims_)
-      ! Allocate intermediate eigenvector array
-      ! The first dimension is 2, since this is a complex array
-      if (allocated(eigvec_)) deallocate(eigvec_)
-      !allocate(eigvec_(dims_(2),dims_(3)))
-      allocate(eigvec_(dims_(2)))
-      ! Get data
-      call hdf5_read(fname,path,dsetname,eigvec_(1),shape(eigvec_))
-      ! Write data to final array
-      object%eigvecs(:,i)=eigvec_(:)
-    end do
-    deallocate(eigvec_)
-  end subroutine 
-  
-  !-----------------------------------------------------------------------------
   subroutine read_inputfile(object,fname)
-    use modmpi
+    use modmpi, only: mpiglobal, ierr
+    use mpi
     implicit none
     type(input), intent(out) :: object
     character(*), intent(in) :: fname
@@ -185,7 +140,7 @@ module mod_io
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
     real(8) :: broad_, broad2_
-    integer :: nblocks_, ierr
+    integer :: nblocks_
     logical :: oscstr_
 
 
@@ -231,7 +186,7 @@ module mod_io
     call mpi_bcast(broad2_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(oscstr_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-#end if
+#endif
     
     ! calculate input parameters from read
     object%broad=broad_

@@ -1,33 +1,34 @@
-program rixs_b2
+program rixs_bp
   use mod_phdf5
   use modmpi
   use mod_io
   use mod_rixs
   use mod_matmul
   use mod_blocks
+  use hdf5, only: hid_t
 
   implicit none
   real(8) :: broad, broad2
   real(8), allocatable :: omega(:), omega2(:)
   real(8) :: pol(3)
   integer :: nkmax, nu, no, w1
-  integer :: interdim(2), lambda
+  integer :: interdim(2)
   type(io) :: optical, core
   type(input) :: inputparam
   integer(4), allocatable :: koulims_comb(:,:)
   character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &
-   & fname_inter, gname, gname2, gname3, ik, 
+   & fname_inter, gname, gname2, gname3, ik, datasetname 
   integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k
   type(block1d) :: oscstr_b
   type(block1d) :: vecA_b, evals_b
   type(block2d) :: evecs_b
   complex(8) :: alpha, beta
-  real(8) :: start, finish, test
+  real(8) ::  test
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: core_id, optical_id, pmat_id, output_id, inter_id
   integer(hid_t) :: dataset_id, energy_id, oscstr_id, vecA_id
-  integer :: matsize_
+  integer :: matsize_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
   fname_optical='./optical_output.h5'
@@ -41,15 +42,20 @@ program rixs_b2
   call phdf5_open_file(fname_core,.True.,core_id,mpiglobal%comm)
   call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
   call phdf5_open_file(fname_pmat,.True.,pmat_id,mpiglobal%comm)
+  print *, 'rank=', mpiglobal%rank, 'core_id=', core_id
+  print *, 'rank=', mpiglobal%rank, 'core_id=', optical_id
+  print *, 'rank=', mpiglobal%rank, 'core_id=', pmat_id
   ! create HDF5 files for output and intermediate data
   call phdf5_create_file(fname_inter,.True.,inter_id,mpiglobal%comm)
   call phdf5_create_file(fname_output,.True.,output_id,mpiglobal%comm)
+  print *, 'rank=', mpiglobal%rank, 'core_id=', inter_id
+  print *, 'rank=', mpiglobal%rank, 'core_id=', output_id
 
   ! initialize io objects for core and optics
-  call get_koulims(optical,fname_optical)
-  call get_koulims(core,fname_core)
-  call get_smap(optical,fname_optical)
-  call get_smap(core,fname_core)
+  call get_koulims(optical,optical_id)
+  call get_koulims(core,core_id)
+  call get_smap(optical,optical_id)
+  call get_smap(core,core_id)
   call set_param(optical)
   call set_param(core)
   call get_ismap(optical)
@@ -108,9 +114,9 @@ program rixs_b2
     end if
     gname2=trim(adjustl('/A/'//gname//'/'))
     ! set up the dataset
-    matsize_=nblocks_*blsz_
+    matsize_=(/ nblocks_*blsz_ /)
     datasetname='A'
-    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,file_id,dataset_id)
+    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,inter_id,dataset_id)
     ! loop over blocks, now distributed over MPI ranks
     do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
       !set-up for the blocks
@@ -139,11 +145,9 @@ program rixs_b2
   do w1=1, size(omega)
     ! set up groups in output file
     write(ik, '(I4.4)') w1
-    call hdf5_create_group(output_id, '/oscstr/',ik)
+    call phdf5_create_group(output_id, '/oscstr/',ik)
     gname=trim(adjustl('/oscstr/'//trim(ik)//'/'))
     gname2=trim(adjustl('/A/'//trim(ik)//'/'))
-    ! set oscillator strength to zero 
-    oscstr_b%zcontent(:)=0.0d0
     ! open datasets for write of energies & oscstr
     if (w1==1) then 
       call phdf5_setup_write(1,matsize_,.false.,'data',gname3,output_id,energy_id)
@@ -165,7 +169,7 @@ program rixs_b2
         evals_b%offset=(k-1)*blsz_
         evals_b%id=k
         ! generate block of eigenvalues
-        call get_evals_block(evals_b,fname_optical)
+        call get_evals_block(evals_b,optical_id)
         call put_block1d(evals_b,.true.,energy_id)
       end if
       ! set up block of oscillator strength
@@ -229,11 +233,11 @@ program rixs_b2
     call phdf5_cleanup(oscstr_id)
   end do ! w
   !close HDF5 files
-  call phdf5_close_file(fname_core)
-  call phdf5_close_file(fname_optical)
-  call phdf5_close_file(fname_pmat)
-  call phdf5_close_file(fname_inter)
-  call phdf5_close_file(fname_output)
+  call phdf5_close_file(core_id)
+  call phdf5_close_file(optical_id)
+  call phdf5_close_file(pmat_id)
+  call phdf5_close_file(inter_id)
+  call phdf5_close_file(output_id)
   call phdf5_finalize()
   call finitmpi()
 
