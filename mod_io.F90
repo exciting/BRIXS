@@ -175,6 +175,7 @@ module mod_io
   
   !-----------------------------------------------------------------------------
   subroutine read_inputfile(object,fname)
+    use modmpi
     implicit none
     type(input), intent(out) :: object
     character(*), intent(in) :: fname
@@ -183,38 +184,59 @@ module mod_io
     character(256) :: buffer,label
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
+    real(8) :: broad_, broad2_
+    integer :: nblocks_, ierr
+    logical :: oscstr_
 
-    ! basics taken from https://jblevins.org/log/control-file 
-    line=0
-    ios=0
-    open(fh, file=trim(adjustl(fname)))
-    do while (ios == 0)
-      read(fh, '(A)', iostat=ios) buffer
-      if (ios == 0) then
-        line = line + 1
-        ! Find the first instance of whitespace.  Split label and data.
-        pos = scan(buffer, '    ')
-        label = buffer(1:pos)
-        buffer = buffer(pos+1:)
 
-        select case (label)
-        case ('omega')
-           read(buffer, *, iostat=ios) inter
-        case ('omega2')
-           read(buffer, *, iostat=ios) inter2
-        case ('broad')
-           read(buffer, *, iostat=ios) object%broad
-        case ('broad2')
-           read(buffer, *, iostat=ios) object%broad2
-        case ('do_oscstr')
-           object%oscstr=.true.
-        case ('nblocks')
-           read(buffer, *, iostat=ios) object%nblocks
-        case default
-           print *, 'Skipping invalid label at line', line
-        end select
-      end if
-    end do
+    ! only root reads the input file
+    if (mpiglobal%rank .eq. 0) then
+      ! basics taken from https://jblevins.org/log/control-file 
+      line=0
+      ios=0
+      open(fh, file=trim(adjustl(fname)))
+      do while (ios == 0)
+        read(fh, '(A)', iostat=ios) buffer
+        if (ios == 0) then
+          line = line + 1
+          ! Find the first instance of whitespace.  Split label and data.
+          pos = scan(buffer, '    ')
+          label = buffer(1:pos)
+          buffer = buffer(pos+1:)
+
+          select case (label)
+          case ('omega')
+            read(buffer, *, iostat=ios) inter
+          case ('omega2')
+            read(buffer, *, iostat=ios) inter2
+          case ('broad')
+            read(buffer, *, iostat=ios) broad_
+          case ('broad2')
+            read(buffer, *, iostat=ios) broad2_
+          case ('do_oscstr')
+            oscstr_=.true.
+          case ('nblocks')
+            read(buffer, *, iostat=ios) nblocks_
+          case default
+            print *, 'Skipping invalid label at line', line
+          end select
+        end if
+      end do
+    end if
+#ifdef MPI
+    ! broadcast input parameters to everybody
+    call mpi_bcast(inter,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(inter2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(broad2_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(oscstr_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#end if
+    
+    ! calculate input parameters from read
+    object%broad=broad_
+    object%broad2=broad2_
+    object%nblocks=nblocks_
     if (allocated(object%omega)) deallocate(object%omega)
     if (allocated(object%omega2)) deallocate(object%omega2)
     allocate(object%omega(int(inter(3))))

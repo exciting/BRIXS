@@ -131,14 +131,17 @@ module mod_blocks
     end subroutine 
 
     !-----------------------------------------------------------------------------
-    subroutine get_evals_block(inblock1d,fname)
-      use mod_hdf5, only: hdf5_read_block
+    subroutine get_evals_block(inblock1d,file_id)
+      use mod_phdf5, only: phdf5_setup_read, phdf5_cleanup, &
+        &                  phdf5_read
+      use hdf5, only: hid_t
       implicit none
       type(block1d), intent(inout) :: inblock1d
-      character(len=1024), intent(in) :: fname
+      integer(hid_t), intent(in) :: file_id
       !local variables
       character(len=1024) :: path, dsetname
-      integer, dimension(1) :: dims_, offset_ 
+      integer, dimension(1) :: dims_, offset_, dimsg_
+      integer(hid_t) :: dataset_id
       !allocate output
       if (allocated(inblock1d%dcontent)) deallocate(inblock1d%dcontent)
       allocate(inblock1d%dcontent(inblock1d%blocksize))
@@ -147,18 +150,26 @@ module mod_blocks
       dsetname='evals'
       ! get data
       dims_(1)=inblock1d%blocksize
+      dimsg_(1)=inblock1d%blocksize*inblock1d%nblocks
       offset_(1)=inblock1d%offset
-      call hdf5_read_block(fname,path,dsetname,inblock1d%dcontent(1),dims_,offset_)
+      ! open the dataset
+      call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
+      ! read data
+      call phdf5_read(inblock1d%dcontent(1),.true.,dims_,dimsg_,offset_,dataset_id)
+      ! close dataset
+      call phdf5_cleanup(dataset_id)
   end subroutine
   !-----------------------------------------------------------------------------
-  subroutine get_eigvecs2D_b(inblock2d,fname)
+  subroutine get_eigvecs2D_b(inblock2d,file_id)
     use mod_hdf5, only: hdf5_get_dims, hdf5_read_block, hdf5_read
+    use hdf5, only: hid_t
     implicit none
     type(block2d), intent(inout) :: inblock2d
-    character(len=1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     !local variables
     complex(8), allocatable :: eigvec_(:)
-    integer(4) ::  i, offset_(1), dim_(1)
+    integer(4) ::  i, offset_(1), dim_(1), dimsg_(1)
+    integer(hid_t) :: dataset_id
     character(len=1024) :: path, dsetname
     character(256) :: ci
     ! allocate output
@@ -178,15 +189,21 @@ module mod_blocks
       ! Get data
       offset_(1)=inblock2d%offset(1)
       dim_(1)=inblock2d%blocksize
-      !call hdf5_read_block(fname,path,dsetname,eigvec_(1),dim_,offset_)
-      call hdf5_read_block(fname,path,dsetname,eigvec_(1),dim_,offset_)
+      dimsg_(1)=inblock2d%blocksize*inblock2d%nblocks
+      !open dataset
+      call phdf5_setup_read(1,dim_,.true.,dsetname,path,file_id,dataset_id)
+      !read data
+      call phdf5_read(eigvec_(1),.true.,dim_,dimsg_,offset_,dataset_id)
+      !close dataset
+      call phdf5_cleanup(dataset_id)
       ! Write data to final array
       inblock2d%zcontent(:,i)=eigvec_(:)
     end do
     deallocate(eigvec_)
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine generate_tblock(inblock1d,koulims,smap,ismap,pol,hdf5_file)
+  subroutine generate_tblock(inblock1d,koulims,smap,ismap,pol,file_id)
+    use hdf5, only: hid_t
     use mod_hdf5
     implicit none
     type(block1d), intent(inout) :: inblock1d
@@ -194,15 +211,16 @@ module mod_blocks
     integer(4), intent(in) :: smap(:,:)
     integer(4), intent(in) :: ismap(:,:,:)
     real(8), intent(in) :: pol(3)
-    character(*), intent(in) :: hdf5_file
+    integer(hid_t), intent(in) :: file_id
     !internal variables
     integer(4), dimension(2) :: dim_koulims, dim_smap
     integer(4) :: lu, uu, lo, uo, nu, no, nk0
-    integer(4) :: k,i,j,dimensions(4)
+    integer(4) :: k,i,j,dimensions(4), dimsg_(3), offset_(3)
     character(len=1024) :: path, dsetname, cik
     complex(8), allocatable :: pmat_(:,:,:)
     !complex(8) :: pmat_(3,2,35)
     integer :: stat_var
+    integer(hid_t) :: dataset_id
 
     ! allocate output
     if (allocated(inblock1d%zcontent)) deallocate(inblock1d%zcontent)
@@ -223,11 +241,15 @@ module mod_blocks
       write(cik, '(I4.4)') k
       !determine size of matrix in hdf5 file
       path=trim(adjustl('/pmat/'//trim(adjustl(cik))))
-      call hdf5_get_dims(hdf5_file,path,trim(adjustl(dsetname)),dimensions)
+      call phdf5_get_dims(file_id,path,trim(adjustl(dsetname)),dimensions)
+      dimsg_=(/dimensions(2), dimensions(3), dimensions(4)/)
+      offset_=(/0, 0, 0/)
       !allocate intermediate transition matrix for each k-point
       if (allocated(pmat_)) deallocate(pmat_)
       allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
-      call hdf5_read(hdf5_file,path,dsetname,pmat_(1,1,1),shape(pmat_))
+      call phdf5_setup_read(3,dimsg_,.true.,dsetname,path,file_id,dataset_id)
+      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset,dataset_id)
+      call phdf5_cleanup(dataset_id)
       ! write  transition matrix into file for the states included 
       ! in the BSE calculation
       do i=1, no
@@ -241,16 +263,19 @@ module mod_blocks
     deallocate(pmat_)
   end subroutine 
 !-----------------------------------------------------------------------------
-  subroutine generate_tprime_block(in3d,pol,koulims,fname)
+  subroutine generate_tprime_block(in3d,pol,koulims,file_id)
     use mod_hdf5
+    use hdf5, only: hid_t
     implicit none
     real(8), intent(in) :: pol(3)
     integer(4), intent(in) :: koulims(:,:)
-    character(1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     type(block3d), intent(inout) :: in3d
     ! local variables
     integer(4) :: lu, uu, lo, uo, nu, no, nkmax, i,j
     integer(4) :: dimensions(4), inter(2), nk_, k
+    integer :: dimsg_(3), offset_(3)
+    integer(hid_t) :: dataset_id
     character(1024) :: cik, path, dsetname
     complex(8), allocatable :: pmat_(:,:,:)
     !complex(8) :: pmat_(3,2,35)
@@ -273,11 +298,18 @@ module mod_blocks
       write(cik, '(I4.4)') k
       !determine size of matrix in hdf5 file
       path='/pmat/'//trim(adjustl(cik))
-      call hdf5_get_dims(fname,path,trim(adjustl(dsetname)),dimensions)
+      call phdf5_get_dims(file_id,path,trim(adjustl(dsetname)),dimensions)
+      dismg_=(/dimensions(2), dimensions(3), dimensions(4)/)
+      offset_=(/0, 0, 0/)
       !allocate intermediate transition matrix for each k-point
       if (allocated(pmat_)) deallocate(pmat_)
       allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)))
-      call hdf5_read(fname,path,dsetname,pmat_(1,1,1),shape(pmat_))
+      !open dataset
+      call phdf5_setup_read(3,dimsg_,.true.,trim(adjustl(dsetname)),path,file_id,dataset_id)
+      !read data
+      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset_,dataset_id)
+      ! close dataset
+      call phdf5_cleanup(dataset_id)
       do i=1,no
         do j=1,nu
           in3d%zcontent(i,j,k-in3d%kl+1)=pol(1)*pmat_(1,i+lo-1,j+lu-1)+&
@@ -292,10 +324,11 @@ module mod_blocks
   !-----------------------------------------------------------------------------
   subroutine generate_chi_block(inblock2d,omega,broad,fname)
     use mod_io, only: io
+    use hdf5, only: hid_t
     implicit none
     real(8), intent(in) :: omega
     real(8), intent(in) :: broad
-    character(1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     type(block2d), intent(inout) :: inblock2d
     ! internal variables
     type(block2d) :: block1, block2
@@ -360,9 +393,9 @@ module mod_blocks
       block3%id=k
        
       !get eigenvalues and eigenvectors
-      call get_evals_block(block3,fname)
-      call get_eigvecs2D_b(block1,fname)
-      call get_eigvecs2D_b(block2,fname)
+      call get_evals_block(block3,file_id)
+      call get_eigvecs2D_b(block1,file_id)
+      call get_eigvecs2D_b(block2,file_id)
     
       ! allocate array for hermetian conjugate of eigvecs
       inter(:,:)=0.0d0
@@ -397,11 +430,12 @@ module mod_blocks
   subroutine generate_Bvector_b(inbl,omega,broad,object,p_file,c_file, pol)
     use mod_io, only: io
     use mod_matmul, only: matprod
+    use hdf5, only: hid_t
     implicit none
     type(block1d), intent(inout) :: inbl
     real(8), intent(in) :: omega, broad, pol(3)
     type(io) :: object
-    character(1024), intent(in) :: p_file, c_file
+    integer(hid_t), intent(in) :: p_file, c_file
     !internal variables
     type(block2d) :: bl2d_
     type(block1d) :: bl1d_
@@ -442,15 +476,9 @@ module mod_blocks
       bl1d_%offset=(k-1)*inbl%blocksize
       bl1d_%id=k
       ! generate core chi block
-      !call cpu_time(start)
       call generate_chi_block(bl2d_,omega,broad,c_file)
-      !call cpu_time(finish)
-      !print *, '        generate_chi_block:', finish-start, 'seconds'
       ! generate t vector block
-      !call cpu_time(start)
       call generate_tblock(bl1d_,object%koulims,object%smap,object%ismap,pol,p_file)
-      !call cpu_time(finish)
-      !print *, '        generate_tblock:', finish-start, 'seconds'
       ! generate B vector block
       call zgemm('n','n',inbl%blocksize,1,inbl%blocksize,alpha,bl2d_%zcontent,inbl%blocksize,bl1d_%zcontent &
         &  ,inbl%blocksize,beta,inbl%zcontent,inbl%blocksize)
@@ -460,13 +488,14 @@ module mod_blocks
   end subroutine 
   !-----------------------------------------------------------------------------
   subroutine generate_Avector_b(inbl,omega,broad,core,optical,p_file,c_file,pol)
+    use hdf5, only: hid_t
     use mod_io, only: io
     use mod_matmul, only: matprod
     implicit none
     type(block1d), intent(inout) :: inbl
     real(8), intent(in) :: omega, broad, pol(3)
     type(io) :: core, optical
-    character(1024), intent(in) :: p_file, c_file
+    integer(hid_t) :: p_file, c_file
     ! internal variables
     type(block1d) :: vecB_b
     type(block3d)  :: tprime_b, matB_b,  matA_b
@@ -527,8 +556,7 @@ module mod_blocks
       ! generate block of A matrix
       call matprod(matB_b%zcontent(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))
     end do
-    
-      ! generate block of A vector
+    ! generate block of A vector
     call transform2vector_b(optical%koulims,optical%smap,matA_b,inbl)
     deallocate(koulims_comb) 
     deallocate(vecB_b%zcontent,matB_b%zcontent,matA_b%zcontent)
@@ -591,67 +619,95 @@ module mod_blocks
       end do ! w
     end do ! k2
   end subroutine
-  
-  !-----------------------------------------------------------------------------
-  subroutine put_block1d(in1d,fname,groupname)
-    use mod_hdf5
-    implicit none
-    type(block1d), intent(in) :: in1d
-    character(len=1024), intent(in) :: fname, groupname
-    ! local variables
-    character(len=1024) :: gname_, id_
-    ! create group if needed
-    write(id_, '(I4.4)') in1d%id
-    ! create group for block
-    call hdf5_create_group(fname,groupname,id_)
-    gname_=trim(adjustl(groupname))//'/'//trim(adjustl(id_))//"/"
-    ! write metadata
-    call hdf5_write(fname,gname_,"nblocks",in1d%nblocks)
-    call hdf5_write(fname,gname_,"blocksize",in1d%blocksize)
-    call hdf5_write(fname,gname_,"nk",in1d%nk)
-    call hdf5_write(fname,gname_,"il",in1d%il)
-    call hdf5_write(fname,gname_,"iu",in1d%iu)
-    call hdf5_write(fname,gname_,"kl",in1d%kl)
-    call hdf5_write(fname,gname_,"ku",in1d%ku)
-    call hdf5_write(fname,gname_,"offset",in1d%offset)
-    ! write content
-    if (allocated(in1d%zcontent)) then
-      call hdf5_write(fname,gname_,"zcontent",in1d%zcontent(1),shape(in1d%zcontent))
-    else
-      call hdf5_write(fname,gname_,"dcontent",in1d%dcontent(1),shape(in1d%dcontent))
-    end if
-
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-  subroutine get_block1d(in1d,fname,groupname)
-    use mod_hdf5
+ 
+!-----------------------------------------------------------------------------
+  subroutine put_block1d(in1d,fparallel,dataset_id)
+    use hdf5, only: hid_t
+    use mod_phdf5
     implicit none
     type(block1d), intent(inout) :: in1d
-    character(len=1024), intent(in) :: fname, groupname
+    logical, intent(in) :: fparallel
+    integer(hid_t) :: dataset_id
     ! local variables
-    character(len=1024) :: gname_, id_, group_
-    ! get groupname 
-    write(id_, '(I4.4)') in1d%id
-    gname_=trim(adjustl(groupname))//'/'//trim(adjustl(id_))//"/"
-    
-    ! read metadata
-    call hdf5_read(fname,gname_,"nblocks",in1d%nblocks)
-    call hdf5_read(fname,gname_,"blocksize",in1d%blocksize)
-    call hdf5_read(fname,gname_,"nk",in1d%nk)
-    call hdf5_read(fname,gname_,"il",in1d%il)
-    call hdf5_read(fname,gname_,"iu",in1d%iu)
-    call hdf5_read(fname,gname_,"kl",in1d%kl)
-    call hdf5_read(fname,gname_,"ku",in1d%ku)
-    call hdf5_read(fname,gname_,"offset",in1d%offset)
-    ! allocate array if necessary
-    if (allocated(in1d%zcontent)) deallocate(in1d%zcontent)
-    allocate(in1d%zcontent(in1d%blocksize))
-    ! read content
-    call hdf5_read(fname,gname_,"zcontent",in1d%zcontent(1),shape(in1d%zcontent))
-
+    integer, dimension(1) :: dims_, dimsg_, offset_
+    ! set dimension & offset
+    dims_(1)=in1d%blocksize
+    dimsg_(1)=in1d%blocksize*in1d%nblocks
+    offset_(1)=in1d%offset
+    ! if allocated, write the dcontent
+    if (allocated(in1d%dcontent)) then
+      call phdf5_write(in1d%dcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    elseif (allocated(in1d%zcontent)) then
+      call phdf5_write(in1d%zcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    end if
   end subroutine
 
+!-----------------------------------------------------------------------------
+  subroutine get_block1d(in1d,fparallel,dataset_id)
+    use hdf5, only: hid_t
+    use mod_phdf5
+    implicit none
+    type(block1d), intent(inout) :: in1d
+    logical, intent(in) :: fparallel
+    integer(hid_t) :: dataset_id
+    ! local variables
+    integer, dimension(1) :: dims_, dimsg_, offset_
+    ! set dimension & offset
+    dims_(1)=in1d%blocksize
+    dimsg_(1)=in1d%blocksize*in1d%nblocks
+    offset_(1)=in1d%offset
+    ! if allocated, write the dcontent
+    if (allocated(in1d%dcontent)) then
+      call phdf5_read(in1d%dcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    elseif (allocated(in1d%zcontent)) then
+      call phdf5_read(in1d%zcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    end if
+  end subroutine
+
+!-----------------------------------------------------------------------------
+  subroutine put_block2d(in2d,fparallel,dataset_id)
+    use hdf5, only: hid_t
+    use mod_phdf5
+    implicit none
+    type(block2d), intent(inout) :: in2d
+    logical, intent(in) :: fparallel
+    integer(hid_t) :: dataset_id
+    ! local variables
+    integer, dimension(2) :: dims_, dimsg_, offset_
+    ! set dimension & offset
+    dims_=(/ in2d%blocksize, in2d%blocksize/)
+    dimsg_=(/ in2d%blocksize*in2d%nblocks, in2d%blocksize*in2d%nblocks /) 
+    offset_=in2d%offset
+    ! if allocated, write the dcontent
+    if (allocated(in2d%dcontent)) then
+      call phdf5_write(in2d%dcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    elseif (allocated(in2d%zcontent)) then
+      call phdf5_write(in2d%zcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    end if
+  end subroutine
+
+!-----------------------------------------------------------------------------
+  subroutine get_block2d(in2d,fparallel,dataset_id)
+    use hdf5, only: hid_t
+    use mod_phdf5
+    implicit none
+    type(block2d), intent(inout) :: in2d
+    logical, intent(in) :: fparallel
+    integer(hid_t) :: dataset_id
+    ! local variables
+    integer, dimension(2) :: dims_, dimsg_, offset_
+    ! set dimension & offset
+    dims_=(/ in2d%blocksize, in2d%blocksize/)
+    dimsg_=(/ in2d%blocksize*in2d%nblocks, in2d%blocksize*in2d%nblocks /) 
+    offset_=in2d%offset
+    ! if allocated, write the dcontent
+    if (allocated(in2d%dcontent)) then
+      call phdf5_read(in2d%dcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    elseif (allocated(in2d%zcontent)) then
+      call phdf5_read(in2d%zcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+    end if
+  end subroutine
+ 
   !-----------------------------------------------------------------------------
   subroutine print_properties1d(block)
     implicit none
