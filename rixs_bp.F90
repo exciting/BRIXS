@@ -42,14 +42,9 @@ program rixs_bp
   call phdf5_open_file(fname_core,.True.,core_id,mpiglobal%comm)
   call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
   call phdf5_open_file(fname_pmat,.True.,pmat_id,mpiglobal%comm)
-  print *, 'rank=', mpiglobal%rank, 'core_id=', core_id
-  print *, 'rank=', mpiglobal%rank, 'core_id=', optical_id
-  print *, 'rank=', mpiglobal%rank, 'core_id=', pmat_id
   ! create HDF5 files for output and intermediate data
   call phdf5_create_file(fname_inter,.True.,inter_id,mpiglobal%comm)
   call phdf5_create_file(fname_output,.True.,output_id,mpiglobal%comm)
-  print *, 'rank=', mpiglobal%rank, 'core_id=', inter_id
-  print *, 'rank=', mpiglobal%rank, 'core_id=', output_id
 
   ! initialize io objects for core and optics
   call get_koulims(optical,optical_id)

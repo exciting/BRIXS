@@ -609,28 +609,78 @@ subroutine phdf5_write_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   ! local variables
   integer :: ierr
   integer(hid_t) :: memspace_id, dataspace_id, plist_id
+  character*100 :: errmsg
   ! create memoryspace
   call h5screate_simple_f(ndims,dims,memspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5screate_f returned ",I6)')ierr
+    goto 10
+  endif
   ! select hyperslab in file
   call h5dget_space_f(dataset_id,dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5dget_space_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,offset,dims,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5sselect_hyperslab_f returned ",I6)')ierr
+    goto 10
+  endif
   ! write into hyperslab
   ! MPI I/O independently
   if (fparallel) then
     ! create property list for individual dataset write
     call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
+      goto 10
+    endif
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
+      goto 10
+    endif
     ! write the dataset
     call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
+      goto 10
+    endif
     ! close the property list
     call h5pclose_f(plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
+      goto 10
+    endif
   ! serial
   else
     call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
+      goto 10
+    endif
   end if
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sclose_f(memspace_id,ierr) 
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
+  
+  return
+  10 continue
+  write(*,'(A)')trim(errmsg)
+  write(*,'("  dataset_id : ",I4)')dataset_id
+  write(*,'("  offset  : ",10I4)')offset
+  write(*,'("  dims  : ",10I4)')dims
+  write(*,'("  dimsg  : ",10I4)')dimsg
+  stop
 end subroutine
 
 !-----------------------------------------------------------------------------
@@ -645,28 +695,78 @@ subroutine phdf5_read_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   ! local variables
   integer :: ierr
   integer(hid_t) :: memspace_id, dataspace_id, plist_id
+  character*100 :: errmsg
   ! create memoryspace
   call h5screate_simple_f(ndims,dims,memspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_d): h5screate_simple_f returned ",I6)')ierr
+    goto 10
+  endif
   ! select hyperslab in file
   call h5dget_space_f(dataset_id,dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_d): h5dget_space_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,offset,dims,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_d): h5sselect_hyperslab_f returned ",I6)')ierr
+    goto 10
+  endif
   ! read from hyperslab
   ! MPI read
   if (fparallel) then
     ! create property list for individual dataset write
     call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
+      goto 10
+    endif
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
+      goto 10
+    endif
     ! read dataset into memory
     call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
     ! close the property list
     call h5pclose_f(plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
+      goto 10
+    endif
   ! serial read
   else
     call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
   end if
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sclose_f(memspace_id,ierr) 
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
+  
+  return
+  10 continue
+  write(*,'(A)')trim(errmsg)
+  write(*,'("  dataset_id : ",I4)')dataset_id
+  write(*,'("  offset  : ",10I4)')offset
+  write(*,'("  dims  : ",10I4)')dims
+  write(*,'("  dimsg : ",10I4)')dimsg
+  stop
 end subroutine
 
 !-----------------------------------------------------------------------------
@@ -681,26 +781,77 @@ subroutine phdf5_read_array_i(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   ! local variables
   integer(4) :: ierr
   integer(hid_t) :: memspace_id, dataspace_id, plist_id
+  character*100 :: errmsg
+
   ! create memoryspace
   call h5screate_simple_f(ndims,dims,memspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5screate_simple_f returned ",I6)')ierr
+    goto 10
+  endif
   ! select hyperslab in file
   call h5dget_space_f(dataset_id,dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5dget_space_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,offset,dims,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5sselect_hyperslab_f returned ",I6)')ierr
+    goto 10
+  endif
   ! read from hyperslab
   ! MPI read
   if (fparallel) then
     ! create property list for individual dataset write
     call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_read_array_i): h5pcreate_f returned ",I6)')ierr
+      goto 10
+    endif
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_read_array_i): h5pset_dxpl_mpio_f returned ",I6)')ierr
+      goto 10
+    endif
     ! read dataset into memory
     call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
     ! close the property list
     call h5pclose_f(plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_read_array_i): h5pclose_f returned ",I6)')ierr
+      goto 10
+    endif
   ! serial read
   else
     call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
+      goto 10
+    endif
   end if
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_i): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
   call h5sclose_f(memspace_id,ierr) 
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_i): h5sclose_f returned ",I6)')ierr
+    goto 10
+  endif
+ 
+  return
+  10 continue
+  write(*,'(A)')trim(errmsg)
+  write(*,'("  dataset_id : ",I4)')dataset_id
+  write(*,'("  offset  : ",10I4)')offset
+  write(*,'("  dims  : ",10I4)')dims
+  write(*,'("  dimsg  : ",10I4)')dimsg
+  stop
 end subroutine

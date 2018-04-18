@@ -70,7 +70,6 @@ module mod_blocks
       ! allocate the output matrix
       if (allocated(outbl3d%zcontent)) deallocate(outbl3d%zcontent)
       allocate(outbl3d%zcontent(nu, no, inbl1d%nk))
-
       ! loop over all transitions
       do i=inbl1d%il, inbl1d%iu
         i1=insmap(1,i)-lu+1
@@ -500,6 +499,7 @@ module mod_blocks
     type(block1d) :: vecB_b
     type(block3d)  :: tprime_b, matB_b,  matA_b
     integer(4) :: interdim(2), nkmax, nu, no, nk, k
+    integer(4) :: id_, blsz_
     integer(4), allocatable :: koulims_comb(:,:)
     ! generate a combined map for t'
     interdim=shape(core%koulims)
@@ -510,16 +510,20 @@ module mod_blocks
     koulims_comb(3,:)=core%koulims(3,:)
     koulims_comb(4,:)=core%koulims(4,:)
     
+    ! note that B vector block and A vector block can have different size
+    ! set temporary id and size
+    id_=inbl%id
+    blsz_=core%no*core%nu*inbl%nk
     ! set up block for B vector
     vecB_b%nblocks=inbl%nblocks
-    vecB_b%blocksize=core%no*core%nu*inbl%nk
+    vecB_b%blocksize=blsz_
     vecB_b%nk=inbl%nk
-    vecB_b%il=inbl%il
-    vecB_b%iu=inbl%iu
+    vecB_b%il=(id_-1)*blsz_+1
+    vecB_b%iu=id_*blsz_
     vecB_b%kl=inbl%kl
     vecB_b%ku=inbl%ku
-    vecB_b%offset=inbl%offset
-    vecB_b%id=inbl%id
+    vecB_b%offset=(id_-1)*blsz_
+    vecB_b%id=id_
     ! set up block for t' matrix
     tprime_b%nblocks=inbl%nblocks
     tprime_b%nk=inbl%nk
@@ -551,7 +555,7 @@ module mod_blocks
     matA_b%kl=inbl%kl
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
-
+    
     do k=1, nk
       ! generate block of A matrix
       call matprod(matB_b%zcontent(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))
