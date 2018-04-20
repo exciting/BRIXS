@@ -145,7 +145,7 @@ module mod_blocks
       if (allocated(inblock1d%dcontent)) deallocate(inblock1d%dcontent)
       allocate(inblock1d%dcontent(inblock1d%blocksize))
     
-      path='eigvec-singlet-TDA-BAR-full/0001'
+      path='/eigvec-singlet-TDA-BAR-full/0001'
       dsetname='evals'
       ! get data
       dims_(1)=inblock1d%blocksize
@@ -555,7 +555,6 @@ module mod_blocks
     matA_b%kl=inbl%kl
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
-    
     do k=1, nk
       ! generate block of A matrix
       call matprod(matB_b%zcontent(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))

@@ -1,4 +1,4 @@
-program rixs_bp
+program rixs_oscstr
   use mod_phdf5
   use modmpi
   use mod_io
@@ -13,11 +13,10 @@ program rixs_bp
   real(8) :: pol(3)
   integer :: nkmax, nu, no, w1
   integer :: interdim(2)
-  type(io) :: optical, core
+  type(io) :: optical
   type(input) :: inputparam
-  integer(4), allocatable :: koulims_comb(:,:)
   character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &
-   & fname_inter, gname, gname2, gname3, ik, datasetname 
+   & fname_inter, gname, gname2, gname3, ik 
   integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k
   type(block1d) :: oscstr_b
   type(block1d) :: vecA_b, evals_b
@@ -26,8 +25,8 @@ program rixs_bp
   real(8) ::  test
   !MPI variables
   ! PHDF5 variables
-  integer(hid_t) :: core_id, optical_id, pmat_id, output_id, inter_id
-  integer(hid_t) :: dataset_id, energy_id, oscstr_id, vecA_id
+  integer(hid_t) :: optical_id, output_id, inter_id
+  integer(hid_t) :: energy_id, oscstr_id, vecA_id
   integer :: matsize_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
@@ -38,23 +37,18 @@ program rixs_bp
   ! initialize MPI and HDF5 interface
   call initmpi()
   call phdf5_initialize()
-  ! open HDF5 files
-  call phdf5_open_file(fname_core,.True.,core_id,mpiglobal%comm)
-  call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
-  call phdf5_open_file(fname_pmat,.True.,pmat_id,mpiglobal%comm)
-  ! create HDF5 files for output and intermediate data
-  call phdf5_create_file(fname_inter,.True.,inter_id,mpiglobal%comm)
-  call phdf5_create_file(fname_output,.True.,output_id,mpiglobal%comm)
 
-  ! initialize io objects for core and optics
+  call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
+  !open intermediate data hdf5 files
+  call phdf5_open_file(fname_inter,.True.,inter_id,mpiglobal%comm)
+   !create output hdf5 files
+  call phdf5_create_file(fname_output,.True.,output_id,mpiglobal%comm)
+  !initialize io objects for core and optics
+  
   call get_koulims(optical,optical_id)
-  call get_koulims(core,core_id)
   call get_smap(optical,optical_id)
-  call get_smap(core,core_id)
   call set_param(optical)
-  call set_param(core)
   call get_ismap(optical)
-  call get_ismap(core)
   ! read input file
   call read_inputfile(inputparam,'./rixs.in')
   
@@ -71,18 +65,11 @@ program rixs_bp
   pol(2)=0.0d0
   pol(3)=0.0d0
   
-  interdim=shape(core%koulims)
+  ! test whether the blocksize is possible
+  interdim=shape(optical%koulims)
   nkmax=interdim(2)
-  ! create combined map for valence-core transitions
-  allocate(koulims_comb(4,nkmax))
-  koulims_comb(1,:)=optical%koulims(3,:)
-  koulims_comb(2,:)=optical%koulims(4,:)
-  koulims_comb(3,:)=core%koulims(3,:)
-  koulims_comb(4,:)=core%koulims(4,:)
-  
   nu=optical%koulims(2,1)-optical%koulims(1,1)+1
   no=optical%koulims(4,1)-optical%koulims(3,1)+1
-  ! test whether the blocksize is possible
   test=float(nkmax)/float(inputparam%nblocks)
   
   if ((float(floor(test)) .ne. test) .and. (mpiglobal%rank .eq. 0)) then
@@ -94,42 +81,12 @@ program rixs_bp
   blsz_k=nu*no
   blsz_=nu*no*nk_
   nblocks_=inputparam%nblocks
-  !-------------------------------------------------!
-  !    Calculate and Store blocks of the A vector   !
-  !-------------------------------------------------!
-  ! create group in intermediate file
-  call phdf5_create_group(inter_id,'/','A')
-  do w1=1, size(omega)
-    write(7, *) 'Frequency ', w1, 'of ', size(omega) 
-    write(ik, '(I4.4)') w1
-    gname=trim(adjustl(ik))
-    ! create group for each frequency
-    if (.not. phdf5_exist_group(inter_id,'/A/',gname)) then
-      call phdf5_create_group(inter_id,'/A/',gname)
-    end if
-    gname2=trim(adjustl('/A/'//gname//'/'))
-    ! set up the dataset
-    matsize_=(/ nblocks_*blsz_ /)
-    datasetname='A'
-    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,inter_id,dataset_id)
-    ! loop over blocks, now distributed over MPI ranks
-    do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
-      !set-up for the blocks
-      vecA_b%nblocks=nblocks_
-      vecA_b%blocksize=blsz_
-      vecA_b%nk=nk_
-      vecA_b%il=(k-1)*blsz_+1
-      vecA_b%iu=k*blsz_
-      vecA_b%kl=(k-1)*nk_+1
-      vecA_b%ku=k*nk_
-      vecA_b%offset=(k-1)*blsz_
-      vecA_b%id=k
-      call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,pmat_id,core_id,pol)
-      call put_block1d(vecA_b,.true.,dataset_id)
-    end do
-    call phdf5_cleanup(dataset_id)
-  end do
-  
+  matsize_=(/ nblocks_*blsz_ /)
+
+  ! open log file
+  if (rank .eq. 0) then
+    open(unit=8,file="log_oscstr.txt",action="write",status="replace")
+  end if
   !-------------------------------------------------!
   !    Calculation of the oscillator strength       !
   !-------------------------------------------------!
@@ -138,6 +95,7 @@ program rixs_bp
   call phdf5_create_group(output_id,'/','eval')
   gname3=trim(adjustl('/eval/'))
   do w1=1, size(omega)
+    if (rank .eq. 0) write(8, *) 'Frequency ', w1, 'of ', size(omega) 
     ! set up groups in output file
     write(ik, '(I4.4)') w1
     call phdf5_create_group(output_id, '/oscstr/',ik)
@@ -164,7 +122,6 @@ program rixs_bp
         evals_b%offset=(k-1)*blsz_
         evals_b%id=k
         ! generate block of eigenvalues
-        print *, 'optical_id=', optical_id
         call get_evals_block(evals_b,optical_id)
         call put_block1d(evals_b,.true.,energy_id)
       end if
@@ -182,6 +139,8 @@ program rixs_bp
       ! allocate content
       if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
       allocate(oscstr_b%zcontent(blsz_))
+      if (allocated(vecA_b%zcontent)) deallocate(vecA_b%zcontent)
+      allocate(vecA_b%zcontent(blsz_))
       oscstr_b%zcontent(:)=0.0d0 
       do k2=1, nblocks_
         ! set up block for eigenvectors
@@ -228,13 +187,15 @@ program rixs_bp
     call phdf5_cleanup(vecA_id)
     call phdf5_cleanup(oscstr_id)
   end do ! w
-  !close HDF5 files
-  call phdf5_close_file(core_id)
+  ! close HDF5 files
   call phdf5_close_file(optical_id)
-  call phdf5_close_file(pmat_id)
   call phdf5_close_file(inter_id)
   call phdf5_close_file(output_id)
+  ! close log file
+  if (rank .eq. 0) close(8)
+  !close HDF5 files
   call phdf5_finalize()
   call finitmpi()
 
 end program
+

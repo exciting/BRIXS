@@ -10,7 +10,7 @@ module mod_io
   type :: input
     real(8), allocatable :: omega(:), omega2(:)
     real(8) :: broad, broad2
-    logical :: oscstr
+    logical :: foscstr, fvecA
     integer :: nblocks
   end type
   
@@ -141,7 +141,7 @@ module mod_io
     real(8) :: inter(3), inter2(3)
     real(8) :: broad_, broad2_
     integer :: nblocks_
-    logical :: oscstr_
+    logical :: oscstr_, vecA_
 
 
     ! only root reads the input file
@@ -170,6 +170,8 @@ module mod_io
             read(buffer, *, iostat=ios) broad2_
           case ('do_oscstr')
             oscstr_=.true.
+          case ('do_vecA')
+            vecA_=.true.
           case ('nblocks')
             read(buffer, *, iostat=ios) nblocks_
           case default
@@ -185,13 +187,18 @@ module mod_io
     call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(broad2_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(oscstr_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(vecA_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
     
-    ! calculate input parameters from read
+    ! get input parameters from read
     object%broad=broad_
     object%broad2=broad2_
     object%nblocks=nblocks_
+    ! set tasks
+    object%foscstr=oscstr_
+    object%fvecA=vecA_
+    ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega)
     if (allocated(object%omega2)) deallocate(object%omega2)
     allocate(object%omega(int(inter(3))))

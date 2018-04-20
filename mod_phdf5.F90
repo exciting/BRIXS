@@ -676,7 +676,7 @@ subroutine phdf5_write_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   return
   10 continue
   write(*,'(A)')trim(errmsg)
-  write(*,'("  dataset_id : ",I4)')dataset_id
+  write(*,'("  dataset_id : ",10I4)')dataset_id
   write(*,'("  offset  : ",10I4)')offset
   write(*,'("  dims  : ",10I4)')dims
   write(*,'("  dimsg  : ",10I4)')dimsg
