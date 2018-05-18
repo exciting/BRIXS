@@ -154,7 +154,7 @@ module mod_blocks
       ! open the dataset
       call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
       ! read data
-      call phdf5_read(inblock1d%dcontent(1),.true.,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(inblock1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
   end subroutine
@@ -192,7 +192,7 @@ module mod_blocks
       !open dataset
       call phdf5_setup_read(1,dim_,.true.,dsetname,path,file_id,dataset_id)
       !read data
-      call phdf5_read(eigvec_(1),.true.,dim_,dimsg_,offset_,dataset_id)
+      call phdf5_read(eigvec_(1),dim_,dimsg_,offset_,dataset_id)
       !close dataset
       call phdf5_cleanup(dataset_id)
       ! Write data to final array
@@ -247,7 +247,7 @@ module mod_blocks
       if (allocated(pmat_)) deallocate(pmat_)
       allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
       call phdf5_setup_read(3,dimsg_,.true.,dsetname,path,file_id,dataset_id)
-      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset_,dataset_id)
+      call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
       call phdf5_cleanup(dataset_id)
       ! write  transition matrix into file for the states included 
       ! in the BSE calculation
@@ -306,7 +306,7 @@ module mod_blocks
       !open dataset
       call phdf5_setup_read(3,dimsg_,.true.,trim(adjustl(dsetname)),path,file_id,dataset_id)
       !read data
-      call phdf5_read(pmat_(1,1,1),.true.,dimsg_,dimsg_,offset_,dataset_id)
+      call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
       do i=1,no
@@ -625,12 +625,11 @@ module mod_blocks
   end subroutine
  
 !-----------------------------------------------------------------------------
-  subroutine put_block1d(in1d,fparallel,dataset_id)
+  subroutine put_block1d(in1d,dataset_id)
     use hdf5, only: hid_t
     use mod_phdf5
     implicit none
     type(block1d), intent(inout) :: in1d
-    logical, intent(in) :: fparallel
     integer(hid_t) :: dataset_id
     ! local variables
     integer, dimension(1) :: dims_, dimsg_, offset_
@@ -640,19 +639,18 @@ module mod_blocks
     offset_(1)=in1d%offset
     ! if allocated, write the dcontent
     if (allocated(in1d%dcontent)) then
-      call phdf5_write(in1d%dcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_write(in1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
     elseif (allocated(in1d%zcontent)) then
-      call phdf5_write(in1d%zcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_write(in1d%zcontent(1),dims_,dimsg_,offset_,dataset_id)
     end if
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine get_block1d(in1d,fparallel,dataset_id)
+  subroutine get_block1d(in1d,dataset_id)
     use hdf5, only: hid_t
     use mod_phdf5
     implicit none
     type(block1d), intent(inout) :: in1d
-    logical, intent(in) :: fparallel
     integer(hid_t) :: dataset_id
     ! local variables
     integer, dimension(1) :: dims_, dimsg_, offset_
@@ -662,19 +660,18 @@ module mod_blocks
     offset_(1)=in1d%offset
     ! if allocated, write the dcontent
     if (allocated(in1d%dcontent)) then
-      call phdf5_read(in1d%dcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(in1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
     elseif (allocated(in1d%zcontent)) then
-      call phdf5_read(in1d%zcontent(1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(in1d%zcontent(1),dims_,dimsg_,offset_,dataset_id)
     end if
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine put_block2d(in2d,fparallel,dataset_id)
+  subroutine put_block2d(in2d,dataset_id)
     use hdf5, only: hid_t
     use mod_phdf5
     implicit none
     type(block2d), intent(inout) :: in2d
-    logical, intent(in) :: fparallel
     integer(hid_t) :: dataset_id
     ! local variables
     integer, dimension(2) :: dims_, dimsg_, offset_
@@ -684,19 +681,18 @@ module mod_blocks
     offset_=in2d%offset
     ! if allocated, write the dcontent
     if (allocated(in2d%dcontent)) then
-      call phdf5_write(in2d%dcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_write(in2d%dcontent(1,1),dims_,dimsg_,offset_,dataset_id)
     elseif (allocated(in2d%zcontent)) then
-      call phdf5_write(in2d%zcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_write(in2d%zcontent(1,1),dims_,dimsg_,offset_,dataset_id)
     end if
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine get_block2d(in2d,fparallel,dataset_id)
+  subroutine get_block2d(in2d,dataset_id)
     use hdf5, only: hid_t
     use mod_phdf5
     implicit none
     type(block2d), intent(inout) :: in2d
-    logical, intent(in) :: fparallel
     integer(hid_t) :: dataset_id
     ! local variables
     integer, dimension(2) :: dims_, dimsg_, offset_
@@ -706,9 +702,9 @@ module mod_blocks
     offset_=in2d%offset
     ! if allocated, write the dcontent
     if (allocated(in2d%dcontent)) then
-      call phdf5_read(in2d%dcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(in2d%dcontent(1,1),dims_,dimsg_,offset_,dataset_id)
     elseif (allocated(in2d%zcontent)) then
-      call phdf5_read(in2d%zcontent(1,1),fparallel,dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(in2d%zcontent(1,1),dims_,dimsg_,offset_,dataset_id)
     end if
   end subroutine
  

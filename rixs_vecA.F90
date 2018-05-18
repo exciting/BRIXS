@@ -8,8 +8,8 @@ program rixs_vecA
   use hdf5, only: hid_t
 
   implicit none
-  real(8) :: broad, broad2
-  real(8), allocatable :: omega(:), omega2(:)
+  real(8) :: broad
+  real(8), allocatable :: omega(:)
   real(8) :: pol(3)
   integer :: nkmax, nu, no, w1
   integer :: interdim(2)
@@ -36,11 +36,11 @@ program rixs_vecA
   call initmpi()
   call phdf5_initialize()
   ! open HDF5 files
-  call phdf5_open_file(fname_core,.True.,core_id,mpiglobal%comm)
-  call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
-  call phdf5_open_file(fname_pmat,.True.,pmat_id,mpiglobal%comm)
+  call phdf5_open_file(fname_core,core_id)
+  call phdf5_open_file(fname_optical,optical_id)
+  call phdf5_open_file(fname_pmat,pmat_id)
   ! create HDF5 files for output and intermediate data
-  call phdf5_create_file(fname_inter,.True.,inter_id,mpiglobal%comm)
+  call phdf5_create_file(fname_inter,inter_id)
 
   ! initialize io objects for core and optics
   call get_koulims(optical,optical_id)
@@ -56,11 +56,8 @@ program rixs_vecA
   
   ! set parameters
   broad=inputparam%broad
-  broad2=inputparam%broad2
   allocate(omega(size(inputparam%omega))) 
-  allocate(omega2(size(inputparam%omega2)))
   omega(:)=inputparam%omega(:) 
-  omega2(:)=inputparam%omega2(:) 
   
   ! set polarization vector
   pol(1)=1.0d0
@@ -125,7 +122,7 @@ program rixs_vecA
       vecA_b%offset=(k-1)*blsz_
       vecA_b%id=k
       call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,pmat_id,core_id,pol)
-      call put_block1d(vecA_b,.true.,dataset_id)
+      call put_block1d(vecA_b,dataset_id)
     end do
     call phdf5_cleanup(dataset_id)
   end do

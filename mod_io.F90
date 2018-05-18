@@ -8,9 +8,8 @@ module mod_io
     complex(8), allocatable :: eigvecs(:,:)
   end type io
   type :: input
-    real(8), allocatable :: omega(:), omega2(:)
-    real(8) :: broad, broad2
-    logical :: foscstr, fvecA
+    real(8), allocatable :: omega(:)
+    real(8) :: broad
     integer :: nblocks
   end type
   
@@ -46,7 +45,7 @@ module mod_io
     !open dataset
     call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     !get data
-    call phdf5_read(object%koulims(1,1),.true.,dims,dims,offset_,dataset_id)
+    call phdf5_read(object%koulims(1,1),dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine
@@ -75,7 +74,7 @@ module mod_io
     ! open dataset
     call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
-    call phdf5_read(object%smap(1,1),.true.,dims,dims,offset_,dataset_id)
+    call phdf5_read(object%smap(1,1),dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine 
@@ -130,11 +129,19 @@ module mod_io
   !-----------------------------------------------------------------------------
   subroutine read_inputfile(object,fname)
     use modmpi, only: mpiglobal, ierr
+#ifdef MPI
     use mpi
+#endif
+    use m_config
     implicit none
     type(input), intent(out) :: object
     character(*), intent(in) :: fname
     ! local variables
+    integer, parameter :: dp=kind(0.0d0)
+    type(CFG_t) :: my_cfg
+    integer :: omegasize_
+    real(8), allocatable :: omega_(:)
+    
     integer :: line, ios, w, pos
     character(256) :: buffer,label
     integer, parameter :: fh = 15
@@ -145,71 +152,41 @@ module mod_io
 
 
     ! only root reads the input file
-    if (mpiglobal%rank .eq. 0) then
-      ! basics taken from https://jblevins.org/log/control-file 
-      line=0
-      ios=0
-      open(fh, file=trim(adjustl(fname)))
-      do while (ios == 0)
-        read(fh, '(A)', iostat=ios) buffer
-        if (ios == 0) then
-          line = line + 1
-          ! Find the first instance of whitespace.  Split label and data.
-          pos = scan(buffer, '    ')
-          label = buffer(1:pos)
-          buffer = buffer(pos+1:)
-
-          select case (label)
-          case ('omega')
-            read(buffer, *, iostat=ios) inter
-          case ('omega2')
-            read(buffer, *, iostat=ios) inter2
-          case ('broad')
-            read(buffer, *, iostat=ios) broad_
-          case ('broad2')
-            read(buffer, *, iostat=ios) broad2_
-          case ('do_oscstr')
-            oscstr_=.true.
-          case ('do_vecA')
-            vecA_=.true.
-          case ('nblocks')
-            read(buffer, *, iostat=ios) nblocks_
-          case default
-            print *, 'Skipping invalid label at line', line
-          end select
-        end if
-      end do
-    end if
 #ifdef MPI
+    if (mpiglobal%rank .eq. 0) then
+#endif
+      !define fields and set defaults
+      call CFG_add(my_cfg, 'omega', (/1.0_dp, 2.0_dp/), 'Core Frequencies', dynamic_size=.true.)
+      call CFG_add(my_cfg, 'broad', 0.5_dp, 'Core Broadening')
+      call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
+      ! read input file
+      call CFG_read_file(my_cfg, 'input.cfg')
+      ! get size and values of core frequencies
+      call CFG_get_size(my_cfg, 'omega', omegasize_)
+      if (allocated(omega_)) deallocate(omega_)
+      allocate(omega_(omegasize_))
+      call CFG_get(my_cfg,'omega', omega_)
+      ! get core broadening
+      call CFG_get(my_cfg,'broad',broad_)
+      ! get number of blocks
+      call CFG_get(my_cfg,'nblocks', nblocks_)
+#ifdef MPI
+    end if
     ! broadcast input parameters to everybody
-    call mpi_bcast(inter,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call mpi_bcast(inter2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(omegasize_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    if (.not. allocated(omega_)) allocate(omega_(omegasize_))
+    call mpi_bcast(omega_,omegasize_,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call mpi_bcast(broad2_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call mpi_bcast(oscstr_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
-    call mpi_bcast(vecA_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
     object%broad=broad_
-    object%broad2=broad2_
     object%nblocks=nblocks_
-    ! set tasks
-    object%foscstr=oscstr_
-    object%fvecA=vecA_
     ! calculate frequency ranges
-    if (allocated(object%omega)) deallocate(object%omega)
-    if (allocated(object%omega2)) deallocate(object%omega2)
-    allocate(object%omega(int(inter(3))))
-    allocate(object%omega2(int(inter2(3))))
-    
-    do w=1,int(inter(3))
-      object%omega(w)=(inter(2)-inter(1))/(inter(3)-1.0d0)*(w-1) + inter(1)
-    end do
-    do w=1,int(inter2(3))
-      object%omega2(w)=(inter2(2)-inter2(1))/(inter2(3)-1.0d0)*(w-1) + inter2(1)
-    end do
+    if (allocated(object%omega)) deallocate(object%omega) 
+    allocate(object%omega(omegasize_))
+    object%omega(:)=omega_(:)
   end subroutine read_inputfile  
   !-----------------------------------------------------------------------------
 

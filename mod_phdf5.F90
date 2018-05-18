@@ -27,7 +27,9 @@ contains
 !-------------------------------------------------------------------------------
   subroutine phdf5_initialize
     use hdf5
+#ifdef MPI
     use mpi
+#endif
     implicit none
     ! local variables
     integer :: ierr
@@ -45,54 +47,59 @@ contains
   end subroutine
 
 !-------------------------------------------------------------------------------
-  subroutine phdf5_create_file(fname,fparallel,file_id,comm)
+  subroutine phdf5_create_file(fname,file_id)
     use hdf5
+#ifdef MPI
     use mpi
+    use modmpi, only: mpiglobal
+#endif
     implicit none
     character(*), intent(in) :: fname
-    logical, intent(in) :: fparallel
     integer(hid_t), intent(out) :: file_id
-    integer, optional :: comm
     ! local variables
     integer (hid_t) :: plist_id
     integer :: ierr
     integer :: info
     character*100 :: errmsg
+#ifdef MPI
+    integer :: comm
+#endif
     ! MPI File creation & Global Access
-    if (fparallel) then
-      ! set mpi info object
-      info=MPI_INFO_NULL
-      ! create file access property list w/ parallel IO access
-      call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-      call h5pset_fapl_mpio_f(plist_id,comm,info,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pset_fapl_mpio_f returned ",I6)')ierr
-        goto 10
-      endif    
-      ! create the file collectively
-      call h5fcreate_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr,access_prp=plist_id)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-      ! close property list
-      call h5pclose_f(plist_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pclose_f returned ",I6)')ierr
-        goto 10
-      endif    
+#ifdef MPI
+    comm=mpiglobal%comm
+    ! set mpi info object
+    info=MPI_INFO_NULL
+    ! create file access property list w/ parallel IO access
+    call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_create_file): h5pcreate_f returned ",I6)')ierr
+      goto 10
+    endif    
+    call h5pset_fapl_mpio_f(plist_id,comm,info,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_create_file): h5pset_fapl_mpio_f returned ",I6)')ierr
+      goto 10
+    endif    
+    ! create the file collectively
+    call h5fcreate_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr,access_prp=plist_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
+      goto 10
+    endif    
+    ! close property list
+    call h5pclose_f(plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_create_file): h5pclose_f returned ",I6)')ierr
+      goto 10
+    endif    
     ! Serial Access
-    else
-      call h5fcreate_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-    end if
+#else
+    call h5fcreate_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
+      goto 10
+    endif
+#endif
     return
     10 continue
     write(*,'(A)')trim(errmsg)
@@ -101,54 +108,59 @@ contains
   end subroutine
 
 !-------------------------------------------------------------------------------
-  subroutine phdf5_open_file(fname,fparallel,file_id,comm)
+  subroutine phdf5_open_file(fname,file_id)
     use hdf5
+#ifdef MPI
     use mpi
+    use modmpi, only: mpiglobal
+#endif
     implicit none
     character(*), intent(in) :: fname
-    logical, intent(in) :: fparallel
     integer(hid_t), intent(out) :: file_id
-    integer, optional :: comm
     ! local variables
     integer (hid_t) :: plist_id
     integer :: ierr
     integer :: info
     character*100 :: errmsg
+#ifdef MPI
+    integer :: comm
+#endif
     ! MPI File creation & Global Access
-    if (fparallel) then
-      ! set mpi info object
-      info=MPI_INFO_NULL
-      ! create file access property list w/ parallel IO access
-      call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-      call h5pset_fapl_mpio_f(plist_id,comm,info,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pset_fapl_mpio_f returned ",I6)')ierr
-        goto 10
-      endif    
-      ! create the file collectively
-      call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,file_id,ierr,access_prp=plist_id)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-      ! close property list
-      call h5pclose_f(plist_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5pclose_f returned ",I6)')ierr
-        goto 10
-      endif    
-    ! Serial Access
-    else
-      call h5fcreate_f(trim(fname),H5F_ACC_TRUNC_F,file_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(phdf5_create_file): h5fcreate_f returned ",I6)')ierr
-        goto 10
-      endif    
-    end if
+#ifdef MPI
+    comm=mpiglobal%comm
+    ! set mpi info object
+    info=MPI_INFO_NULL
+    ! create file access property list w/ parallel IO access
+    call h5pcreate_f(H5P_FILE_ACCESS_F,plist_id, ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_open_file): h5pcreate_f returned ",I6)')ierr
+      goto 10
+    endif    
+    call h5pset_fapl_mpio_f(plist_id,comm,info,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_open_file): h5pset_fapl_mpio_f returned ",I6)')ierr
+      goto 10
+    endif    
+    ! create the file collectively
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,file_id,ierr,access_prp=plist_id)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_open_file): h5fcreate_f returned ",I6)')ierr
+      goto 10
+    endif    
+    ! close property list
+    call h5pclose_f(plist_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_open_file): h5pclose_f returned ",I6)')ierr
+      goto 10
+    endif    
+  ! Serial Access
+#else
+    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,file_id,ierr)
+    if (ierr.ne.0) then
+      write(errmsg,'("Error(phdf5_open_file): h5fcreate_f returned ",I6)')ierr
+      goto 10
+    endif
+#endif
     return
     10 continue
     write(*,'(A)')trim(errmsg)
@@ -398,11 +410,10 @@ contains
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine phdf5_write_d(val,fparallel,dims,dimsg,offset,dataset_id)
+  subroutine phdf5_write_d(val,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
     real(8), intent(in) :: val
-    logical, intent(in) :: fparallel
     integer, dimension(:), intent(in) :: dims, dimsg, offset
     integer(hid_t), intent(in) :: dataset_id
     ! local variables
@@ -416,17 +427,16 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_write_array_d(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_write_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine phdf5_write_z(val,fparallel,dims,dimsg,offset,dataset_id)
+  subroutine phdf5_write_z(val,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
     complex(8), intent(in) :: val
-    logical, intent(in) :: fparallel
     integer, dimension(:), intent(in) :: dims, dimsg, offset
     integer(hid_t), intent(in) :: dataset_id
     ! local variables
@@ -443,17 +453,16 @@ contains
     offset_(1)=0
     offset_(2:)=offset(:)
     ! write to hdf5
-    call phdf5_write_array_d(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_write_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine phdf5_read_d(val,fparallel,dims,dimsg,offset,dataset_id)
+  subroutine phdf5_read_d(val,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
     real(8), intent(out) :: val
-    logical, intent(in) :: fparallel
     integer, dimension(:), intent(in) :: dims, dimsg, offset
     integer(hid_t), intent(in) :: dataset_id
     ! local variables
@@ -467,17 +476,16 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_read_array_d(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_read_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
 
 !-----------------------------------------------------------------------------
-  subroutine phdf5_read_i(val,fparallel,dims,dimsg,offset,dataset_id)
+  subroutine phdf5_read_i(val,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
     integer(4), intent(out) :: val
-    logical, intent(in) :: fparallel
     integer(4), dimension(:), intent(in) :: dims, dimsg, offset
     integer(hid_t), intent(in) :: dataset_id
     ! local variables
@@ -491,16 +499,15 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_read_array_i(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_read_array_i(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
 !-----------------------------------------------------------------------------
-  subroutine phdf5_read_z(val,fparallel,dims,dimsg,offset,dataset_id)
+  subroutine phdf5_read_z(val,dims,dimsg,offset,dataset_id)
     use hdf5
     implicit none
     complex(8), intent(out) :: val
-    logical, intent(in) :: fparallel
     integer, dimension(:), intent(in) :: dims, dimsg, offset
     integer(hid_t), intent(in) :: dataset_id
     ! local variables
@@ -517,7 +524,7 @@ contains
     offset_(1)=0
     offset_(2:)=offset(:)
     ! write to hdf5
-    call phdf5_read_array_d(val,fparallel,ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_read_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
@@ -589,7 +596,7 @@ contains
         return
         10 continue
         write(*,'(A)')trim(errmsg)
-        write(*,'("  file_id : ",I4)')file_id
+        write(*,*)file_id
         write(*,'("  path  : ",A)')trim(path)
         write(*,'("  datasetname    : ",A)')trim(datasetname)
         write(*,'("  dims  : ",10I4)')dims
@@ -598,11 +605,10 @@ contains
     end subroutine
 end module
 !-----------------------------------------------------------------------------
-subroutine phdf5_write_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
+subroutine phdf5_write_array_d(a,ndims,dims,dimsg,offset,dataset_id)
   use hdf5
   implicit none
   real(8), intent(in) :: a(*)
-  logical, intent(in) :: fparallel
   integer, intent(in) :: ndims
   integer(hsize_t), intent(in) :: dims(ndims), dimsg(ndims), offset(ndims)
   integer(hid_t), intent(in) :: dataset_id
@@ -629,38 +635,38 @@ subroutine phdf5_write_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   endif
   ! write into hyperslab
   ! MPI I/O independently
-  if (fparallel) then
-    ! create property list for individual dataset write
-    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! write the dataset
-    call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! close the property list
-    call h5pclose_f(plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
-      goto 10
-    endif
+#ifdef MPI
+  ! create property list for individual dataset write
+  call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
+    goto 10
+  endif
+  call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! write the dataset
+  call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! close the property list
+  call h5pclose_f(plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
+    goto 10
+  endif
   ! serial
-  else
-    call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
-      goto 10
-    endif
-  end if
+#else
+  call h5dwrite_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5dwrite_f returned ",I6)')ierr
+    goto 10
+  endif
+#endif
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
   if (ierr.ne.0) then
@@ -684,11 +690,10 @@ subroutine phdf5_write_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
 end subroutine
 
 !-----------------------------------------------------------------------------
-subroutine phdf5_read_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
+subroutine phdf5_read_array_d(a,ndims,dims,dimsg,offset,dataset_id)
   use hdf5
   implicit none
   real(8), intent(out) :: a(*)
-  logical, intent(in) :: fparallel
   integer, intent(in) :: ndims
   integer(hsize_t), intent(in) :: dims(ndims), dimsg(ndims), offset(ndims)
   integer(hid_t), intent(in) :: dataset_id
@@ -715,38 +720,38 @@ subroutine phdf5_read_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   endif
   ! read from hyperslab
   ! MPI read
-  if (fparallel) then
-    ! create property list for individual dataset write
-    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! read dataset into memory
-    call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! close the property list
-    call h5pclose_f(plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
-      goto 10
-    endif
+#ifdef MPI
+  ! create property list for individual dataset write
+  call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pcreate_f returned ",I6)')ierr
+    goto 10
+  endif
+  call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pset_dxpl_mpio_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! read dataset into memory
+  call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! close the property list
+  call h5pclose_f(plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5pclose_f returned ",I6)')ierr
+    goto 10
+  endif
   ! serial read
-  else
-    call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
-      goto 10
-    endif
-  end if
+#else
+  call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,a,dimsg,ierr,memspace_id,dataspace_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_write_array_d): h5dread_f returned ",I6)')ierr
+    goto 10
+  endif
+#endif
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
   if (ierr.ne.0) then
@@ -770,11 +775,10 @@ subroutine phdf5_read_array_d(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
 end subroutine
 
 !-----------------------------------------------------------------------------
-subroutine phdf5_read_array_i(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
+subroutine phdf5_read_array_i(a,ndims,dims,dimsg,offset,dataset_id)
   use hdf5
   implicit none
   integer(4), intent(out) :: a(*)
-  logical, intent(in) :: fparallel
   integer(4), intent(in) :: ndims
   integer(hsize_t), intent(in) :: dims(ndims), dimsg(ndims), offset(ndims)
   integer(hid_t), intent(in) :: dataset_id
@@ -802,38 +806,38 @@ subroutine phdf5_read_array_i(a,fparallel,ndims,dims,dimsg,offset,dataset_id)
   endif
   ! read from hyperslab
   ! MPI read
-  if (fparallel) then
-    ! create property list for individual dataset write
-    call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_read_array_i): h5pcreate_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_read_array_i): h5pset_dxpl_mpio_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! read dataset into memory
-    call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
-      goto 10
-    endif
-    ! close the property list
-    call h5pclose_f(plist_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_read_array_i): h5pclose_f returned ",I6)')ierr
-      goto 10
-    endif
+#ifdef MPI
+  ! create property list for individual dataset write
+  call h5pcreate_f(H5P_DATASET_XFER_F,plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5pcreate_f returned ",I6)')ierr
+    goto 10
+  endif
+  call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5pset_dxpl_mpio_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! read dataset into memory
+  call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id,plist_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
+    goto 10
+  endif
+  ! close the property list
+  call h5pclose_f(plist_id,ierr)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5pclose_f returned ",I6)')ierr
+    goto 10
+  endif
   ! serial read
-  else
-    call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
-      goto 10
-    endif
-  end if
+#else
+  call h5dread_f(dataset_id,H5T_NATIVE_INTEGER,a,dimsg,ierr,memspace_id,dataspace_id)
+  if (ierr.ne.0) then
+    write(errmsg,'("Error(phdf5_read_array_i): h5dread_f returned ",I6)')ierr
+    goto 10
+  endif
+#endif
   ! close memory space and dataspace
   call h5sclose_f(dataspace_id,ierr)
   if (ierr.ne.0) then

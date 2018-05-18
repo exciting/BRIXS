@@ -38,11 +38,11 @@ program rixs_oscstr
   call initmpi()
   call phdf5_initialize()
 
-  call phdf5_open_file(fname_optical,.True.,optical_id,mpiglobal%comm)
+  call phdf5_open_file(fname_optical,optical_id)
   !open intermediate data hdf5 files
-  call phdf5_open_file(fname_inter,.True.,inter_id,mpiglobal%comm)
+  call phdf5_open_file(fname_inter,inter_id)
    !create output hdf5 files
-  call phdf5_create_file(fname_output,.True.,output_id,mpiglobal%comm)
+  call phdf5_create_file(fname_output,output_id)
   !initialize io objects for core and optics
   
   call get_koulims(optical,optical_id)
@@ -54,11 +54,8 @@ program rixs_oscstr
   
   ! set parameters
   broad=inputparam%broad
-  broad2=inputparam%broad2
   allocate(omega(size(inputparam%omega))) 
-  allocate(omega2(size(inputparam%omega2)))
   omega(:)=inputparam%omega(:) 
-  omega2(:)=inputparam%omega2(:) 
   
   ! set polarization vector
   pol(1)=1.0d0
@@ -123,7 +120,7 @@ program rixs_oscstr
         evals_b%id=k
         ! generate block of eigenvalues
         call get_evals_block(evals_b,optical_id)
-        call put_block1d(evals_b,.true.,energy_id)
+        call put_block1d(evals_b,energy_id)
       end if
       ! set up block of oscillator strength
       oscstr_b%nblocks=nblocks_
@@ -172,14 +169,14 @@ program rixs_oscstr
        
         ! generate block of eigenvectors
         call get_eigvecs2D_b(evecs_b,optical_id)
-        call get_block1d(vecA_b,.true.,vecA_id)
+        call get_block1d(vecA_b,vecA_id)
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
         call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr_b%zcontent(:),blsz_)
       end do ! k2
       ! write oscillator strength
-      call put_block1d(oscstr_b,.true.,oscstr_id)
+      call put_block1d(oscstr_b,oscstr_id)
     end do ! k
     if (w1==1) then
       call phdf5_cleanup(energy_id)
