@@ -10,7 +10,7 @@ module mod_io
   type :: input
     real(8), allocatable :: omega(:)
     real(8) :: broad
-    integer :: nblocks
+    integer :: nblocks, nstato, nstatc
   end type
   
 
@@ -127,7 +127,7 @@ module mod_io
     end if
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine read_inputfile(object,fname)
+  subroutine read_inputfile(object)
     use modmpi, only: mpiglobal, ierr
 #ifdef MPI
     use mpi
@@ -135,7 +135,6 @@ module mod_io
     use m_config
     implicit none
     type(input), intent(out) :: object
-    character(*), intent(in) :: fname
     ! local variables
     integer, parameter :: dp=kind(0.0d0)
     type(CFG_t) :: my_cfg
@@ -147,7 +146,7 @@ module mod_io
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
     real(8) :: broad_, broad2_
-    integer :: nblocks_
+    integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
 
 
@@ -159,6 +158,8 @@ module mod_io
       call CFG_add(my_cfg, 'omega', (/1.0_dp, 2.0_dp/), 'Core Frequencies', dynamic_size=.true.)
       call CFG_add(my_cfg, 'broad', 0.5_dp, 'Core Broadening')
       call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
+      call CFG_add(my_cfg, 'eigstates_optical', 1, 'Number of eigenstates in optical BSE calculation')
+      call CFG_add(my_cfg, 'eigstates_core', 1, 'Number of eigenstates in core BSE calculation')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -170,6 +171,10 @@ module mod_io
       call CFG_get(my_cfg,'broad',broad_)
       ! get number of blocks
       call CFG_get(my_cfg,'nblocks', nblocks_)
+      ! get number of optical eigenstates
+      call CFG_get(my_cfg,'eigstates_optical', nstato_)
+      ! get number of core eigenstates
+      call CFG_get(my_cfg,'eigstates_core', nstatc_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -178,11 +183,15 @@ module mod_io
     call mpi_bcast(omega_,omegasize_,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nstato_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
     object%broad=broad_
     object%nblocks=nblocks_
+    object%nstato=nstato_
+    object%nstatc=nstatc_
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))

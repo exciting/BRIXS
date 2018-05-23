@@ -27,7 +27,7 @@ program rixs_oscstr
   ! PHDF5 variables
   integer(hid_t) :: optical_id, output_id, inter_id
   integer(hid_t) :: energy_id, oscstr_id, vecA_id
-  integer :: matsize_(1)
+  integer :: matsize_(1), reduced_(1), matsize2_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
   fname_optical='./optical_output.h5'
@@ -50,7 +50,7 @@ program rixs_oscstr
   call set_param(optical)
   call get_ismap(optical)
   ! read input file
-  call read_inputfile(inputparam,'./rixs.in')
+  call read_inputfile(inputparam)
   
   ! set parameters
   broad=inputparam%broad
@@ -99,66 +99,66 @@ program rixs_oscstr
     gname=trim(adjustl('/oscstr/'//trim(ik)//'/'))
     gname2=trim(adjustl('/A/'//trim(ik)//'/'))
     ! open datasets for write of energies & oscstr
+    matsize2_(1)=inputparam%nstato
     if (w1==1) then 
-      call phdf5_setup_write(1,matsize_,.false.,'data',gname3,output_id,energy_id)
+      call phdf5_setup_write(1,matsize2_,.false.,'data',gname3,output_id,energy_id)
     endif
-    call phdf5_setup_write(1,matsize_,.true.,'data',gname,output_id,oscstr_id)
+    call phdf5_setup_write(1,matsize2_,.true.,'data',gname,output_id,oscstr_id)
     ! open dataset to read vecA
     call phdf5_setup_read(1,matsize_,.true.,'A',gname2,inter_id,vecA_id)
     ! loop over blocks
     do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
       if (w1==1) then
         ! set up block for eigenvalues (needed only for file output)
+        reduced_(1)=nofblock(k, inputparam%nstato, nblocks_)
+        print*, 'nstato=', inputparam%nstato
         evals_b%nblocks=nblocks_
-        evals_b%blocksize=blsz_
-        evals_b%nk=nk_
-        evals_b%il=(k-1)*blsz_+1
-        evals_b%iu=k*blsz_
-        evals_b%kl=(k-1)*nk_+1
-        evals_b%ku=k*nk_
-        evals_b%offset=(k-1)*blsz_
+        evals_b%blocksize=reduced_(1)
+        evals_b%global=inputparam%nstato
+        evals_b%il=firstofblock(k, inputparam%nstato, nblocks_)
+        evals_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
+        evals_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
         evals_b%id=k
         ! generate block of eigenvalues
         call get_evals_block(evals_b,optical_id)
+        print *, 'il=', evals_b%il
+        print *, 'iu=', evals_b%iu
+        print *, 'offset(evals_b)=', evals_b%offset
         call put_block1d(evals_b,energy_id)
       end if
+      reduced_(1)=nofblock(k, inputparam%nstato, nblocks_)
       ! set up block of oscillator strength
       oscstr_b%nblocks=nblocks_
-      oscstr_b%blocksize=blsz_
+      oscstr_b%blocksize=reduced_(1)
       oscstr_b%nk=nk_
-      oscstr_b%il=(k-1)*blsz_+1
-      oscstr_b%iu=k*blsz_
-      oscstr_b%kl=(k-1)*nk_+1
-      oscstr_b%ku=k*nk_
-      oscstr_b%offset=(k-1)*blsz_
+      oscstr_b%il=firstofblock(k, inputparam%nstato, nblocks_)
+      oscstr_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
+      oscstr_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
       oscstr_b%id=k
       ! generate block of oscillator strength
       ! allocate content
       if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
-      allocate(oscstr_b%zcontent(blsz_))
+      allocate(oscstr_b%zcontent(reduced_(1)))
       if (allocated(vecA_b%zcontent)) deallocate(vecA_b%zcontent)
       allocate(vecA_b%zcontent(blsz_))
       oscstr_b%zcontent(:)=0.0d0 
       do k2=1, nblocks_
         ! set up block for eigenvectors
         evecs_b%nblocks=nblocks_
-        evecs_b%blocksize=blsz_
-        evecs_b%nk=nk_
+        evecs_b%blocksize=(/blsz_, reduced_(1)/)
+        evecs_b%global=(/matsize_(1), inputparam%nstato /)
         evecs_b%il=(k2-1)*blsz_+1
         evecs_b%iu=k2*blsz_
-        evecs_b%k1l=(k2-1)*nk_+1
-        evecs_b%k1u=k2*nk_
-        evecs_b%jl=(k-1)*blsz_+1
-        evecs_b%ju=k*blsz_
-        evecs_b%k2l=(k-1)*nk_+1
-        evecs_b%k2u=k*nk_
+        evecs_b%jl=firstofblock(k, inputparam%nstato, nblocks_)
+        evecs_b%ju=lastofblock(k, inputparam%nstato, nblocks_)
         evecs_b%offset(1)=(k2-1)*blsz_
-        evecs_b%offset(2)=(k-1)*blsz_
+        evecs_b%offset(2)=firstofblock(k, inputparam%nstato, nblocks_)-1
         evecs_b%id(1)=k2
         evecs_b%id(2)=k
         !set up block for A matrix
         vecA_b%nblocks=nblocks_
         vecA_b%blocksize=blsz_
+        vecA_b%global=matsize_(1)
         vecA_b%nk=nk_
         vecA_b%il=(k2-1)*blsz_+1
         vecA_b%iu=k2*blsz_
@@ -173,7 +173,8 @@ program rixs_oscstr
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
-        call zgemm('C','N',blsz_,1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta,oscstr_b%zcontent(:),blsz_)
+        call zgemm('C','N',reduced_(1),1,blsz_,alpha,evecs_b%zcontent,blsz_,vecA_b%zcontent,blsz_,beta, &
+          &         oscstr_b%zcontent(:),reduced_(1))
       end do ! k2
       ! write oscillator strength
       call put_block1d(oscstr_b,oscstr_id)

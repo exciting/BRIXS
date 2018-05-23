@@ -52,7 +52,7 @@ program rixs_vecA
   call get_ismap(optical)
   call get_ismap(core)
   ! read input file
-  call read_inputfile(inputparam,'./rixs.in')
+  call read_inputfile(inputparam)
   
   ! set parameters
   broad=inputparam%broad
@@ -114,6 +114,7 @@ program rixs_vecA
       !set-up for the blocks
       vecA_b%nblocks=nblocks_
       vecA_b%blocksize=blsz_
+      vecA_b%global=nblocks_*blsz_
       vecA_b%nk=nk_
       vecA_b%il=(k-1)*blsz_+1
       vecA_b%iu=k*blsz_
@@ -121,7 +122,7 @@ program rixs_vecA
       vecA_b%ku=k*nk_
       vecA_b%offset=(k-1)*blsz_
       vecA_b%id=k
-      call generate_Avector_b(vecA_b,omega(w1),broad,core,optical,pmat_id,core_id,pol)
+      call generate_Avector_b(vecA_b,omega(w1),inputparam,core,optical,pmat_id,core_id,pol)
       call put_block1d(vecA_b,dataset_id)
     end do
     call phdf5_cleanup(dataset_id)

@@ -4,6 +4,7 @@ module mod_blocks
   type :: block1d
     integer(4) :: nblocks     ! number of blocks
     integer(4) :: blocksize   ! length of each block
+    integer(4) :: global      ! global vector size
     integer(4) :: nk          ! number of k-pts per block
     integer(4) :: il, iu      ! absolute first & last transition index within block
     integer(4) :: kl, ku      ! absolute first & last k-index within block
@@ -15,7 +16,8 @@ module mod_blocks
   
   type :: block2d
     integer(4) :: nblocks     ! number of block
-    integer(4) :: blocksize   ! size of each block is blocksize x blocksize
+    integer(4), dimension(2) :: blocksize   ! non-square 2D blocksize
+    integer(4), dimension(2) :: global      ! global 2D size
     integer(4) :: nk          ! number of k-pts per block
     integer(4) :: il, iu, jl, ju ! absolute transition index ranges within the block  
     integer(4) :: k1l, k1u, k2l, k2u ! absolute k-index within the block
@@ -108,6 +110,7 @@ module mod_blocks
       !generate the block output
       outbl1d%nblocks=inbl3d%nblocks
       outbl1d%blocksize=blsz_
+      outbl1d%global=blsz_*inbl3d%nblocks
       outbl1d%nk=inbl3d%nk
       outbl1d%il=(inbl3d%id-1)*blsz_+1
       outbl1d%iu=(inbl3d%id)*blsz_
@@ -149,7 +152,7 @@ module mod_blocks
       dsetname='evals'
       ! get data
       dims_(1)=inblock1d%blocksize
-      dimsg_(1)=inblock1d%blocksize*inblock1d%nblocks
+      dimsg_(1)=inblock1d%global
       offset_(1)=inblock1d%offset
       ! open the dataset
       call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
@@ -173,9 +176,9 @@ module mod_blocks
     character(256) :: ci
     ! allocate output
     if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
-    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize)) 
+    allocate(inblock2d%zcontent(inblock2d%blocksize(1),inblock2d%blocksize(2))) 
     ! get data
-    do i=1, inblock2d%blocksize
+    do i=1, inblock2d%blocksize(2)
       write(ci, '(I8.8)') i+inblock2d%offset(2)
       path='eigvec-singlet-TDA-BAR-full/0001/rvec'
       dsetname=trim(adjustl(ci))
@@ -183,12 +186,12 @@ module mod_blocks
       !call hdf5_get_dims(fname,path,ci,dims_)
       ! Allocate intermediate eigenvector array
       if (allocated(eigvec_)) deallocate(eigvec_)
-      allocate(eigvec_(inblock2d%blocksize))
+      allocate(eigvec_(inblock2d%blocksize(1)))
       !allocate(eigvec_(dims_(2)))
       ! Get data
       offset_(1)=inblock2d%offset(1)
-      dim_(1)=inblock2d%blocksize
-      dimsg_(1)=inblock2d%blocksize*inblock2d%nblocks
+      dim_(1)=inblock2d%blocksize(1)
+      dimsg_(1)=inblock2d%global(1)
       !open dataset
       call phdf5_setup_read(1,dim_,.true.,dsetname,path,file_id,dataset_id)
       !read data
@@ -321,74 +324,72 @@ module mod_blocks
   end subroutine 
 
   !-----------------------------------------------------------------------------
-  subroutine generate_chi_block(inblock2d,omega,broad,file_id)
-    use mod_io, only: io
+  subroutine generate_chi_block(inblock2d,omega,inputparam,file_id)
+    use mod_io, only: io, input
     use hdf5, only: hid_t
     implicit none
     real(8), intent(in) :: omega
-    real(8), intent(in) :: broad
+    type(input), intent(in) :: inputparam
     integer(hid_t), intent(in) :: file_id
     type(block2d), intent(inout) :: inblock2d
     ! internal variables
     type(block2d) :: block1, block2
     type(block1d) :: block3
-    complex(8), dimension(inblock2d%blocksize,inblock2d%blocksize) :: inter, inter2
+    complex(8), allocatable :: inter(:,:), inter2(:,:)
     !complex(8) :: inter
-    integer(4) :: blsz,i, k
+    integer(4) :: blsz,i, k, reduced_
     complex(8) :: alpha, beta
     
     ! shorthand notation for blocksize
-    blsz=inblock2d%blocksize
+    blsz=inblock2d%blocksize(1)
     
     ! allocate chi_b
     if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
-    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize))
+    allocate(inblock2d%zcontent(inblock2d%blocksize(1),inblock2d%blocksize(2)))
     inblock2d%zcontent(:,:)=0.0d0
     ! chi_block is calculated as follows:
     ! $\chi^{ij}=\sum_k \hat{X}^{ik}\times\hat{Y}^{ii}\times[\hat{X}^{ki}]$
+    ! I use non-square blocks here, such that I can calculate the density-density
+    ! response function from subsets of excitonic eigenstates. In this case, the 
+    ! blocksize and number of blocks is not uniquely defined any more. 
+    ! Here, I chose to use the same number of blocks as in the overall calculation
     do k=1, inblock2d%nblocks
+      ! local matrix sizes
+      reduced_=nofblock(k, inputparam%nstatc, inblock2d%nblocks)
       ! define the blocks for the summation
       ! block1 and block2 are blocks of the eigenvectors
       block1%nblocks=inblock2d%nblocks
-      block1%blocksize=blsz
-      block1%nk=inblock2d%nk
+      block1%blocksize=(/blsz, reduced_ /)
+      block1%global=(/blsz*inblock2d%nblocks, inputparam%nstatc/)
       block1%il=inblock2d%il
       block1%iu=inblock2d%iu
-      block1%k1l=inblock2d%k1l
-      block1%k1u=inblock2d%k1u
-      block1%jl=(k-1)*blsz+1
-      block1%ju=k*blsz
-      block1%k2l=(k-1)*block1%nk+1
-      block1%k2u=k*block1%nk
+      block1%jl=firstofblock(k, inputparam%nstatc, inblock2d%nblocks)
+      block1%ju=lastofblock(k, inputparam%nstatc, inblock2d%nblocks)
       block1%offset(1)=inblock2d%offset(1)
-      block1%offset(2)=(k-1)*blsz
+      block1%offset(2)=firstofblock(k, inputparam%nstatc, inblock2d%nblocks)-1
       block1%id(1)=inblock2d%id(1)
       block1%id(2)=k
 
       block2%nblocks=inblock2d%nblocks
-      block2%blocksize=blsz
-      block2%nk=inblock2d%nk
+      block2%blocksize=(/blsz, reduced_ /)
+      block2%global=(/blsz*inblock2d%nblocks, inputparam%nstatc/)
       block2%il=inblock2d%jl
       block2%iu=inblock2d%ju
-      block2%k1l=inblock2d%k2l
-      block2%k1u=inblock2d%k2u
-      block2%jl=(k-1)*blsz+1
-      block2%ju=k*blsz
+      block2%jl=firstofblock(k, inputparam%nstatc, inblock2d%nblocks)
+      block2%ju=lastofblock(k, inputparam%nstatc, inblock2d%nblocks)
       block2%k2l=(k-1)*block2%nk+1
       block2%k2u=k*block2%nk
       block2%offset(1)=inblock2d%offset(2)
-      block2%offset(2)=(k-1)*blsz
+      block2%offset(2)=firstofblock(k, inputparam%nstatc, inblock2d%nblocks)-1
       block2%id(1)=inblock2d%id(2)
       block2%id(2)=k
       ! block3 is a 1D block of the eigenvectors
       block3%nblocks=inblock2d%nblocks
-      block3%blocksize=blsz
-      block3%nk=inblock2d%nk
-      block3%il=(k-1)*blsz+1
-      block3%iu=k*blsz
-      block3%kl=(k-1)*block3%nk+1
-      block3%ku=k*block3%nk
-      block3%offset=(k-1)*blsz
+      block3%blocksize=reduced_
+      block3%global=inputparam%nstatc
+      block3%il=firstofblock(k, inputparam%nstatc, inblock2d%nblocks)
+      block3%iu=lastofblock(k, inputparam%nstatc, inblock2d%nblocks)
+      block3%offset=firstofblock(k, inputparam%nstatc, inblock2d%nblocks) -1
       block3%id=k
        
       !get eigenvalues and eigenvectors
@@ -397,9 +398,13 @@ module mod_blocks
       call get_eigvecs2D_b(block2,file_id)
     
       ! allocate array for hermetian conjugate of eigvecs
+      if (allocated(inter)) deallocate(inter)
+      if (allocated(inter2)) deallocate(inter2)
+      allocate(inter(reduced_, reduced_))
+      allocate(inter2(reduced_,blsz))
       inter(:,:)=0.0d0
-      do i=1,blsz
-        inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,broad))
+      do i=1,reduced_
+        inter(i,i)=-1.0d0/(block3%dcontent(i)*27.211d0-omega+cmplx(0.0d0,inputparam%broad))
       end do
       ! generate intermediate matrix
       !do i=1,blsz
@@ -410,30 +415,31 @@ module mod_blocks
       !end do
       alpha=1.0d0
       beta=0.0d0
-
-      call zgemm('n','c',blsz,blsz,blsz,alpha,inter,blsz,block2%zcontent(1:blsz,1:blsz),&
-          &        blsz,beta,inter2,blsz)
+      call zgemm('n','c',reduced_,blsz,reduced_,alpha,inter,reduced_,block2%zcontent,&
+          &        blsz,beta,inter2,reduced_)
       alpha=1.0d0
       beta=1.0d0
-      call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,inter2,&
-        &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
+      call zgemm('N','N',blsz,blsz,reduced_,alpha,block1%zcontent,blsz,inter2,&
+        &        reduced_,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
       !alpha=1.0d0
       !beta=1.0d0
       !call zgemm('N','N',blsz,blsz,blsz,alpha,block1%zcontent(1:blsz,1:blsz),blsz,block2%zcontent,&
       !  &        blsz,beta,inblock2d%zcontent(1:blsz,1:blsz),blsz)
     end do ! loop over blocks
     deallocate(block1%zcontent,block2%zcontent,block3%dcontent)
+    deallocate(inter, inter2)
     
   end subroutine generate_chi_block
   !-----------------------------------------------------------------------------
-  subroutine generate_Bvector_b(inbl,omega,broad,object,p_file,c_file, pol)
-    use mod_io, only: io
+  subroutine generate_Bvector_b(inbl,omega,inputparam,object,p_file,c_file, pol)
+    use mod_io, only: io, input
     use mod_matmul, only: matprod
     use hdf5, only: hid_t
     implicit none
     type(block1d), intent(inout) :: inbl
-    real(8), intent(in) :: omega, broad, pol(3)
-    type(io) :: object
+    real(8), intent(in) :: omega, pol(3)
+    type(input), intent(in) :: inputparam
+    type(io), intent(in) :: object
     integer(hid_t), intent(in) :: p_file, c_file
     !internal variables
     type(block2d) :: bl2d_
@@ -450,7 +456,8 @@ module mod_blocks
     do k=1, inbl%nblocks
       ! create blocks
       bl2d_%nblocks=inbl%nblocks
-      bl2d_%blocksize=inbl%blocksize
+      bl2d_%blocksize=(/inbl%blocksize, inbl%blocksize/)
+      bl2d_%global=(/inbl%nblocks*inbl%blocksize, inbl%nblocks*inbl%blocksize/)
       bl2d_%nk=inbl%nk
       bl2d_%il=inbl%il
       bl2d_%iu=inbl%iu
@@ -467,6 +474,7 @@ module mod_blocks
 
       bl1d_%nblocks=inbl%nblocks
       bl1d_%blocksize=inbl%blocksize
+      bl1d_%global=inbl%nblocks*inbl%blocksize
       bl1d_%nk=inbl%nk
       bl1d_%il=(k-1)*inbl%blocksize+1
       bl1d_%iu=k*inbl%blocksize
@@ -475,7 +483,7 @@ module mod_blocks
       bl1d_%offset=(k-1)*inbl%blocksize
       bl1d_%id=k
       ! generate core chi block
-      call generate_chi_block(bl2d_,omega,broad,c_file)
+      call generate_chi_block(bl2d_,omega,inputparam,c_file)
       ! generate t vector block
       call generate_tblock(bl1d_,object%koulims,object%smap,object%ismap,pol,p_file)
       ! generate B vector block
@@ -486,14 +494,15 @@ module mod_blocks
     
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine generate_Avector_b(inbl,omega,broad,core,optical,p_file,c_file,pol)
+  subroutine generate_Avector_b(inbl,omega,inputparam,core,optical,p_file,c_file,pol)
     use hdf5, only: hid_t
-    use mod_io, only: io
+    use mod_io, only: io, input
     use mod_matmul, only: matprod
     implicit none
     type(block1d), intent(inout) :: inbl
-    real(8), intent(in) :: omega, broad, pol(3)
-    type(io) :: core, optical
+    real(8), intent(in) :: omega, pol(3)
+    type(io), intent(in) :: core, optical
+    type(input), intent(in) :: inputparam
     integer(hid_t) :: p_file, c_file
     ! internal variables
     type(block1d) :: vecB_b
@@ -517,6 +526,7 @@ module mod_blocks
     ! set up block for B vector
     vecB_b%nblocks=inbl%nblocks
     vecB_b%blocksize=blsz_
+    vecB_b%global=blsz_*inbl%nblocks
     vecB_b%nk=inbl%nk
     vecB_b%il=(id_-1)*blsz_+1
     vecB_b%iu=id_*blsz_
@@ -537,7 +547,7 @@ module mod_blocks
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
     ! generate block of B vector
-    call generate_Bvector_b(vecB_b,omega,broad,core,p_file,c_file, pol)
+    call generate_Bvector_b(vecB_b,omega,inputparam,core,p_file,c_file, pol)
     
     ! generate block of B matrix
     call transform2matrix_b(core%koulims,core%smap,vecB_b,matB_b)
@@ -566,13 +576,14 @@ module mod_blocks
   end subroutine
   
   !-----------------------------------------------------------------------------
-  subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, broad, core, optical, pmat_id, core_id, &
+  subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, inputparam, core, optical, pmat_id, core_id, &
      & optical_id, pol, oscstr_b)
-    use mod_io, only: io
+    use mod_io, only: io, input
     use hdf5, only: hid_t
     integer, intent(in) :: nblocks, blsz, nk, k
     real(8), intent(in) :: omega(:)
-    real(8), intent(in) :: broad, pol(3)
+    type(input), intent(in) :: inputparam
+    real(8), intent(in) :: pol(3)
     type(io), intent(in) :: core, optical
     integer(hid_t), intent(in) :: pmat_id, core_id, optical_id
     complex(8), intent(out) :: oscstr_b(:,:)
@@ -586,7 +597,7 @@ module mod_blocks
     do k2=1, nblocks
       ! set up block for eigenvectors
       evecs_b%nblocks=nblocks
-      evecs_b%blocksize=blsz
+      evecs_b%blocksize=(/blsz, blsz/)
       evecs_b%nk=nk
       evecs_b%il=(k2-1)*blsz+1
       evecs_b%iu=k2*blsz
@@ -615,7 +626,7 @@ module mod_blocks
       call get_eigvecs2D_b(evecs_b,optical_id)
       do w=1, size(omega)
         ! generate block of A vector
-        call generate_Avector_b(vecA_b,omega(w),broad,core,optical,pmat_id,core_id,pol)
+        call generate_Avector_b(vecA_b,omega(w),inputparam,core,optical,pmat_id,core_id,pol)
         ! generate block of oscstr
         alpha=1.0d0
         beta=1.0d0
@@ -635,7 +646,7 @@ module mod_blocks
     integer, dimension(1) :: dims_, dimsg_, offset_
     ! set dimension & offset
     dims_(1)=in1d%blocksize
-    dimsg_(1)=in1d%blocksize*in1d%nblocks
+    dimsg_(1)=in1d%global
     offset_(1)=in1d%offset
     ! if allocated, write the dcontent
     if (allocated(in1d%dcontent)) then
@@ -656,7 +667,7 @@ module mod_blocks
     integer, dimension(1) :: dims_, dimsg_, offset_
     ! set dimension & offset
     dims_(1)=in1d%blocksize
-    dimsg_(1)=in1d%blocksize*in1d%nblocks
+    dimsg_(1)=in1d%global
     offset_(1)=in1d%offset
     ! if allocated, write the dcontent
     if (allocated(in1d%dcontent)) then
@@ -676,8 +687,8 @@ module mod_blocks
     ! local variables
     integer, dimension(2) :: dims_, dimsg_, offset_
     ! set dimension & offset
-    dims_=(/ in2d%blocksize, in2d%blocksize/)
-    dimsg_=(/ in2d%blocksize*in2d%nblocks, in2d%blocksize*in2d%nblocks /) 
+    dims_=(/ in2d%blocksize(1), in2d%blocksize(2)/)
+    dimsg_=(/ in2d%blocksize(1)*in2d%nblocks, in2d%blocksize(2)*in2d%nblocks /) 
     offset_=in2d%offset
     ! if allocated, write the dcontent
     if (allocated(in2d%dcontent)) then
@@ -697,8 +708,8 @@ module mod_blocks
     ! local variables
     integer, dimension(2) :: dims_, dimsg_, offset_
     ! set dimension & offset
-    dims_=(/ in2d%blocksize, in2d%blocksize/)
-    dimsg_=(/ in2d%blocksize*in2d%nblocks, in2d%blocksize*in2d%nblocks /) 
+    dims_=(/ in2d%blocksize(1), in2d%blocksize(2)/)
+    dimsg_=(/ in2d%blocksize(1)*in2d%nblocks, in2d%blocksize(2)*in2d%nblocks /) 
     offset_=in2d%offset
     ! if allocated, write the dcontent
     if (allocated(in2d%dcontent)) then
@@ -741,112 +752,44 @@ module mod_blocks
   end subroutine
 
   !-----------------------------------------------------------------------------
-  subroutine get_eigvecs2D_b_quick(inblock2d,fname)
-    use hdf5
+  function nofblock(block, globalsize, nblocks)
     implicit none
-    type(block2d), intent(inout) :: inblock2d
-    character(len=1024), intent(in) :: fname
-    !local variables
-    !complex(8), allocatable :: eigvec_(:)
-    integer(hid_t) :: h5_root_id,dataset_id,group_id, dataspace_id, memspace_id
-    integer :: ierr,i,j    
-    integer(HSIZE_T), dimension(2) :: h_dims, h_offset
-    character*100 errmsg
-    real(8), allocatable :: eigvec_(:,:)
-    integer(4) ::  dims_(2), offset_(2), ndims
-    character(len=1024) :: path, dsetname
-    character(256) :: ci
-    ! allocate output
-    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
-    allocate(inblock2d%zcontent(inblock2d%blocksize,inblock2d%blocksize)) 
-    !allocate intermediate real matrix
-    allocate(eigvec_(2,inblock2d%blocksize))
-    eigvec_(:,:)=0.0d0
-    ! determine dimensions
-    ndims=2
-    dims_=(/2,inblock2d%blocksize/)
-    offset_=(/0,inblock2d%offset(1)/)
-    path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-    do i=1,2
-      h_dims(i)=dims_(i)
-      h_offset(i)=offset_(i)
-    enddo
-    call h5fopen_f(trim(fname),H5F_ACC_RDONLY_F,h5_root_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5fopen_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5gopen_f(h5_root_id,trim(path),group_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5gopen_f returned ",I6)')ierr
-      goto 10
-    endif
-    do i=1, inblock2d%blocksize
-      write(ci, '(I8.8)') i+inblock2d%offset(2)
-      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-      dsetname=trim(adjustl(ci))
-      call h5dopen_f(group_id,trim(dsetname),dataset_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dopen_f returned ",I6)')ierr
-        goto 10
-      endif
-      call h5dget_space_f(dataset_id,dataspace_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_i4): h5dget_space_f returned ",I6)')ierr
-        goto 10
-      endif
-      call h5sselect_hyperslab_f(dataspace_id,H5S_SELECT_SET_F,h_offset,h_dims,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_i4): h5sselect_hyperslab_f returned ",I6)')ierr
-        goto 10
-      endif
-      ! create memory dataspace
-      call h5screate_simple_f(ndims,h_dims, memspace_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_i4): h5screate_simple_f returned ",I6)')ierr
-        goto 10
-      endif
-      call h5dread_f(dataset_id,H5T_NATIVE_DOUBLE,eigvec_,h_dims,ierr,memspace_id,dataspace_id)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dread_f returned ",I6)')ierr
-        goto 10
-      endif
-      ! write to output
-      do j=1, inblock2d%blocksize
-        inblock2d%zcontent(j,i)=cmplx(eigvec_(1,j),eigvec_(2,j))
-      end do
-      ! close the memory space
-      call h5sclose_f(memspace_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
-        goto 10
-      endif
-      ! close the dataspace
-      call h5sclose_f(dataspace_id, ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5sclose_f returned ",I6)')ierr
-        goto 10
-      endif
-      call h5dclose_f(dataset_id,ierr)
-      if (ierr.ne.0) then
-        write(errmsg,'("Error(hdf5_read_array_d): h5dclose_f returned ",I6)')ierr
-        goto 10
-      endif
+    integer :: nofblock
+    integer, intent(in) :: block, globalsize, nblocks
+
+    nofblock= globalsize / nblocks
+    if (mod(globalsize,nblocks)> block-1) nofblock= nofblock+1
+  
+  end function nofblock
+
+  !-----------------------------------------------------------------------------
+  function firstofblock(block, globalsize, nblocks)
+    implicit none
+    integer :: firstofblock
+    integer, intent(in) :: block, globalsize, nblocks
+    ! local variable
+    integer :: i
+    
+    firstofblock=1
+    do i=1, min(block-1, globalsize-1)
+      firstofblock=firstofblock+nofblock(i, globalsize, nblocks)
     end do
-    call h5gclose_f(group_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5gclose_f returned ",I6)')ierr
-      goto 10
-    endif
-    call h5fclose_f(h5_root_id,ierr)
-    if (ierr.ne.0) then
-      write(errmsg,'("Error(hdf5_read_array_d): h5fclose_f returned ",I6)')ierr
-      goto 10
-    endif
-    deallocate(eigvec_)
-    return
-    10 continue
-    print *, 'problem with quick read!'
-  end subroutine 
+    if (globalsize < block) firstofblock=0
+
+    end function firstofblock
+
+  !-----------------------------------------------------------------------------
+  function lastofblock(block, globalsize, nblocks)
+    integer :: lastofblock
+    integer, intent(in) :: block, globalsize, nblocks
+    ! local variables
+    integer :: i
+    lastofblock=0
+    do i=1, min(block,globalsize)
+      lastofblock=lastofblock+nofblock(i, globalsize, nblocks)
+    end do
+    if (globalsize < block) lastofblock=-1
+
+    end function lastofblock
 
 end module mod_blocks
