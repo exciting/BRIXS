@@ -111,7 +111,6 @@ program rixs_oscstr
       if (w1==1) then
         ! set up block for eigenvalues (needed only for file output)
         reduced_(1)=nofblock(k, inputparam%nstato, nblocks_)
-        print*, 'nstato=', inputparam%nstato
         evals_b%nblocks=nblocks_
         evals_b%blocksize=reduced_(1)
         evals_b%global=inputparam%nstato
@@ -121,9 +120,6 @@ program rixs_oscstr
         evals_b%id=k
         ! generate block of eigenvalues
         call get_evals_block(evals_b,optical_id)
-        print *, 'il=', evals_b%il
-        print *, 'iu=', evals_b%iu
-        print *, 'offset(evals_b)=', evals_b%offset
         call put_block1d(evals_b,energy_id)
       end if
       reduced_(1)=nofblock(k, inputparam%nstato, nblocks_)
