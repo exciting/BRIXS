@@ -24,7 +24,7 @@ program rixs_vecA
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: core_id, optical_id, pmat_id, inter_id
-  integer(hid_t) :: dataset_id
+  integer(hid_t) :: dataset_id, dataset2_id
   integer :: matsize_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
@@ -100,7 +100,7 @@ program rixs_vecA
     if (rank .eq. 0) write(7, *) 'Frequency ', w1, 'of ', size(omega) 
     write(ik, '(I4.4)') w1
     gname=trim(adjustl(ik))
-    ! create group for each frequency
+    ! create group 'A' for each frequency
     if (.not. phdf5_exist_group(inter_id,'/A/',gname)) then
       call phdf5_create_group(inter_id,'/A/',gname)
     end if
@@ -108,7 +108,10 @@ program rixs_vecA
     ! set up the dataset
     matsize_=(/ nblocks_*blsz_ /)
     datasetname='A'
-    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,inter_id,dataset_id)     ! loop over blocks, now distributed over MPI ranks
+    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,inter_id,dataset_id)     
+    matsize_=(/ nblocks_*core%no*core%nu*nk_ /)
+    datasetname='B'
+    call phdf5_setup_write(1,matsize_,.true.,trim(datasetname),gname2,inter_id,dataset2_id)     
     ! loop over blocks, now distributed over MPI ranks
     do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
       !set-up for the blocks
@@ -122,10 +125,11 @@ program rixs_vecA
       vecA_b%ku=k*nk_
       vecA_b%offset=(k-1)*blsz_
       vecA_b%id=k
-      call generate_Avector_b(vecA_b,omega(w1),inputparam,core,optical,pmat_id,core_id,pol)
+      call generate_Avector_b(vecA_b,omega(w1),inputparam,core,optical,pmat_id,core_id,dataset2_id,pol)
       call put_block1d(vecA_b,dataset_id)
     end do
     call phdf5_cleanup(dataset_id)
+    call phdf5_cleanup(dataset2_id)
   end do
   call phdf5_close_file(core_id)
   call phdf5_close_file(optical_id)

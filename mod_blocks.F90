@@ -494,7 +494,7 @@ module mod_blocks
     
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine generate_Avector_b(inbl,omega,inputparam,core,optical,p_file,c_file,pol)
+  subroutine generate_Avector_b(inbl,omega,inputparam,core,optical,p_file,c_file,dataset,pol)
     use hdf5, only: hid_t
     use mod_io, only: io, input
     use mod_matmul, only: matprod
@@ -503,7 +503,7 @@ module mod_blocks
     real(8), intent(in) :: omega, pol(3)
     type(io), intent(in) :: core, optical
     type(input), intent(in) :: inputparam
-    integer(hid_t) :: p_file, c_file
+    integer(hid_t) :: p_file, c_file, dataset
     ! internal variables
     type(block1d) :: vecB_b
     type(block3d)  :: tprime_b, matB_b,  matA_b
@@ -548,7 +548,7 @@ module mod_blocks
     matA_b%id=inbl%id
     ! generate block of B vector
     call generate_Bvector_b(vecB_b,omega,inputparam,core,p_file,c_file, pol)
-    
+    call put_block1d(vecB_b,dataset)
     ! generate block of B matrix
     call transform2matrix_b(core%koulims,core%smap,vecB_b,matB_b)
     ! generate block of tprimegenerate_Bvector_b
