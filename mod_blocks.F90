@@ -510,6 +510,7 @@ module mod_blocks
     integer(4) :: interdim(2), nkmax, nu, no, nk, k
     integer(4) :: id_, blsz_
     integer(4), allocatable :: koulims_comb(:,:)
+    complex(8), allocatable :: matB_(:,:,:)
     ! generate a combined map for t'
     interdim=shape(core%koulims)
     nkmax=interdim(2)
@@ -556,6 +557,7 @@ module mod_blocks
     ! allocate block of A matrix
     nu=optical%koulims(2,1)-optical%koulims(1,1)+1
     no=optical%koulims(4,1)-optical%koulims(3,1)+1
+
     nk=inbl%nk
     if (allocated(matA_b%zcontent)) deallocate(matA_b%zcontent)
     allocate(matA_b%zcontent(nu,no,nk))
@@ -565,17 +567,36 @@ module mod_blocks
     matA_b%kl=inbl%kl
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
+    if (rank .eq. 0) then
+      print *, 'shape(matB_b)=', shape(matB_b%zcontent)
+      print *, 'shape(tprime_b)=', shape(tprime_b%zcontent)
+      print *, 'shape(matA_b)=', shape(matA_b%zcontent)
+    ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted
+    if (allocated(matB_)) deallocate(matB_)
+    allocate(matB_(nu, core%no, core%nk))
+    if (nu .gt. core%nu) then
+      ! more empty states in optical calculation than in core one
+      matB_(:,:,:)=0.0d0
+      matB_(1:nu%core,:,:)=matB_b%zcontent
+    elseif (nu .lt. core%nu) then
+      ! less empty states in optical calculation than in core one
+      matB_(:,:,:)=matB_b%zcontent(1:nu,:,:)
+    else
+      matB_=matB_b%zcontent
+    end if
     do k=1, nk
       ! generate block of A matrix
-      call matprod(matB_b%zcontent(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))
+      call matprod(matB_(:,:,k),tprime_b%zcontent(:,:,k),matA_b%zcontent(:,:,k))
     end do
     ! generate block of A vector
     call transform2vector_b(optical%koulims,optical%smap,matA_b,inbl)
     deallocate(koulims_comb) 
     deallocate(vecB_b%zcontent,matB_b%zcontent,matA_b%zcontent)
+    deallocate(matB_)
   end subroutine
   
   !-----------------------------------------------------------------------------
+# ifdef DEBUG
   subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, inputparam, core, optical, pmat_id, core_id, &
      & optical_id, pol, oscstr_b)
     use mod_io, only: io, input
@@ -634,7 +655,7 @@ module mod_blocks
       end do ! w
     end do ! k2
   end subroutine
- 
+#endif 
 !-----------------------------------------------------------------------------
   subroutine put_block1d(in1d,dataset_id)
     use hdf5, only: hid_t
