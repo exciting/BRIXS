@@ -568,11 +568,6 @@ module mod_blocks
     matA_b%kl=inbl%kl
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
-    if (mpiglobal%rank .eq. 0) then
-      print *, 'shape(matB_b)=', shape(matB_b%zcontent)
-      print *, 'shape(tprime_b)=', shape(tprime_b%zcontent)
-      print *, 'shape(matA_b)=', shape(matA_b%zcontent)
-    end if
     ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted
     if (allocated(matB_)) deallocate(matB_)
     allocate(matB_(nu, core%no, inbl%nk))
