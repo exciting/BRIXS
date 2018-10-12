@@ -59,11 +59,6 @@ program rixs_vecA
   allocate(omega(size(inputparam%omega))) 
   omega(:)=inputparam%omega(:) 
   
-  ! set polarization vector
-  pol(1)=1.0d0
-  pol(2)=0.0d0
-  pol(3)=0.0d0
-  
   interdim=shape(core%koulims)
   nkmax=interdim(2)
   ! create combined map for valence-core transitions

@@ -57,11 +57,6 @@ program rixs_oscstr
   allocate(omega(size(inputparam%omega))) 
   omega(:)=inputparam%omega(:) 
   
-  ! set polarization vector
-  pol(1)=1.0d0
-  pol(2)=0.0d0
-  pol(3)=0.0d0
-  
   ! test whether the blocksize is possible
   interdim=shape(optical%koulims)
   nkmax=interdim(2)

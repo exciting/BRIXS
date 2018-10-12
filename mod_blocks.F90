@@ -567,17 +567,13 @@ module mod_blocks
     matA_b%kl=inbl%kl
     matA_b%ku=inbl%ku
     matA_b%id=inbl%id
-    if (rank .eq. 0) then
-      print *, 'shape(matB_b)=', shape(matB_b%zcontent)
-      print *, 'shape(tprime_b)=', shape(tprime_b%zcontent)
-      print *, 'shape(matA_b)=', shape(matA_b%zcontent)
     ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted
     if (allocated(matB_)) deallocate(matB_)
-    allocate(matB_(nu, core%no, core%nk))
+    allocate(matB_(nu, core%no, inbl%nk))
     if (nu .gt. core%nu) then
       ! more empty states in optical calculation than in core one
       matB_(:,:,:)=0.0d0
-      matB_(1:nu%core,:,:)=matB_b%zcontent
+      matB_(1:core%nu,:,:)=matB_b%zcontent
     elseif (nu .lt. core%nu) then
       ! less empty states in optical calculation than in core one
       matB_(:,:,:)=matB_b%zcontent(1:nu,:,:)

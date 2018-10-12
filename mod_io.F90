@@ -10,6 +10,7 @@ module mod_io
   type :: input
     real(8), allocatable :: omega(:)
     real(8) :: broad
+    real(8) :: pol(3)
     integer :: nblocks, nstato, nstatc
   end type
   
@@ -146,6 +147,7 @@ module mod_io
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
     real(8) :: broad_, broad2_
+    real(8) :: pol_(3)
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
 
@@ -156,6 +158,7 @@ module mod_io
 #endif
       !define fields and set defaults
       call CFG_add(my_cfg, 'omega', (/1.0_dp, 2.0_dp/), 'Core Frequencies', dynamic_size=.true.)
+      call CFG_add(my_cfg, 'pol', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization')
       call CFG_add(my_cfg, 'broad', 0.5_dp, 'Core Broadening')
       call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
       call CFG_add(my_cfg, 'eigstates_optical', 1, 'Number of eigenstates in optical BSE calculation')
@@ -169,6 +172,8 @@ module mod_io
       call CFG_get(my_cfg,'omega', omega_)
       ! get core broadening
       call CFG_get(my_cfg,'broad',broad_)
+      ! get light polarization
+      call CFG_get(my_cfg,'pol',pol_)
       ! get number of blocks
       call CFG_get(my_cfg,'nblocks', nblocks_)
       ! get number of optical eigenstates
@@ -182,6 +187,7 @@ module mod_io
     if (.not. allocated(omega_)) allocate(omega_(omegasize_))
     call mpi_bcast(omega_,omegasize_,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(pol_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstato_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
@@ -192,6 +198,7 @@ module mod_io
     object%nblocks=nblocks_
     object%nstato=nstato_
     object%nstatc=nstatc_
+    object%pol=pol_(:)
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
