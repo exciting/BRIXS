@@ -498,6 +498,7 @@ module mod_blocks
     use hdf5, only: hid_t
     use mod_io, only: io, input
     use mod_matmul, only: matprod
+    use modmpi, only: mpiglobal
     implicit none
     type(block1d), intent(inout) :: inbl
     real(8), intent(in) :: omega, pol(3)
