@@ -56,6 +56,7 @@ program rixs_vecA
   
   ! set parameters
   broad=inputparam%broad
+  pol=inputparam%pol
   allocate(omega(size(inputparam%omega))) 
   omega(:)=inputparam%omega(:) 
   

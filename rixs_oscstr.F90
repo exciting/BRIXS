@@ -54,6 +54,7 @@ program rixs_oscstr
   
   ! set parameters
   broad=inputparam%broad
+  pol=inputparam%pol
   allocate(omega(size(inputparam%omega))) 
   omega(:)=inputparam%omega(:) 
   
