@@ -692,7 +692,6 @@ module mod_blocks
     complex(8), allocatable :: prod_prime(:,:,:,:), prod_matrix(:,:,:,:)
     integer(4) :: interdim(2), nkmax, id_(2), blsz_, nk_, global_
     integer(4) :: lambda, ik
-    integer(4) :: i1, i2
 
     ! generate combined koulims index range
     interdim=shape(core%koulims)
@@ -730,38 +729,13 @@ module mod_blocks
     tprime_b%id=inbl%id(1)
     ! get block of core eigenstates
     call get_eigvecs2D_b(eigvec, core_id)
-    print *, 'shape(eigvec)=', shape(eigvec%zcontent)
-    print *, 'shape(eigvec_matrix)=', shape(eigvec%zcontent)
-    print *, '******************eigvec_matrix**********************'
-    do i1=1, blsz_
-      do i2= 1, inbl%blocksize(2)
-        print *, 'eigvec%zcontent(', i1,',', i2, ')=', eigvec%zcontent(i1,i2)
-      end do
-    end do
+    
     ! generate block of B matrix
     call transform_matrix2matrix(core%koulims,core%smap,eigvec,eigvec_matrix)
-    print *, 'shape(eigvec_matrix)=', shape(eigvec_matrix)
-    print *, '******************eigvec_matrix**********************'
-    do lambda=1, inbl%blocksize(2)
-      do ik=1, inbl%nk
-        do i1=1, core%nu
-          do i2=1, core%no
-            print *, 'eigvec_matrix(', i1,',', i2,',', ik, ',', lambda, ')=', eigvec_matrix(i1,i2,ik,lambda)
-          end do
-        end do 
-      end do
-    end do
+    
     ! generate block of tprime
     call generate_tprime_block(tprime_b,inputparam%pol,koulims_comb,pmat_id)
-    print *, 'shape(tprime_b)=', shape(tprime_b%zcontent)
-    print *, '******************tprime**********************'
-    do ik=1, inbl%nk
-      do i1=1,  core%no
-        do i2=1, optical%no
-          print *, 'tprime(', i1,',', i2,',', ik, ')=', tprime_b%zcontent(i1,i2,ik)
-        end do
-      end do
-    end do
+    
     nk_=inbl%nk
     ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted
     if (allocated(prod_prime)) deallocate(prod_prime)
@@ -774,26 +748,12 @@ module mod_blocks
     do lambda=1, inbl%blocksize(2)
       ! loop over k-points in input block
       do ik=1, inbl%nk
-        ! generate intermediate arrays
-        if (allocated(inter)) deallocate(inter)
-        allocate(inter(core%nu, core%no))
-        inter(:,:)=eigvec_matrix(:,:,ik,lambda)
-        if (allocated(inter2)) deallocate(inter2)
-        allocate(inter2(core%no, optical%no))
-        inter2(:,:)=tprime_b%zcontent(:,:,ik)
-        if (allocated(inter3)) deallocate(inter3)
-        allocate(inter3(core%nu, optical%no))
         alpha=1.0d0
         beta=1.0d0
         call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,ik,lambda), & 
           &core%nu, tprime_b%zcontent(:,:,ik), core%no, beta, prod_prime(:,:,ik,lambda), core%nu)
-        !call zgemm('N', 'N', core%nu, core%no, optical%no, alpha, inter, & 
-        !  &core%nu, inter2, core%no, beta, inter3, core%nu)
-        !prod_prime(:,:,ik, lambda)=inter3(:,:)
       end do
     end do
-    print *, 'shape(prod_prime)=', shape(prod_prime)
-    print *, 'shape(prod_matrix)=', shape(prod_matrix)
     if (optical%nu .gt. core%nu) then
       ! more empty states in optical calculation than in core one
       prod_matrix(:,:,:,:)=0.0d0
@@ -804,21 +764,10 @@ module mod_blocks
     else
       prod_matrix(:,:,:,:)=prod_prime(:,:,:,:)
     end if
-    print *, '******************prod_prime**********************'
-    print *, prod_prime(:,:,:,:)
-    print *, '******************prod_matrix**********************'
-    print *, prod_matrix(:,:,:,:)
     ! generate block of product vector
     call transform_matrix2vector(optical,prod_prime,inbl)
-    print *, 'shape(inbl)=', shape(inbl%zcontent)
-    print *, '******************inbl**********************'
-    do i1=1, inbl%blocksize(1)
-      do i2=1, inbl%blocksize(2)
-        print *, 'inbl%zcontent(', i1, ',', i2, ')=', inbl%zcontent(i1,i2)
-      end do
-    end do
+    
     deallocate(koulims_comb) 
-    deallocate(inter, inter2, inter3)
     deallocate(prod_prime, prod_matrix, eigvec_matrix)
 
   end subroutine
