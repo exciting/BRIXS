@@ -81,6 +81,45 @@ module mod_blocks
       end do
     end subroutine 
     !-----------------------------------------------------------------------------
+    subroutine transform_matrix2matrix(inkoulims,insmap,inbl2d,out4d)
+      implicit none
+      integer(4), intent(in) :: inkoulims(:,:)
+      integer(4), intent(in) :: insmap(:,:)
+      type(block2d), intent(in) :: inbl2d
+      complex(8), allocatable, intent(out) :: out4d(:,:,:,:)
+
+      ! local variables
+      integer(4) :: lu,uu,lo,uo,nu,no,nk0,nkmax,i, lambda
+      integer(4) :: dim_koulims(2),dim_smap(2),hamsiz,i1,i2, i3
+  
+      !get shapes
+      dim_koulims=shape(inkoulims)
+      dim_smap=shape(insmap)
+      !determine sizes
+      lu=inkoulims(1,1)
+      uu=inkoulims(2,1)
+      lo=inkoulims(3,1)
+      uo=inkoulims(4,1)
+      nu=uu-lu+1
+      no=uo-lo+1
+      nk0=insmap(3,1)
+      nkmax=dim_koulims(2)
+      hamsiz=dim_smap(2)
+      ! allocate the output matrix
+      if (allocated(out4d)) deallocate(out4d)
+      allocate(out4d(nu, no, inbl2d%nk,inbl2d%blocksize(2)))
+      ! loop over all excitons
+      do lambda=1, inbl2d%blocksize(2)
+        ! loop over all transitions
+        do i=inbl2d%il, inbl2d%iu
+          i1=insmap(1,i)-lu+1
+          i2=insmap(2,i)-lo+1
+          i3=insmap(3,i)-nk0+1
+          out4d(i1,i2,i3-inbl2d%k1l+1,lambda)=inbl2d%zcontent(i-inbl2d%offset(1),lambda)
+        end do !i
+      end do !lambda
+    end subroutine 
+    !-----------------------------------------------------------------------------
     subroutine transform2vector_b(inkoulims,insmap,inbl3d,outbl1d)
       implicit none
       integer(4), intent(in) :: inkoulims(:,:)
@@ -130,6 +169,48 @@ module mod_blocks
         i3=insmap(3,i)-nk0+1-inbl3d%kl+1
         outbl1d%zcontent(i-outbl1d%offset)=inbl3d%zcontent(i1,i2,i3)
       end do
+    end subroutine 
+
+    !-----------------------------------------------------------------------------
+    subroutine transform_matrix2vector(input, in4d, outbl2d)
+      use mod_io, only: io
+      implicit none
+      type(io), intent(in) :: input
+      complex(8), allocatable, intent(in) :: in4d(:,:,:,:)
+      type(block2d), intent(inout) :: outbl2d
+
+      ! local variables
+      integer(4) :: matsize_(4)
+      integer(4) :: lu,uu,lo,uo,nu,no,nk0,i, blsz_, lambda
+      integer(4) :: dim_koulims(2),dim_smap(2),nkmax,hamsiz,i1,i2, i3
+  
+      !get shapes
+      dim_koulims=shape(input%koulims)
+      dim_smap=shape(input%smap)
+      !determine sizes
+      lu=input%koulims(1,1)
+      uu=input%koulims(2,1)
+      lo=input%koulims(3,1)
+      uo=input%koulims(4,1)
+      nu=uu-lu+1
+      no=uo-lo+1
+      nk0=input%smap(3,1)
+      nkmax=dim_koulims(2)
+      hamsiz=dim_smap(2)
+      
+      !generate the block output
+      if (allocated(outbl2d%zcontent)) deallocate(outbl2d%zcontent)
+      allocate(outbl2d%zcontent(outbl2d%blocksize(1), outbl2d%blocksize(2)))
+
+      ! loop over all transitions
+      do lambda=1, outbl2d%blocksize(2)
+        do i=outbl2d%il, outbl2d%iu
+          i1=input%smap(1,i)-lu+1
+          i2=input%smap(2,i)-lo+1
+          i3=input%smap(3,i)-nk0+1-outbl2d%k1l+1
+          outbl2d%zcontent(i-outbl2d%offset(1), lambda)=in4d(i1,i2,i3,lambda)
+        end do !i
+      end do !lambda
     end subroutine 
 
     !-----------------------------------------------------------------------------
@@ -593,6 +674,155 @@ module mod_blocks
   end subroutine
   
   !-----------------------------------------------------------------------------
+  subroutine gen_prod_b(inbl, inputparam, core, optical, core_id, pmat_id)
+    use mod_io, only: io, input
+    use hdf5, only: hid_t
+    implicit none
+    type(block2d), intent(inout) :: inbl
+    type(input), intent(in) :: inputparam
+    type(io), intent(in) :: core, optical
+    integer(hid_t), intent(in) :: core_id, pmat_id
+    !local variables
+    type(block2d) :: eigvec
+    type(block3d) :: tprime_b
+    integer(4), allocatable :: koulims_comb(:,:)
+    complex(8), allocatable :: eigvec_matrix(:,:,:,:)
+    complex(8) :: alpha, beta
+    complex(8), allocatable :: inter(:,:), inter2(:,:), inter3(:,:)
+    complex(8), allocatable :: prod_prime(:,:,:,:), prod_matrix(:,:,:,:)
+    integer(4) :: interdim(2), nkmax, id_(2), blsz_, nk_, global_
+    integer(4) :: lambda, ik
+    integer(4) :: i1, i2
+
+    ! generate combined koulims index range
+    interdim=shape(core%koulims)
+    nkmax=interdim(2)
+    allocate(koulims_comb(4,nkmax))
+    koulims_comb(1,:)=optical%koulims(3,:)
+    koulims_comb(2,:)=optical%koulims(4,:)
+    koulims_comb(3,:)=core%koulims(3,:)
+    koulims_comb(4,:)=core%koulims(4,:)
+    
+    ! set temporary id and size
+    ! core eigenvector block does not have
+    ! the same size as the inblock
+    id_=inbl%id
+    blsz_=core%no*core%nu*inbl%nk
+    global_=core%no*core%nu*nkmax
+    ! set up block for core eigenstates
+    eigvec%nblocks=inbl%nblocks
+    eigvec%blocksize=(/ blsz_, inbl%blocksize(2) /)
+    eigvec%global=global_
+    eigvec%nk=inbl%nk
+    eigvec%il=(inbl%id(1)-1)*blsz_+1
+    eigvec%iu=inbl%id(1)*blsz_
+    eigvec%jl=inbl%jl
+    eigvec%ju=inbl%ju
+    eigvec%k1l=inbl%k1l
+    eigvec%k1u=inbl%k1u
+    eigvec%offset=(/ eigvec%il-1, inbl%offset(2) /)
+    eigvec%id=inbl%id
+    ! set up block for t' matrix
+    tprime_b%nblocks=inbl%nblocks
+    tprime_b%nk=inbl%nk
+    tprime_b%kl=inbl%k1l
+    tprime_b%ku=inbl%k1u
+    tprime_b%id=inbl%id(1)
+    ! get block of core eigenstates
+    call get_eigvecs2D_b(eigvec, core_id)
+    print *, 'shape(eigvec)=', shape(eigvec%zcontent)
+    print *, 'shape(eigvec_matrix)=', shape(eigvec%zcontent)
+    print *, '******************eigvec_matrix**********************'
+    do i1=1, blsz_
+      do i2= 1, inbl%blocksize(2)
+        print *, 'eigvec%zcontent(', i1,',', i2, ')=', eigvec%zcontent(i1,i2)
+      end do
+    end do
+    ! generate block of B matrix
+    call transform_matrix2matrix(core%koulims,core%smap,eigvec,eigvec_matrix)
+    print *, 'shape(eigvec_matrix)=', shape(eigvec_matrix)
+    print *, '******************eigvec_matrix**********************'
+    do lambda=1, inbl%blocksize(2)
+      do ik=1, inbl%nk
+        do i1=1, core%nu
+          do i2=1, core%no
+            print *, 'eigvec_matrix(', i1,',', i2,',', ik, ',', lambda, ')=', eigvec_matrix(i1,i2,ik,lambda)
+          end do
+        end do 
+      end do
+    end do
+    ! generate block of tprime
+    call generate_tprime_block(tprime_b,inputparam%pol,koulims_comb,pmat_id)
+    print *, 'shape(tprime_b)=', shape(tprime_b%zcontent)
+    print *, '******************tprime**********************'
+    do ik=1, inbl%nk
+      do i1=1,  core%no
+        do i2=1, optical%no
+          print *, 'tprime(', i1,',', i2,',', ik, ')=', tprime_b%zcontent(i1,i2,ik)
+        end do
+      end do
+    end do
+    nk_=inbl%nk
+    ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted
+    if (allocated(prod_prime)) deallocate(prod_prime)
+    allocate(prod_prime(core%nu, optical%no, inbl%nk, inbl%blocksize(2)))
+    prod_prime(:,:,:,:)=cmplx(0.0d0, 0.0d0)
+    allocate(prod_matrix(optical%nu, optical%no, inbl%nk, inbl%blocksize(2)))
+    prod_matrix(:,:,:,:)=cmplx(0.0d0, 0.0d0)
+
+    ! loop over block ofcore excitons
+    do lambda=1, inbl%blocksize(2)
+      ! loop over k-points in input block
+      do ik=1, inbl%nk
+        ! generate intermediate arrays
+        if (allocated(inter)) deallocate(inter)
+        allocate(inter(core%nu, core%no))
+        inter(:,:)=eigvec_matrix(:,:,ik,lambda)
+        if (allocated(inter2)) deallocate(inter2)
+        allocate(inter2(core%no, optical%no))
+        inter2(:,:)=tprime_b%zcontent(:,:,ik)
+        if (allocated(inter3)) deallocate(inter3)
+        allocate(inter3(core%nu, optical%no))
+        alpha=1.0d0
+        beta=1.0d0
+        call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,ik,lambda), & 
+          &core%nu, tprime_b%zcontent(:,:,ik), core%no, beta, prod_prime(:,:,ik,lambda), core%nu)
+        !call zgemm('N', 'N', core%nu, core%no, optical%no, alpha, inter, & 
+        !  &core%nu, inter2, core%no, beta, inter3, core%nu)
+        !prod_prime(:,:,ik, lambda)=inter3(:,:)
+      end do
+    end do
+    print *, 'shape(prod_prime)=', shape(prod_prime)
+    print *, 'shape(prod_matrix)=', shape(prod_matrix)
+    if (optical%nu .gt. core%nu) then
+      ! more empty states in optical calculation than in core one
+      prod_matrix(:,:,:,:)=0.0d0
+      prod_matrix(1:core%nu,:,:,:)=prod_prime(:,:,:,:)
+    elseif (optical%nu .lt. core%nu) then
+      ! less empty states in optical calculation than in core one
+      prod_matrix(:,:,:,:)=prod_prime(1:optical%nu,:,:,:)
+    else
+      prod_matrix(:,:,:,:)=prod_prime(:,:,:,:)
+    end if
+    print *, '******************prod_prime**********************'
+    print *, prod_prime(:,:,:,:)
+    print *, '******************prod_matrix**********************'
+    print *, prod_matrix(:,:,:,:)
+    ! generate block of product vector
+    call transform_matrix2vector(optical,prod_prime,inbl)
+    print *, 'shape(inbl)=', shape(inbl%zcontent)
+    print *, '******************inbl**********************'
+    do i1=1, inbl%blocksize(1)
+      do i2=1, inbl%blocksize(2)
+        print *, 'inbl%zcontent(', i1, ',', i2, ')=', inbl%zcontent(i1,i2)
+      end do
+    end do
+    deallocate(koulims_comb) 
+    deallocate(inter, inter2, inter3)
+    deallocate(prod_prime, prod_matrix, eigvec_matrix)
+
+  end subroutine
+  !-----------------------------------------------------------------------------
 # ifdef DEBUG
   subroutine generate_oscstr_b(nblocks, blsz, nk, k, omega, inputparam, core, optical, pmat_id, core_id, &
      & optical_id, pol, oscstr_b)
@@ -705,8 +935,8 @@ module mod_blocks
     ! local variables
     integer, dimension(2) :: dims_, dimsg_, offset_
     ! set dimension & offset
-    dims_=(/ in2d%blocksize(1), in2d%blocksize(2)/)
-    dimsg_=(/ in2d%blocksize(1)*in2d%nblocks, in2d%blocksize(2)*in2d%nblocks /) 
+    dims_=in2d%blocksize
+    dimsg_=in2d%global
     offset_=in2d%offset
     ! if allocated, write the dcontent
     if (allocated(in2d%dcontent)) then

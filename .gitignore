@@ -10,5 +10,6 @@ scaling_b
 scaling_single
 rixs_oscstr
 rixs_vecA
+rixs_pathway
 #ignore vim swp files
 .*.swp
