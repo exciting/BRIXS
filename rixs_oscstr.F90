@@ -80,7 +80,6 @@ program rixs_oscstr
   !-------------------------------------------------!
   ! create group in output file
   call phdf5_create_group(output_id,'/','oscstr')
-  call phdf5_create_group(output_id,'/','eval')
   ! open datasets for write of energies
   matsize_=(/ inputparam%nstato /)
   call phdf5_setup_write(1,matsize_,.false.,'evals','/',output_id,energy_id)
