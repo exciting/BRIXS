@@ -119,19 +119,30 @@ program rixs_pathway
     allocate(t1_b%zcontent(t1_b%blocksize))
     t1_b%zcontent(:)=cmplx(0.0d0, 0.0d0)
 
+    print *, '**********************************************'
+    print *, 'FOR BLOCK ', blocks_
     ! 2nd loop over the blocks
     do blocks2_= 1, nblocks_
       ! set-up for the blocks of core eigenvectors
       eigvec_b%nblocks=nblocks_
+      print *, 'nblocks=', eigvec_b%nblocks
       eigvec_b%blocksize=(/ nofblock(blocks2_, global_core, nblocks_), t1_b%blocksize /)
+      print *, 'blocksize=', eigvec_b%blocksize
       eigvec_b%global=(/ global_core, inputparam%nstatc /)
+      print *, 'global=', eigvec_b%global
       eigvec_b%il=firstofblock(blocks2_, global_core, nblocks_)
+      print *, 'il=', eigvec_b%il
       eigvec_b%iu=lastofblock(blocks2_, global_core, nblocks_)
+      print *, 'iu=', eigvec_b%iu
       eigvec_b%jl=t1_b%il
+      print *, 'jl=', eigvec_b%jl
       eigvec_b%ju=t1_b%iu
-      eigvec_b%offset(1)=firstofblock(blocks_, global_core, nblocks_)-1
+      print *, 'ju=', eigvec_b%ju
+      eigvec_b%offset(1)=firstofblock(blocks2_, global_core, nblocks_)-1
       eigvec_b%offset(2)=t1_b%offset
+      print *, 'offset=', eigvec_b%offset
       eigvec_b%id=(/ blocks2_, blocks_ /)
+      print *, 'id=', eigvec_b%id
       ! set-up for the blocks of t
       t_b%nblocks=nblocks_
       t_b%blocksize=nofblock(blocks2_, global_core, nblocks_)
