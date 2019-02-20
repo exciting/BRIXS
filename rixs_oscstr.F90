@@ -184,6 +184,8 @@ program rixs_oscstr
     end do !w1
   end do ! k
   call phdf5_cleanup(energy_id)
+  call phdf5_cleanup(t1_id)
+  call phdf5_cleanup(t2_id)
   do w1=1, nw_
     call phdf5_cleanup(oscstr_id(w1))
   end do
