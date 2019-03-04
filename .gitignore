@@ -3,5 +3,12 @@
 *.mod
 #ignore the executable
 rixs
+rixs_b
+rixs_b2
+debug_b
+scaling_b
+scaling_single
+rixs_oscstr
+rixs_vecA
 #ignore vim swp files
 .*.swp

@@ -1,5 +1,4 @@
 module mod_io
-  use mod_hdf5
   implicit none
   
   type :: io
@@ -9,9 +8,10 @@ module mod_io
     complex(8), allocatable :: eigvecs(:,:)
   end type io
   type :: input
-    real(8), allocatable :: omega(:), omega2(:)
-    real(8) :: broad, broad2
-    logical :: oscstr
+    real(8), allocatable :: omega(:)
+    real(8) :: broad
+    real(8) :: pol(3)
+    integer :: nblocks, nstato, nstatc
   end type
   
 
@@ -19,49 +19,65 @@ module mod_io
   public get_koulims
   public get_smap
   public get_ismap
-  public get_evals
-  public get_eigvecs
     
   contains
   ! Methodenbereich
   !-----------------------------------------------------------------------------
-  subroutine get_koulims(object,fname)
+  subroutine get_koulims(object,file_id)
+    use hdf5, only: hid_t
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
     implicit none
     type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     !local variables
-    integer(4) :: dims(2)
+    integer(4) :: dims(2), offset_(2)
+    integer(hid_t) :: dataset_id
     character(len=1024) :: path, dsetname
-    
+    !set fake offset
+    offset_=(/ 0, 0 /)
     !get sizes of koulims
     path=trim(adjustl('eigvec-singlet-TDA-BAR-full/0001/parameters'))
     dsetname=trim(adjustl('koulims'))
-    call hdf5_get_dims(trim(adjustl(fname)),path,dsetname,dims)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%koulims)) deallocate(object%koulims)
     allocate(object%koulims(dims(1),dims(2)))
-    ! get data
-    call hdf5_read(trim(adjustl(fname)),path,dsetname,object%koulims(1,1),dims)
+    !open dataset
+    call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
+    !get data
+    call phdf5_read(object%koulims(1,1),dims,dims,offset_,dataset_id)
+    ! close dataset
+    call phdf5_cleanup(dataset_id)
   end subroutine
   
   !-----------------------------------------------------------------------------
-  subroutine get_smap(object,fname)
+  subroutine get_smap(object,file_id)
+    use hdf5, only: hid_t
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
     implicit none
     type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
+    integer(hid_t), intent(in) :: file_id
     !local variables
-    integer(4) :: dims(2)
+    integer(4) :: dims(2), offset_(2)
+    integer(hid_t) :: dataset_id
     character(len=1024) :: path, dsetname
-    
+    ! set fake offset
+    offset_=(/ 0, 0/)
     !get sizes of koulims
     path='eigvec-singlet-TDA-BAR-full/0001/parameters'
     dsetname='smap'
-    call hdf5_get_dims(fname,path,dsetname,dims)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%smap)) deallocate(object%smap)
     allocate(object%smap(dims(1),dims(2)))
+    ! open dataset
+    call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
-    call hdf5_read(fname,path,dsetname,object%smap(1,1),dims)
+    call phdf5_read(object%smap(1,1),dims,dims,offset_,dataset_id)
+    ! close dataset
+    call phdf5_cleanup(dataset_id)
   end subroutine 
 
   !-----------------------------------------------------------------------------
@@ -112,117 +128,81 @@ module mod_io
     end if
   end subroutine 
   !-----------------------------------------------------------------------------
-  subroutine get_evals(object,fname)
-    implicit none
-    type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
-    !local variables
-    integer(4) :: dim_(1)
-    character(len=1024) :: path, dsetname
-    
-    !get sizes of koulims
-    path='eigvec-singlet-TDA-BAR-full/0001'
-    dsetname='evals'
-    call hdf5_get_dims(fname,path,dsetname,dim_)
-    !allocate output
-    if (allocated(object%evals)) deallocate(object%evals)
-    allocate(object%evals(dim_(1)))
-    ! get data
-    call hdf5_read(fname,path,dsetname,object%evals(1),dim_)
-  end subroutine
-  
-  !-----------------------------------------------------------------------------
-  subroutine get_eigvecs(object,fname)
-    implicit none
-    type(io), intent(inout) :: object
-    character(len=1024), intent(in) :: fname
-    !local variables
-    complex(8), allocatable :: eigvec_(:)
-    integer(4) :: dim_(1), i, dims_(2)
-    character(len=1024) :: path, dsetname
-    character(256) :: ci
-    
-    !get size of eigvecs
-    ! IMPORTANT: Here, I assume that all of the BSE eigvecs are included in the
-    !            hdf5 file
-
-    path='eigvec-singlet-TDA-BAR-full/0001'
-    dsetname='evals'
-    call hdf5_get_dims(fname,path,dsetname,dim_)
-    !allocate output
-    if (allocated(object%eigvecs)) deallocate(object%eigvecs)
-    allocate(object%eigvecs(dim_(1),dim_(1)))
-    ! get data
-    do i=1, dim_(1)
-      write(ci, '(I8.8)') i
-      path='eigvec-singlet-TDA-BAR-full/0001/rvec'
-      dsetname=trim(adjustl(ci))
-      ! Get dimension of eigvec for given lambda
-      call hdf5_get_dims(fname,path,ci,dims_)
-      ! Allocate intermediate eigenvector array
-      ! The first dimension is 2, since this is a complex array
-      if (allocated(eigvec_)) deallocate(eigvec_)
-      !allocate(eigvec_(dims_(2),dims_(3)))
-      allocate(eigvec_(dims_(2)))
-      ! Get data
-      call hdf5_read(fname,path,dsetname,eigvec_(1),shape(eigvec_))
-      ! Write data to final array
-      object%eigvecs(:,i)=eigvec_(:)
-    end do
-    deallocate(eigvec_)
-  end subroutine 
-  
-  !-----------------------------------------------------------------------------
-  subroutine read_inputfile(object,fname)
+  subroutine read_inputfile(object)
+    use modmpi, only: mpiglobal, ierr
+#ifdef MPI
+    use mpi
+#endif
+    use m_config
     implicit none
     type(input), intent(out) :: object
-    character(*), intent(in) :: fname
     ! local variables
+    integer, parameter :: dp=kind(0.0d0)
+    type(CFG_t) :: my_cfg
+    integer :: omegasize_
+    real(8), allocatable :: omega_(:)
+    
     integer :: line, ios, w, pos
     character(256) :: buffer,label
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
+    real(8) :: broad_, broad2_
+    real(8) :: pol_(3)
+    integer :: nblocks_, nstato_, nstatc_
+    logical :: oscstr_, vecA_
 
-    ! basics taken from https://jblevins.org/log/control-file 
-    line=0
-    ios=0
-    open(fh, file=trim(adjustl(fname)))
-    do while (ios == 0)
-      read(fh, '(A)', iostat=ios) buffer
-      if (ios == 0) then
-        line = line + 1
-        ! Find the first instance of whitespace.  Split label and data.
-        pos = scan(buffer, '    ')
-        label = buffer(1:pos)
-        buffer = buffer(pos+1:)
 
-        select case (label)
-        case ('omega')
-           read(buffer, *, iostat=ios) inter
-        case ('omega2')
-           read(buffer, *, iostat=ios) inter2
-        case ('broad')
-           read(buffer, *, iostat=ios) object%broad
-        case ('broad2')
-           read(buffer, *, iostat=ios) object%broad2
-        case ('do_oscstr')
-           object%oscstr=.true.
-        case default
-           print *, 'Skipping invalid label at line', line
-        end select
-      end if
-    end do
-    if (allocated(object%omega)) deallocate(object%omega)
-    if (allocated(object%omega2)) deallocate(object%omega2)
-    allocate(object%omega(int(inter(3))))
-    allocate(object%omega2(int(inter2(3))))
+    ! only root reads the input file
+#ifdef MPI
+    if (mpiglobal%rank .eq. 0) then
+#endif
+      !define fields and set defaults
+      call CFG_add(my_cfg, 'omega', (/1.0_dp, 2.0_dp/), 'Core Frequencies', dynamic_size=.true.)
+      call CFG_add(my_cfg, 'pol', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization')
+      call CFG_add(my_cfg, 'broad', 0.5_dp, 'Core Broadening')
+      call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
+      call CFG_add(my_cfg, 'eigstates_optical', 1, 'Number of eigenstates in optical BSE calculation')
+      call CFG_add(my_cfg, 'eigstates_core', 1, 'Number of eigenstates in core BSE calculation')
+      ! read input file
+      call CFG_read_file(my_cfg, 'input.cfg')
+      ! get size and values of core frequencies
+      call CFG_get_size(my_cfg, 'omega', omegasize_)
+      if (allocated(omega_)) deallocate(omega_)
+      allocate(omega_(omegasize_))
+      call CFG_get(my_cfg,'omega', omega_)
+      ! get core broadening
+      call CFG_get(my_cfg,'broad',broad_)
+      ! get light polarization
+      call CFG_get(my_cfg,'pol',pol_)
+      ! get number of blocks
+      call CFG_get(my_cfg,'nblocks', nblocks_)
+      ! get number of optical eigenstates
+      call CFG_get(my_cfg,'eigstates_optical', nstato_)
+      ! get number of core eigenstates
+      call CFG_get(my_cfg,'eigstates_core', nstatc_)
+#ifdef MPI
+    end if
+    ! broadcast input parameters to everybody
+    call mpi_bcast(omegasize_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    if (.not. allocated(omega_)) allocate(omega_(omegasize_))
+    call mpi_bcast(omega_,omegasize_,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(pol_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nstato_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
     
-    do w=1,int(inter(3))
-      object%omega(w)=(inter(2)-inter(1))/(inter(3)-1.0d0)*(w-1) + inter(1)
-    end do
-    do w=1,int(inter2(3))
-      object%omega2(w)=(inter2(2)-inter2(1))/(inter2(3)-1.0d0)*(w-1) + inter2(1)
-    end do
+    ! get input parameters from read
+    object%broad=broad_
+    object%nblocks=nblocks_
+    object%nstato=nstato_
+    object%nstatc=nstatc_
+    object%pol=pol_(:)
+    ! calculate frequency ranges
+    if (allocated(object%omega)) deallocate(object%omega) 
+    allocate(object%omega(omegasize_))
+    object%omega(:)=omega_(:)
   end subroutine read_inputfile  
   !-----------------------------------------------------------------------------
 
