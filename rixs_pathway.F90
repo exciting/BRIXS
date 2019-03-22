@@ -47,13 +47,14 @@ program rixs_pathway
   call get_koulims(core,core_id)
   call get_smap(optical,optical_id)
   call get_smap(core,core_id)
+  call get_ensortidx(core,core_id)
+  call get_ensortidx(optical,optical_id)
   call set_param(optical)
   call set_param(core)
   call get_ismap(optical)
   call get_ismap(core)
   ! read input file
   call read_inputfile(inputparam)
-  
   ! get number of k-grid (has to be the same for optical and core calculation)
   interdim=shape(core%koulims)
   nkmax=interdim(2)
@@ -112,7 +113,11 @@ program rixs_pathway
     evalsc_b%id=blocks_
 
     ! get block of core eigenvalues and write it to intermediate file
-    call get_evals_block(evalsc_b,core_id)
+    if (.not. inputparam%ip_c) then
+      call get_evals_block(evalsc_b,core_id)
+    else
+      call get_evalsIP_block(evalsc_b,core_id)
+    end if
     call put_block1d(evalsc_b,evalsc_id)
     ! prepare output
     if (allocated(t1_b%zcontent)) deallocate(t1_b%zcontent)
@@ -145,7 +150,11 @@ program rixs_pathway
       t_b%id=blocks2_
       
       ! generate block of X
-      call get_eigvecs2D_b(eigvec_b, core_id)
+      if (inputparam%ip_c) then
+        call get_eigvecsIP_b(eigvec_b, core)
+      else
+        call get_eigvecs_b(eigvec_b, core_id)
+      end if
       ! generate block of t
       call generate_tblock(t_b, core%koulims, core%smap, core%ismap, inputparam%pol, pmat_id)
       ! matrix-vector multiplication
@@ -213,7 +222,11 @@ program rixs_pathway
         eigvec_b%offset(2)=t2_b%offset(1)
         eigvec_b%id=(/ blocks3_, blocks_ /)
         ! generate block of eigenvectors
-        call get_eigvecs2D_b(eigvec_b, optical_id)
+        if (inputparam%ip_o) then
+          call get_eigvecsIP_b(eigvec_b, optical)
+        else
+          call get_eigvecs_b(eigvec_b, optical_id)
+        end if
         ! generate block of intermediate product
         call gen_prod_b(prod_b, inputparam, core, optical, core_id, pmat_id)
 

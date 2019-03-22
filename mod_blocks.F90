@@ -241,9 +241,40 @@ module mod_blocks
       call phdf5_read(inblock1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
+    end subroutine
+    
+    !-----------------------------------------------------------------------------
+    subroutine get_evalsIP_block(inblock1d,file_id)
+      use mod_phdf5, only: phdf5_setup_read, phdf5_cleanup, &
+        &                  phdf5_read
+      use hdf5, only: hid_t
+      implicit none
+      type(block1d), intent(inout) :: inblock1d
+      integer(hid_t), intent(in) :: file_id
+      !local variables
+      character(len=1024) :: path, dsetname
+      integer, dimension(1) :: dims_, offset_, dimsg_
+      integer(hid_t) :: dataset_id
+      !allocate output
+      if (allocated(inblock1d%dcontent)) deallocate(inblock1d%dcontent)
+      allocate(inblock1d%dcontent(inblock1d%blocksize))
+    
+      path='/eigvec-singlet-TDA-BAR-full/0001'
+      dsetname='evalsIP'
+      ! get data
+      dims_(1)=inblock1d%blocksize
+      dimsg_(1)=inblock1d%global
+      offset_(1)=inblock1d%offset
+      ! open the dataset
+      call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
+      ! read data
+      call phdf5_read(inblock1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
+      ! close dataset
+      call phdf5_cleanup(dataset_id)
   end subroutine
+
   !-----------------------------------------------------------------------------
-  subroutine get_eigvecs2D_b(inblock2d,file_id)
+  subroutine get_eigvecs_b(inblock2d,file_id)
     use mod_phdf5, only:  phdf5_setup_read, phdf5_read, phdf5_cleanup 
     use hdf5, only: hid_t
     implicit none
@@ -284,6 +315,29 @@ module mod_blocks
     end do
     deallocate(eigvec_)
   end subroutine 
+
+  !-----------------------------------------------------------------------------
+  subroutine get_eigvecsIP_b(inblock2d, io_in)
+    use mod_io, only: io
+    implicit none
+    type(block2d), intent(inout) :: inblock2d
+    type(io), intent(in) :: io_in
+    !local variables
+    integer(4) :: lambda, pos, i
+    ! allocate output
+    if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
+    allocate(inblock2d%zcontent(inblock2d%blocksize(1),inblock2d%blocksize(2))) 
+    ! generate data
+    do i=1, inblock2d%blocksize(2)
+      !absolute excitonic index
+      lambda= i+inblock2d%offset(2)
+      !position of transition in transition space
+      pos=io_in%ensortidx(lambda)
+      inblock2d%zcontent(:,i)=cmplx(0.0d0,0.0d0)
+      inblock2d%zcontent(pos,i)=cmplx(1.0d0,0.0d0)
+    end do
+  end subroutine
+
   !-----------------------------------------------------------------------------
   subroutine generate_tblock(inblock1d,koulims,smap,ismap,pol,file_id)
     use hdf5, only: hid_t
@@ -475,8 +529,8 @@ module mod_blocks
        
       !get eigenvalues and eigenvectors
       call get_evals_block(block3,file_id)
-      call get_eigvecs2D_b(block1,file_id)
-      call get_eigvecs2D_b(block2,file_id)
+      call get_eigvecs_b(block1,file_id)
+      call get_eigvecs_b(block2,file_id)
     
       ! allocate array for hermetian conjugate of eigvecs
       if (allocated(inter)) deallocate(inter)
@@ -728,7 +782,11 @@ module mod_blocks
     tprime_b%ku=inbl%k1u
     tprime_b%id=inbl%id(1)
     ! get block of core eigenstates
-    call get_eigvecs2D_b(eigvec, core_id)
+    if (inputparam%ip_c) then
+      call get_eigvecsIP_b(eigvec, core)
+    else
+      call get_eigvecs_b(eigvec, core_id)
+    end if
     
     ! generate block of B matrix
     call transform_matrix2matrix(core%koulims,core%smap,eigvec,eigvec_matrix)
@@ -820,7 +878,7 @@ module mod_blocks
       vecA_b%id=k2
       
       ! generate block of eigenvectors
-      call get_eigvecs2D_b(evecs_b,optical_id)
+      call get_eigvecs_b(evecs_b,optical_id)
       do w=1, size(omega)
         ! generate block of A vector
         call generate_Avector_b(vecA_b,omega(w),inputparam,core,optical,pmat_id,core_id,pol)
