@@ -327,14 +327,19 @@ module mod_blocks
     ! allocate output
     if (allocated(inblock2d%zcontent)) deallocate(inblock2d%zcontent)
     allocate(inblock2d%zcontent(inblock2d%blocksize(1),inblock2d%blocksize(2))) 
+    inblock2d%zcontent(:,:)=cmplx(0.0d0,0.0d0)
     ! generate data
     do i=1, inblock2d%blocksize(2)
       !absolute excitonic index
       lambda= i+inblock2d%offset(2)
       !position of transition in transition space
       pos=io_in%ensortidx(lambda)
-      inblock2d%zcontent(:,i)=cmplx(0.0d0,0.0d0)
-      inblock2d%zcontent(pos,i)=cmplx(1.0d0,0.0d0)
+      if ((pos-inblock2d%offset(1)>0) .and. (pos-inblock2d%offset(1)<inblock2d%blocksize(1))) then
+        inblock2d%zcontent(pos-inblock2d%offset(1),i)=cmplx(1.0d0,0.0d0)
+        print *, 'pos(', lambda, ')=', pos
+        print *, 'smap(', lambda, ')=', io_in%smap(:,pos)
+
+      end if
     end do
   end subroutine
 
