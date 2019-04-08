@@ -108,7 +108,11 @@ program rixs_oscstr
     evals_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
     evals_b%id=k
     ! generate block of eigenvalues
-    call get_evals_block(evals_b,optical_id)
+    if (.not. inputparam%ip_o) then
+      call get_evals_block(evals_b,optical_id)
+    else
+      call get_evalsIP_block(evals_b,optical_id)
+    end if
     call put_block1d(evals_b,energy_id)
     do w1=1, nw_
       ! set up block of oscillator strength
@@ -159,7 +163,11 @@ program rixs_oscstr
         t2_b%id=(/ k, k2 /)
         
         ! generate block of core eigenvalues
-        call get_evals_block(evals2_b,core_id)
+        if (.not. inputparam%ip_c) then
+          call get_evals_block(evals2_b,core_id)
+        else
+          call get_evalsIP_block(evals2_b,core_id)
+        end if
         ! prepare content for t(1) and t(2)
         if (allocated(t1_b%zcontent)) deallocate(t1_b%zcontent)
         allocate(t1_b%zcontent(t1_b%blocksize))
