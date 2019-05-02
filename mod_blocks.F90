@@ -750,6 +750,8 @@ module mod_blocks
       do ik=1, inbl%nk
         alpha=1.0d0
         beta=1.0d0
+        ! complex conjugate of eigenstates needed
+        eigvec_matrix(:,:,ik,lambda)=conjg(eigvec_matrix(:,:,ik,lambda))
         call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,ik,lambda), & 
           &core%nu, tprime_b%zcontent(:,:,ik), core%no, beta, prod_prime(:,:,ik,lambda), core%nu)
       end do

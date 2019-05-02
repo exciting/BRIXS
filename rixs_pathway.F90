@@ -151,7 +151,7 @@ program rixs_pathway
       ! matrix-vector multiplication
       alpha=cmplx(1.0d0, 0.0d0)
       beta=cmplx(1.0d0, 0.0d0)
-      call zgemm('C','N', eigvec_b%blocksize(2), 1, eigvec_b%blocksize(1), alpha, eigvec_b%zcontent, &
+      call zgemm('T','N', eigvec_b%blocksize(2), 1, eigvec_b%blocksize(1), alpha, eigvec_b%zcontent, &
         & eigvec_b%blocksize(1), t_b%zcontent, t_b%blocksize, beta, t1_b%zcontent, t1_b%blocksize)
     end do
     call put_block1d(t1_b,t1_id)
