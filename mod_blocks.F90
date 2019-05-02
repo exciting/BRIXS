@@ -336,8 +336,6 @@ module mod_blocks
       pos=io_in%ensortidx(lambda)
       if ((pos-inblock2d%offset(1)>0) .and. (pos-inblock2d%offset(1)<inblock2d%blocksize(1))) then
         inblock2d%zcontent(pos-inblock2d%offset(1),i)=cmplx(1.0d0,0.0d0)
-        print *, 'pos(', lambda, ')=', pos
-        print *, 'smap(', lambda, ')=', io_in%smap(:,pos)
 
       end if
     end do
