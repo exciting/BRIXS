@@ -220,7 +220,7 @@ program rixs_pathway
         !matrix-matrix multiplication
         alpha=cmplx(1.0d0, 0.0d0)
         beta=cmplx(1.0d0, 0.0d0)
-        call zgemm('C', 'N', eigvec_b%blocksize(2), prod_b%blocksize(2), eigvec_b%blocksize(1), alpha, eigvec_b%zcontent, &
+        call zgemm('T', 'N', eigvec_b%blocksize(2), prod_b%blocksize(2), eigvec_b%blocksize(1), alpha, eigvec_b%zcontent, &
         & eigvec_b%blocksize(1), prod_b%zcontent, prod_b%blocksize(1), beta, t2_b%zcontent, t2_b%blocksize(1))
       end do ! blocks3_
       ! write block of t(2) into file
