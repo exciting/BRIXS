@@ -828,7 +828,7 @@ module mod_blocks
       prod_matrix(:,:,:,:)=prod_prime(:,:,:,:)
     end if
     ! generate block of product vector
-    call transform_matrix2vector(optical,prod_prime,inbl)
+    call transform_matrix2vector(optical,prod_matrix,inbl)
     
     deallocate(koulims_comb) 
     deallocate(prod_prime, prod_matrix, eigvec_matrix)
