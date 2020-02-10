@@ -810,7 +810,7 @@ module mod_blocks
       ! loop over k-points in input block
       do ik=1, inbl%nk
         alpha=1.0d0
-        beta=1.0d0
+        beta=0.0d0
         ! complex conjugate of eigenstates needed
         eigvec_matrix(:,:,ik,lambda)=conjg(eigvec_matrix(:,:,ik,lambda))
         call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,ik,lambda), & 
