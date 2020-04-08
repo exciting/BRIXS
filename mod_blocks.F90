@@ -378,7 +378,7 @@ module mod_blocks
     no=uo-lo+1
     nk0=smap(3,1)
     do k=inblock1d%kl, inblock1d%ku
-      write(cik, '(I4.4)') k
+      write(cik, '(I8.8)') k
       !determine size of matrix in hdf5 file
       path=trim(adjustl('/pmat/'//trim(adjustl(cik))))
       call phdf5_get_dims(file_id,path,trim(adjustl(dsetname)),dimensions)
@@ -435,7 +435,7 @@ module mod_blocks
     in3d%blocksize=(/no, nu, nk_/)
     dsetname='pmat'
     do k=in3d%kl, in3d%ku
-      write(cik, '(I4.4)') k
+      write(cik, '(I8.8)') k
       !determine size of matrix in hdf5 file
       path='/pmat/'//trim(adjustl(cik))
       call phdf5_get_dims(file_id,path,trim(adjustl(dsetname)),dimensions)
