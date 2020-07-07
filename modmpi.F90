@@ -493,8 +493,8 @@ module modmpi
     !     0 & 1 & 2 & 3 & 3 \\
     !     1 & 4 & 5 & 6 & 3 \\
     !     2 & 7 & 6 & 9 & 3 \\
-    !     3 & 10 & 11 & - & 2 \\
-    !     4 & 12 & 13 & - & 2 \\ 
+    !     3 & 10 & 11 & - & 2\\
+    !     4 & 12 & 13 & - & 2\\
     !   \end{tabular}
     !
     ! For inputs of $\text{col}=\{1,2,3\}, \text{set}=13$ the routine returns $\{4,4,2\}$, i.e. the process index
@@ -505,11 +505,11 @@ module modmpi
     !   \begin{tabular}{c|ccc|c}
     !     rank & firstofset & \dots & lastofset & nofset \\
     !     \hline
-    !     0 & 1 & 1 & - & 1 \\
-    !     1 & 2 & 2 & - & 1 \\
-    !     2 & 3 & 3 & - & 1 \\
-    !     3 & 0 & -1 & - & 0 \\
-    !     4 & 0 & -1 & - & 0 \\ 
+    !     0 & 1 & 1 & - & 1\\
+    !     1 & 2 & 2 & - & 1\\
+    !     2 & 3 & 3 & - & 1\\
+    !     3 & 0 & -1 & - & 0\\
+    !     4 & 0 & -1 & - & 0\\
     !   \end{tabular}
     ! For inputs of $\text{col}=1, \text{set}=3$ the routine returns $2$.
     ! For all other input for col execution is halted.
