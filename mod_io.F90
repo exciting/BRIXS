@@ -2,7 +2,7 @@ module mod_io
   implicit none
   
   type :: io
-    integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(:,:)
+    integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(:,:), ensortidx(:)
     integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no
     real(8), allocatable :: evals(:)
     complex(8), allocatable :: eigvecs(:,:)
@@ -12,6 +12,7 @@ module mod_io
     real(8) :: broad
     real(8) :: pol(3)
     integer :: nblocks, nstato, nstatc
+    logical :: ip_c, ip_o
   end type
   
 
@@ -76,6 +77,35 @@ module mod_io
     call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
     call phdf5_read(object%smap(1,1),dims,dims,offset_,dataset_id)
+    ! close dataset
+    call phdf5_cleanup(dataset_id)
+  end subroutine 
+
+  !-----------------------------------------------------------------------------
+  subroutine get_ensortidx(object,file_id)
+    use hdf5, only: hid_t
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
+    implicit none
+    type(io), intent(inout) :: object
+    integer(hid_t), intent(in) :: file_id
+    !local variables
+    integer(4) :: dims(1), offset_(1)
+    integer(hid_t) :: dataset_id
+    character(len=1024) :: path, dsetname
+    ! set fake offset
+    offset_=(/ 0/)
+    !get sizes of koulims
+    path='eigvec-singlet-TDA-BAR-full/0001/parameters'
+    dsetname='ensortidx'
+    call phdf5_get_dims(file_id,path,dsetname,dims)
+    !allocate output
+    if (allocated(object%ensortidx)) deallocate(object%ensortidx)
+    allocate(object%ensortidx(dims(1)))
+    ! open dataset
+    call phdf5_setup_read(1,dims,.false.,dsetname,path,file_id,dataset_id)
+    ! get data
+    call phdf5_read(object%ensortidx(1),dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine 
@@ -150,6 +180,7 @@ module mod_io
     real(8) :: pol_(3)
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
+    logical :: ip_c_, ip_o_
 
 
     ! only root reads the input file
@@ -163,6 +194,8 @@ module mod_io
       call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
       call CFG_add(my_cfg, 'eigstates_optical', 1, 'Number of eigenstates in optical BSE calculation')
       call CFG_add(my_cfg, 'eigstates_core', 1, 'Number of eigenstates in core BSE calculation')
+      call CFG_add(my_cfg, 'ip_core', .false., 'IPA for core BSE calculation')
+      call CFG_add(my_cfg, 'ip_optical', .false., 'IPA for optical BSE calculation')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -180,6 +213,10 @@ module mod_io
       call CFG_get(my_cfg,'eigstates_optical', nstato_)
       ! get number of core eigenstates
       call CFG_get(my_cfg,'eigstates_core', nstatc_)
+      ! get approximation of core calculation
+      call CFG_get(my_cfg,'ip_core', ip_c_)
+      ! get approximation of optical calculation
+      call CFG_get(my_cfg,'ip_optical', ip_o_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -191,6 +228,8 @@ module mod_io
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstato_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(ip_c_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(ip_o_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
@@ -199,6 +238,8 @@ module mod_io
     object%nstato=nstato_
     object%nstatc=nstatc_
     object%pol=pol_(:)
+    object%ip_c=ip_c_
+    object%ip_o=ip_o_
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
