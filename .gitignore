@@ -14,3 +14,5 @@ rixs_pathway
 #ignore vim swp files
 .*.swp
 tags
+#ignore executables in bin
+./bin/*
