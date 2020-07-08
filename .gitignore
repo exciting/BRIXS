@@ -15,4 +15,5 @@ rixs_pathway
 .*.swp
 tags
 #ignore executables in bin
-./bin/*
+bin/*
+!bin/.gitkeep
