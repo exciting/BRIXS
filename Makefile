@@ -9,6 +9,10 @@ hlrn:
 
 test:
 	$(MAKE) -C ./test clean
+
 clean:
 	$(MAKE) -C ./src clean
+
+testclean:
 	$(MAKE) -C ./test	clean
+

@@ -1,3 +1,20 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! MODULE: mod_io
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION: 
+!> This module provides subroutines to read the information from the HDF5 files
+!> that store the information of the valence and core BSE calculations, as well 
+!> as the information from the input.cfg.
+!
+! REVISION HISTORY:
+! 09 07 2020 - Added documentation
+!------------------------------------------------------------------------------
 module mod_io
   implicit none
   
@@ -24,6 +41,23 @@ module mod_io
   contains
   ! Methodenbereich
   !-----------------------------------------------------------------------------
+
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> Brief description of routine. 
+  !> @brief
+  !> Read valence and conduction band limits for each \f$ \mathbf{k} \f$-point
+  !> from HDF5 file and store in io-object
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[inout] object   
+  !> @param[in] file_id      
+  !---------------------------------------------------------------------------  
   subroutine get_koulims(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -40,6 +74,7 @@ module mod_io
     !get sizes of koulims
     path=trim(adjustl('eigvec-singlet-TDA-BAR-full/0001/parameters'))
     dsetname=trim(adjustl('koulims'))
+    ! get dimensions of dataset
     call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%koulims)) deallocate(object%koulims)
@@ -52,7 +87,22 @@ module mod_io
     call phdf5_cleanup(dataset_id)
   end subroutine
   
-  !-----------------------------------------------------------------------------
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> Brief description of routine. 
+  !> @brief
+  !> Read mapping between transition space and valence, conduction, and k-point 
+  !> index from HDF5 file and store it in io-object
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[inout] object   
+  !> @param[in] file_id      
+  !---------------------------------------------------------------------------  
   subroutine get_smap(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -69,6 +119,7 @@ module mod_io
     !get sizes of koulims
     path='eigvec-singlet-TDA-BAR-full/0001/parameters'
     dsetname='smap'
+    ! get dimensions of dataset
     call phdf5_get_dims(file_id,path,dsetname,dims)
     !allocate output
     if (allocated(object%smap)) deallocate(object%smap)
@@ -81,7 +132,22 @@ module mod_io
     call phdf5_cleanup(dataset_id)
   end subroutine 
 
-  !-----------------------------------------------------------------------------
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Read sorting vector from HDF5 file and store it in the io-object. The 
+  !> vector stores the indices that sort the IP energy differences with 
+  !> increasing energy
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[inout] object   
+  !> @param[in] file_id      
+  !---------------------------------------------------------------------------  
   subroutine get_ensortidx(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -110,7 +176,21 @@ module mod_io
     call phdf5_cleanup(dataset_id)
   end subroutine 
 
-  !-----------------------------------------------------------------------------
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Generates the inverse smap, i.e. the map that yields for each combination 
+  !> of valence band index, conduction band index, and k-point index the 
+  !> corresponding transition space index. The map is stored in the io-object.
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[inout] object   
+  !---------------------------------------------------------------------------  
   subroutine get_ismap(object)
     implicit none
     type(io), intent(inout) :: object
@@ -133,7 +213,21 @@ module mod_io
       end do
     end if
   end subroutine 
-  !-----------------------------------------------------------------------------
+  
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Obtains several objects from object%koulims and object%smap and stores them
+  !> for convenience. 
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[inout] object   
+  !---------------------------------------------------------------------------  
   subroutine set_param(object)
     implicit none
     type(io), intent(inout) :: object
@@ -143,21 +237,34 @@ module mod_io
       !get shapes
       dim_koulims=shape(object%koulims)
       dim_smap=shape(object%smap)
-      !determine sizes
-      object%lu=object%koulims(1,1)
-      object%uu=object%koulims(2,1)
-      object%lo=object%koulims(3,1)
-      object%uo=object%koulims(4,1)
-      object%nu=object%uu-object%lu+1
-      object%no=object%uo-object%lo+1
-      object%nk0=object%smap(3,1)
-      object%nkmax=dim_koulims(2)
-      object%hamsize=dim_smap(2)
+      !set some parameters for convenience
+      object%lu=object%koulims(1,1)   ! lowest conduction band
+      object%uu=object%koulims(2,1)   ! highest conduction band
+      object%lo=object%koulims(3,1)   ! lowest valence band
+      object%uo=object%koulims(4,1)   ! highest valence band
+      object%nu=object%uu-object%lu+1 ! number of conduction bands
+      object%no=object%uo-object%lo+1 ! number of valence bands
+      object%nk0=object%smap(3,1)     ! index of first k-point
+      object%nkmax=dim_koulims(2)     ! Number of k-points
+      object%hamsize=dim_smap(2)      ! Size of BSE Hamiltonian
     else
       print *, 'koulims and smap have to be obtained from file before set_param can be called!'
     end if
-  end subroutine 
-  !-----------------------------------------------------------------------------
+  end subroutine
+
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Reads input.cfg file and stores all information in input-object 
+  !
+  ! REVISION HISTORY:
+  ! 09 07 2020 - Added documentation 
+  !
+  !> @param[out] object   
+  !---------------------------------------------------------------------------  
   subroutine read_inputfile(object)
     use modmpi, only: mpiglobal, ierr
 #ifdef MPI
@@ -245,40 +352,5 @@ module mod_io
     allocate(object%omega(omegasize_))
     object%omega(:)=omega_(:)
   end subroutine read_inputfile  
-  !-----------------------------------------------------------------------------
-
-  subroutine inspect_h5(object)
-    implicit none
-    type(io), intent(in) :: object
-    ! local variables
-    integer::  lo,ho,lu,hu
-
-    ! determine lowest and highest occupied/unoccupied band included
-    ! these could be different from the ones in the RIXS calculation 
-    ! for metallic systems
-    lu=minval(object%koulims(1,:))
-    hu=maxval(object%koulims(2,:))
-    lo=minval(object%koulims(3,:))
-    ho=maxval(object%koulims(4,:))
-    write(*,*) '************Transitions************'
-    write(*,*) 'No. of k-points:', object%nkmax
-    if (.not.(object%nkmax .eq. maxval(object%smap(3,:)))) then
-      write(*,*) 'Not all k-points included in BSE calculation!!'
-    end if
-    if ((object%lo .eq. lo) .and. (object%uo .eq. ho)) then
-      write(*,*) 'range of occupied bands:', object%lo, object%uo
-      write(*,*) 'no. of occupied bands:', object%no
-    else
-      write(*,*) 'WRONG enumeration of occupied states: (', object%lo, ',', object%uo, ') != (', lo, ',', ho, ')' 
-    end if
-    if ((object%lu .eq. lu) .and. (object%uu .eq. hu)) then
-      write(*,*) 'range of unoccupied bands:', object%lu, object%uu
-      write(*,*) 'no. of unoccupied bands:', object%nu
-    else
-      write(*,*) 'WRONG enumeration of unoccupied states: (', object%lu, ',', object%uu, ') != (', lu, ',', hu, ')' 
-    end if
-    write(*,*) 'total number of transitions:', object%hamsize
-    
-  end subroutine
 end module
 

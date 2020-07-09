@@ -51,7 +51,7 @@ contains
     use hdf5
 #ifdef MPI
     use mpi
-    use modmpi, only: mpiglobal
+    use mod_mpi, only: mpiglobal
 #endif
     implicit none
     character(*), intent(in) :: fname
@@ -112,7 +112,7 @@ contains
     use hdf5
 #ifdef MPI
     use mpi
-    use modmpi, only: mpiglobal
+    use mod_mpi, only: mpiglobal
 #endif
     implicit none
     character(*), intent(in) :: fname

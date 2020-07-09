@@ -1,8 +1,24 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! PROGRAM: rixs_pathway
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION: 
+!> This program determines the matrices \f$ t^{(1)} \f$ and \f$ t^{(2)} \f$ from
+!> the results of two BSE calculations stored in core_output.h5 and 
+!> optical_output.h5. The results are stored in data.h5.
+! 
+! REVISION HISTORY:
+! 09 07 2020 - Added documentation
+!------------------------------------------------------------------------------
 program rixs_pathway
   use mod_phdf5
-  use modmpi
+  use mod_mpi
   use mod_io
-  use mod_rixs
   use mod_matmul
   use mod_blocks
   use hdf5, only: hid_t
@@ -114,9 +130,9 @@ program rixs_pathway
 
     ! get block of core eigenvalues and write it to intermediate file
     if (.not. inputparam%ip_c) then
-      call get_evals_block(evalsc_b,core_id)
+      call get_evals(evalsc_b,core_id)
     else
-      call get_evalsIP_block(evalsc_b,core_id)
+      call get_evalsIP(evalsc_b,core_id)
     end if
     call put_block1d(evalsc_b,evalsc_id)
     ! prepare output
@@ -151,12 +167,12 @@ program rixs_pathway
       
       ! generate block of X
       if (inputparam%ip_c) then
-        call get_eigvecsIP_b(eigvec_b, core)
+        call get_eigvecsIP(eigvec_b, core)
       else
-        call get_eigvecs_b(eigvec_b, core_id)
+        call get_eigvecs(eigvec_b, core_id)
       end if
       ! generate block of t
-      call generate_tblock(t_b, core%koulims, core%smap, core%ismap, inputparam%pol, pmat_id)
+      call generate_t(t_b, core%koulims, core%smap, core%ismap, inputparam%pol, pmat_id)
       ! matrix-vector multiplication
       alpha=cmplx(1.0d0, 0.0d0)
       beta=cmplx(1.0d0, 0.0d0)
@@ -223,12 +239,12 @@ program rixs_pathway
         eigvec_b%id=(/ blocks3_, blocks_ /)
         ! generate block of eigenvectors
         if (inputparam%ip_o) then
-          call get_eigvecsIP_b(eigvec_b, optical)
+          call get_eigvecsIP(eigvec_b, optical)
         else
-          call get_eigvecs_b(eigvec_b, optical_id)
+          call get_eigvecs(eigvec_b, optical_id)
         end if
         ! generate block of intermediate product
-        call gen_prod_b(prod_b, inputparam, core, optical, core_id, pmat_id)
+        call generate_product(prod_b, inputparam, core, optical, core_id, pmat_id)
 
         !matrix-matrix multiplication
         alpha=cmplx(1.0d0, 0.0d0)

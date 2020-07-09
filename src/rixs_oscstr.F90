@@ -1,8 +1,7 @@
 program rixs_oscstr
   use mod_phdf5
-  use modmpi
+  use mod_mpi
   use mod_io
-  use mod_rixs
   use mod_matmul
   use mod_blocks
   use hdf5, only: hid_t
@@ -109,9 +108,9 @@ program rixs_oscstr
     evals_b%id=k
     ! generate block of eigenvalues
     if (.not. inputparam%ip_o) then
-      call get_evals_block(evals_b,optical_id)
+      call get_evals(evals_b,optical_id)
     else
-      call get_evalsIP_block(evals_b,optical_id)
+      call get_evalsIP(evals_b,optical_id)
     end if
     call put_block1d(evals_b,energy_id)
     do w1=1, nw_
@@ -164,9 +163,9 @@ program rixs_oscstr
         
         ! generate block of core eigenvalues
         if (.not. inputparam%ip_c) then
-          call get_evals_block(evals2_b,core_id)
+          call get_evals(evals2_b,core_id)
         else
-          call get_evalsIP_block(evals2_b,core_id)
+          call get_evalsIP(evals2_b,core_id)
         end if
         ! prepare content for t(1) and t(2)
         if (allocated(t1_b%zcontent)) deallocate(t1_b%zcontent)

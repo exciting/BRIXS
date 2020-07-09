@@ -9,19 +9,19 @@ PHDF5=h5pfc -Wl,-rpath,/sw/dataformats/szip/intel.18/2.1.1/skl/lib/
 
 
 serial:
-	$(HDF5) m_config.f90 modmpi.F90 mod_phdf5.F90  mod_hdf5.F90 mod_matmul.F90 \
+	$(HDF5) m_config.f90 mod_mpi.F90 mod_phdf5.F90  mod_hdf5.F90 mod_matmul.F90 \
 	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o rixs_pathway
-	$(HDF5)  m_config.f90 modmpi.F90 mod_phdf5.F90  mod_hdf5.F90 mod_matmul.F90 \
+	$(HDF5)  m_config.f90 mod_mpi.F90 mod_phdf5.F90  mod_hdf5.F90 mod_matmul.F90 \
 		mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o rixs_oscstr
 	cp rixs_pathway ../bin/rixs-pathway-serial
 	cp rixs_oscstr ../bin/rixs-oscstr-serial
 	rm rixs_pathway rixs_oscstr	
 
 debug:
-	$(HDF5) -g -traceback -check all m_config.f90 modmpi.F90 mod_phdf5.F90 \
+	$(HDF5) -g -traceback -check all m_config.f90 mod_mpi.F90 mod_phdf5.F90 \
 	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o  \
 		rixs_pathway
-	$(HDF5) -g -traceback -check all  m_config.f90 modmpi.F90 mod_phdf5.F90 \
+	$(HDF5) -g -traceback -check all  m_config.f90 mod_mpi.F90 mod_phdf5.F90 \
 	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o   \
 	 	rixs_oscstr
 	cp rixs_pathway ../bin/rixs-pathway-debug
@@ -29,9 +29,9 @@ debug:
 	rm rixs_pathway rixs_oscstr	
 
 hlrn:
-	$(PHDF5) -mkl -DMPI m_config.f90 modmpi.F90 mod_phdf5.F90 mod_matmul.F90 \
+	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
 	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o rixs_pathway
-	$(PHDF5) -mkl -DMPI m_config.f90 modmpi.F90 mod_phdf5.F90 mod_matmul.F90 \
+	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
 	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o rixs_oscstr
 	cp rixs_pathway ../bin/rixs-pathway-mpi
 	cp rixs_oscstr ../bin/rixs-oscstr-mpi
@@ -39,3 +39,4 @@ hlrn:
 
 clean:
 	rm *.o *.mod 
+
