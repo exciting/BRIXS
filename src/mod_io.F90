@@ -20,7 +20,7 @@ module mod_io
   
   type :: io
     integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(:,:), ensortidx(:)
-    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no
+    integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no, global, globalk
     real(8), allocatable :: evals(:)
     complex(8), allocatable :: eigvecs(:,:)
   end type io
@@ -233,6 +233,8 @@ module mod_io
     type(io), intent(inout) :: object
     !local variables
     integer(4), dimension(2) :: dim_koulims, dim_smap
+    integer(4) :: nkmax_
+
     if ((allocated(object%koulims)) .and. (allocated(object%smap))) then
       !get shapes
       dim_koulims=shape(object%koulims)
@@ -247,6 +249,8 @@ module mod_io
       object%nk0=object%smap(3,1)     ! index of first k-point
       object%nkmax=dim_koulims(2)     ! Number of k-points
       object%hamsize=dim_smap(2)      ! Size of BSE Hamiltonian
+      object%globalk=object%no*object%nu
+      object%global=object%no*object%nu*object%nkmax
     else
       print *, 'koulims and smap have to be obtained from file before set_param can be called!'
     end if
@@ -266,7 +270,7 @@ module mod_io
   !> @param[out] object   
   !---------------------------------------------------------------------------  
   subroutine read_inputfile(object)
-    use modmpi, only: mpiglobal, ierr
+    use mod_mpi, only: mpiglobal, ierr
 #ifdef MPI
     use mpi
 #endif

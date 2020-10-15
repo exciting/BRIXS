@@ -63,67 +63,6 @@ module mod_blocks
     ! DESCRIPTION: 
     !> Brief description of routine. 
     !> @brief
-    !> Transforms a 1D blockmatrx in transition space into a 3D blockmatrix in 
-    !> single-particle space.
-    !
-    ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
-    !
-    !> @param[in] inkoulims   
-    !> @param[in] insmap
-    !> @param[in] inbl1d
-    !> @return outbl3d    
-    !---------------------------------------------------------------------------  
-    subroutine transform2matrix(inkoulims,insmap,inbl1d,outbl3d)
-      implicit none
-      integer(4), intent(in) :: inkoulims(:,:)
-      integer(4), intent(in) :: insmap(:,:)
-      type(block1d), intent(in) :: inbl1d
-      type(block3d), intent(out) :: outbl3d
-
-      ! local variables
-      integer(4) :: lu,uu,lo,uo,nu,no,nk0,nkmax,i
-      integer(4) :: dim_koulims(2),dim_smap(2),hamsiz,i1,i2, i3
-  
-      !get shapes
-      dim_koulims=shape(inkoulims)
-      dim_smap=shape(insmap)
-      !determine sizes
-      lu=inkoulims(1,1)
-      uu=inkoulims(2,1)
-      lo=inkoulims(3,1)
-      uo=inkoulims(4,1)
-      nu=uu-lu+1
-      no=uo-lo+1
-      nk0=insmap(3,1)
-      nkmax=dim_koulims(2)
-      hamsiz=dim_smap(2)
-      ! generate the block output
-      outbl3d%nblocks=inbl1d%nblocks
-      outbl3d%nk=inbl1d%nk
-      outbl3d%blocksize=(/nu,no,inbl1d%nk/)
-      outbl3d%kl=inbl1d%kl
-      outbl3d%ku=inbl1d%ku
-      outbl3d%id=inbl1d%id
-      ! allocate the output matrix
-      if (allocated(outbl3d%zcontent)) deallocate(outbl3d%zcontent)
-      allocate(outbl3d%zcontent(nu, no, inbl1d%nk))
-      ! loop over all transitions
-      do i=inbl1d%il, inbl1d%iu
-        i1=insmap(1,i)-lu+1
-        i2=insmap(2,i)-lo+1
-        i3=insmap(3,i)-nk0+1
-        outbl3d%zcontent(i1,i2,i3-inbl1d%kl+1)=inbl1d%zcontent(i-inbl1d%offset)
-      end do
-    end subroutine 
-    
-    !---------------------------------------------------------------------------  
-    !> @author 
-    !> Christian Vorwerk, Humboldt Universität zu Berlin.
-    !
-    ! DESCRIPTION: 
-    !> Brief description of routine. 
-    !> @brief
     !> Transforms a 2D blockmatrx in transition space into a 4D blockmatrix in 
     !> single-particle space, where the first index of the 2D matrix is 
     !> transformed into the 3D single-particle indices. The second index of the 
@@ -162,7 +101,7 @@ module mod_blocks
       nkmax=dim_koulims(2)
       hamsiz=dim_smap(2)
       ! allocate the output matrix
-      if (allocated(out4d)) deallocate(out4d)
+      if (allocated(outbl4d)) deallocate(outbl4d)
       allocate(outbl4d(nu, no, inbl2d%nk,inbl2d%blocksize(2)))
       ! loop over all excitons
       do lambda=1, inbl2d%blocksize(2)
@@ -174,75 +113,6 @@ module mod_blocks
           outbl4d(i1,i2,i3-inbl2d%k1l+1,lambda)=inbl2d%zcontent(i-inbl2d%offset(1),lambda)
         end do !i
       end do !lambda
-    end subroutine 
-
-    !---------------------------------------------------------------------------  
-    !> @author 
-    !> Christian Vorwerk, Humboldt Universität zu Berlin.
-    !
-    ! DESCRIPTION: 
-    !> Brief description of routine. 
-    !> @brief
-    !> Transforms a 3D blockmatrx in single-particle space to a vector in
-    !> transition space.
-    !
-    ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
-    !
-    !> @param[in] inkoulims   
-    !> @param[in] insmap
-    !> @param[in] inbl3d
-    !> @return outbl1d    
-    !---------------------------------------------------------------------------  
-    subroutine transform2vector(inkoulims,insmap,inbl3d,outbl1d)
-      implicit none
-      integer(4), intent(in) :: inkoulims(:,:)
-      integer(4), intent(in) :: insmap(:,:)
-      type(block3d), intent(in) :: inbl3d
-      type(block1d), intent(inout) :: outbl1d
-
-      ! local variables
-      integer(4) :: lu,uu,lo,uo,nu,no,nk0,i, blsz_
-      integer(4) :: dim_koulims(2),dim_smap(2),nkmax,hamsiz,i1,i2, i3
-  
-      !get shapes
-      dim_koulims=shape(inkoulims)
-      dim_smap=shape(insmap)
-      !determine sizes
-      lu=inkoulims(1,1)
-      uu=inkoulims(2,1)
-      lo=inkoulims(3,1)
-      uo=inkoulims(4,1)
-      nu=uu-lu+1
-      no=uo-lo+1
-      nk0=insmap(3,1)
-      nkmax=dim_koulims(2)
-      hamsiz=dim_smap(2)
-      ! store shorthand for blocksize
-      blsz_=inbl3d%blocksize(1)*inbl3d%blocksize(2)*inbl3d%blocksize(3)
-      !generate the block output
-      outbl1d%nblocks=inbl3d%nblocks
-      outbl1d%blocksize=blsz_
-      outbl1d%global=blsz_*inbl3d%nblocks
-      outbl1d%nk=inbl3d%nk
-      outbl1d%il=(inbl3d%id-1)*blsz_+1
-      outbl1d%iu=(inbl3d%id)*blsz_
-      outbl1d%kl=inbl3d%kl
-      outbl1d%ku=inbl3d%ku
-      outbl1d%offset=(inbl3d%id-1)*blsz_
-      outbl1d%id=inbl3d%id
-
-      ! allocate the output matrix
-      if (allocated(outbl1d%zcontent)) deallocate(outbl1d%zcontent)
-      allocate(outbl1d%zcontent(outbl1d%blocksize))
-
-      ! loop over all transitions
-      do i=outbl1d%il, outbl1d%iu
-        i1=insmap(1,i)-lu+1
-        i2=insmap(2,i)-lo+1
-        i3=insmap(3,i)-nk0+1-inbl3d%kl+1
-        outbl1d%zcontent(i-outbl1d%offset)=inbl3d%zcontent(i1,i2,i3)
-      end do
     end subroutine 
 
     !---------------------------------------------------------------------------  
