@@ -78,9 +78,12 @@ program rixs_coherence
   ! prepare datasets for coherent oscillator-strength dataset for each frequency
   nw_=size(inputparam%omega)
   if (allocated(coherent_id)) deallocate(coherent_id)
-  if (allocated(incoherent_id)) deallocate(incoherent_id)
-  allocate(coherent_id(nw_), incoherent_id(nw_))
-  
+  allocate(coherent_id(nw_))
+  if (inputparam%calc_incoherent) then
+    if (allocated(incoherent_id)) deallocate(incoherent_id)
+    allocate(incoherent_id(nw_))
+  end if
+
   do w1=1, nw_
     write(cw1, '(I4.4)') w1
     gname_w='/oscstr/'//cw1//'/'
@@ -90,7 +93,9 @@ program rixs_coherence
     end if
     matsize_=(/ inputparam%nstato/)
     call phdf5_setup_write(1,matsize_,.true.,'coherent',trim(gname_w),output_id,coherent_id(w1))
-    call phdf5_setup_write(1,matsize_,.true.,'incoherent',trim(gname_w),output_id,incoherent_id(w1))
+    if (inputparam%calc_incoherent) then
+      call phdf5_setup_write(1,matsize_,.true.,'incoherent',trim(gname_w),output_id,incoherent_id(w1))
+    end if
   end do
 
   !----------------------------------------------------!
@@ -213,103 +218,105 @@ program rixs_coherence
   !----------------------------------------------------!
   !    Write coherent oscillator strength |t^{3}_ic|   !
   !----------------------------------------------------!
+ if (inputparam%calc_incoherent) then
+   ! loop over frequencies
+   do w1=1, nw_
+      do blocks_=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
+        ! set up block of oscillator strength
+        oscstr_b%nblocks=nblocks_
+        oscstr_b%blocksize=nofblock(blocks_, inputparam%nstato, nblocks_)
+        oscstr_b%global=inputparam%nstato
+        oscstr_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
+        oscstr_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
+        oscstr_b%offset=firstofblock(blocks_, inputparam%nstato, nblocks_)-1
+        oscstr_b%id=blocks_
 
-  ! loop over frequencies
- do w1=1, nw_
-    do blocks_=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
-      ! set up block of oscillator strength
-      oscstr_b%nblocks=nblocks_
-      oscstr_b%blocksize=nofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%global=inputparam%nstato
-      oscstr_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%offset=firstofblock(blocks_, inputparam%nstato, nblocks_)-1
-      oscstr_b%id=blocks_
-
-      ! allocate content of oscillator strength
-      if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
-      allocate(oscstr_b%zcontent(oscstr_b%blocksize))
-      oscstr_b%zcontent(:)=cmplx(0.0d0, 0.0d0)
-      
-      ! 1st loop over k-points
-      do ik1=1, nkmax
-        ! generate combined koulims map
-        koulims_comb(1)=optical%koulims(3,ik1)
-        koulims_comb(2)=optical%koulims(4,ik1)
-        koulims_comb(3)=core%koulims(3,ik1)
-        koulims_comb(4)=core%koulims(4,ik1)
-        ! generate block of tprime
-        tprime_b%nblocks=nblocks_
-        tprime_b%id=ik
-        call generate_tprime_k(tprime_b, ik1, inputparam%pol,koulims_comb, pmat_id)
-        ! 2nd loop over k-poins
-        do ik2=1, nkmax
-          ! ik1=ik2 is the coherent contribution
-          if (ik1 .ne. ik2) then
-            do blocks2_=1, nblocks_
-              ! set up block for eigenvalues
-              evals2_b%nblocks=nblocks_
-              evals2_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-              evals2_b%global=inputparam%nstatc
-              evals2_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-              evals2_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-              evals2_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-              evals2_b%id=blocks2_
-              
-              !set up block for t(2) matrix
-              t2_b%nblocks=nblocks_
-              t2_b%blocksize=(/ nofblock(blocks_ , inputparam%nstato, nblocks_), &
-               & nofblock(blocks2_, inputparam%nstatc, nblocks_) /)
-              t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
-              t2_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-              t2_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-              t2_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-              t2_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-              t2_b%offset(1)=t2_b%il-1
-              t2_b%offset(2)=t2_b%jl-1
-              t2_b%id=(/ blocks_, blocks2_ /)
-              
-              ! set up block of t(1)
-              t1_b%nblocks=nblocks_
-              t1_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-              t1_b%global=inputparam%nstatc
-              t1_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-              t1_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-              t1_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-              t1_b%id=blocks2_
-              
-              
-              ! generate block of core eigenvalues
-              call get_evals(evals2_b,core_id)
-              ! prepare content for t(1) and t(2)
-              if (allocated(t1_b%zcontent)) deallocate(t1_b%zcontent)
-              allocate(t1_b%zcontent(t1_b%blocksize))
-              if (allocated(t2_b%zcontent)) deallocate(t2_b%zcontent)
-              allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
-              ! generate block of t(1) and t(2)
-              call gen_t2_k(t2_b, ik1, tprime_b, core, optical, core_id, &
-                optical_id, inputparam)
-              call gen_t1_k(t1_b, ik2, core, core_id, pmat_id, inputparam)
-              ! adjust t(1) by multiplication with frequency-dependent prefactor
-              do lambda=1, t1_b%blocksize
-                t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*27.211d0-inputparam%omega(w1) &
-                  &+cmplx(0.0d0,inputparam%broad)))*t1_b%zcontent(lambda)
-              end do
-              ! generate block of oscstr
-              alpha=1.0d0
-              beta=1.0d0
-              call zgemm('N', 'N', t2_b%blocksize(1), 1, t2_b%blocksize(2), &
-               &alpha, t2_b%zcontent, t2_b%blocksize(1), t1_b%zcontent, t1_b%blocksize, beta, oscstr_b%zcontent, oscstr_b%blocksize)
-            end do ! blocks2_
-          end if 
-        end do ! ik2
-      end do ! ik1
-      call put_block1d(oscstr_b,incoherent_id(w1))
-    end do ! nw_
-  end do ! blocks_
+        ! allocate content of oscillator strength
+        if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
+        allocate(oscstr_b%zcontent(oscstr_b%blocksize))
+        oscstr_b%zcontent(:)=cmplx(0.0d0, 0.0d0)
+        
+        ! 1st loop over k-points
+        do ik1=1, nkmax
+          ! generate combined koulims map
+          koulims_comb(1)=optical%koulims(3,ik1)
+          koulims_comb(2)=optical%koulims(4,ik1)
+          koulims_comb(3)=core%koulims(3,ik1)
+          koulims_comb(4)=core%koulims(4,ik1)
+          ! generate block of tprime
+          tprime_b%nblocks=nblocks_
+          tprime_b%id=ik
+          call generate_tprime_k(tprime_b, ik1, inputparam%pol,koulims_comb, pmat_id)
+          ! 2nd loop over k-poins
+          do ik2=1, nkmax
+            ! ik1=ik2 is the coherent contribution
+            if (ik1 .ne. ik2) then
+              do blocks2_=1, nblocks_
+                ! set up block for eigenvalues
+                evals2_b%nblocks=nblocks_
+                evals2_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
+                evals2_b%global=inputparam%nstatc
+                evals2_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
+                evals2_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
+                evals2_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
+                evals2_b%id=blocks2_
+                
+                !set up block for t(2) matrix
+                t2_b%nblocks=nblocks_
+                t2_b%blocksize=(/ nofblock(blocks_ , inputparam%nstato, nblocks_), &
+                 & nofblock(blocks2_, inputparam%nstatc, nblocks_) /)
+                t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
+                t2_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
+                t2_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
+                t2_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
+                t2_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
+                t2_b%offset(1)=t2_b%il-1
+                t2_b%offset(2)=t2_b%jl-1
+                t2_b%id=(/ blocks_, blocks2_ /)
+                
+                ! set up block of t(1)
+                t1_b%nblocks=nblocks_
+                t1_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
+                t1_b%global=inputparam%nstatc
+                t1_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
+                t1_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
+                t1_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
+                t1_b%id=blocks2_
+                
+                
+                ! generate block of core eigenvalues
+                call get_evals(evals2_b,core_id)
+                ! prepare content for t(1) and t(2)
+                if (allocated(t1_b%zcontent)) deallocate(t1_b%zcontent)
+                allocate(t1_b%zcontent(t1_b%blocksize))
+                if (allocated(t2_b%zcontent)) deallocate(t2_b%zcontent)
+                allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
+                ! generate block of t(1) and t(2)
+                call gen_t2_k(t2_b, ik1, tprime_b, core, optical, core_id, &
+                  optical_id, inputparam)
+                call gen_t1_k(t1_b, ik2, core, core_id, pmat_id, inputparam)
+                ! adjust t(1) by multiplication with frequency-dependent prefactor
+                do lambda=1, t1_b%blocksize
+                  t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*27.211d0-inputparam%omega(w1) &
+                    &+cmplx(0.0d0,inputparam%broad)))*t1_b%zcontent(lambda)
+                end do
+                ! generate block of oscstr
+                alpha=1.0d0
+                beta=1.0d0
+                call zgemm('N', 'N', t2_b%blocksize(1), 1, t2_b%blocksize(2), &
+                 & alpha, t2_b%zcontent, t2_b%blocksize(1), t1_b%zcontent, &
+                 & t1_b%blocksize, beta, oscstr_b%zcontent, oscstr_b%blocksize)
+              end do ! blocks2_
+            end if 
+          end do ! ik2
+        end do ! ik1
+        call put_block1d(oscstr_b,incoherent_id(w1))
+      end do ! nw_
+    end do ! blocks_
+  end if 
   do w1=1, nw_
     call phdf5_cleanup(coherent_id(w1))
-    call phdf5_cleanup(incoherent_id(w1))
+    if (inputparam%calc_incoherent) call phdf5_cleanup(incoherent_id(w1))
   end do
   ! close HDF5 files
   call phdf5_close_file(optical_id)

@@ -29,7 +29,7 @@ module mod_io
     real(8) :: broad
     real(8) :: pol(3)
     integer :: nblocks, nstato, nstatc
-    logical :: ip_c, ip_o
+    logical :: ip_c, ip_o, calc_incoherent
   end type
   
 
@@ -291,7 +291,7 @@ module mod_io
     real(8) :: pol_(3)
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
-    logical :: ip_c_, ip_o_
+    logical :: ip_c_, ip_o_, calc_incoherent_
 
 
     ! only root reads the input file
@@ -307,6 +307,7 @@ module mod_io
       call CFG_add(my_cfg, 'eigstates_core', 1, 'Number of eigenstates in core BSE calculation')
       call CFG_add(my_cfg, 'ip_core', .false., 'IPA for core BSE calculation')
       call CFG_add(my_cfg, 'ip_optical', .false., 'IPA for optical BSE calculation')
+      call CFG_add(my_cfg, '_calc_incoherent_', .false., 'Calculate the incoherent contribution')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -328,6 +329,8 @@ module mod_io
       call CFG_get(my_cfg,'ip_core', ip_c_)
       ! get approximation of optical calculation
       call CFG_get(my_cfg,'ip_optical', ip_o_)
+      ! determine whether the incoherent contribution is calculated (should be avoided) 
+      call CFG_get(my_cfg,'_calc_incoherent_', calc_incoherent_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -341,6 +344,7 @@ module mod_io
     call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(ip_c_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(ip_o_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(calc_incoherent_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
@@ -351,6 +355,7 @@ module mod_io
     object%pol=pol_(:)
     object%ip_c=ip_c_
     object%ip_o=ip_o_
+    object%calc_incoherent=calc_incoherent_
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
