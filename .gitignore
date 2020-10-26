@@ -17,3 +17,9 @@ tags
 #ignore executables in bin
 bin/*
 !bin/.gitkeep
+#ignore testdata
+test/data/diamond/pathway/data.h5
+test/data/diamond/pathway/rixs.h5
+test/data/diamond/coherence/rixs.h5
+test/data/lif/rixs.h5
+test/data/lif/data.h5

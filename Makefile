@@ -7,8 +7,9 @@ debug:
 hlrn:
 	$(MAKE) -C ./src hlrn
 
+.PHONY: test
 test:
-	$(MAKE) -C ./test clean
+	$(MAKE) -C ./test test
 
 clean:
 	$(MAKE) -C ./src clean

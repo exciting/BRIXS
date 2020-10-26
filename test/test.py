@@ -7,7 +7,7 @@ class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs-pathway-serial for diamond example
     def test_exec_pathway_diamond(self):
         # test whether the code runs without error
-        proc_=sb.Popen(r'../../../bin/rixs-pathway-serial', 
+        proc_=sb.Popen(r'../../../../bin/rixs-pathway-serial', 
                 cwd=r'./data/diamond/pathway')
         out, err=proc_.communicate()
         self.assertEqual(proc_.returncode,0)
@@ -33,11 +33,11 @@ class TestFundamentalExecution(ut.TestCase):
     # rixs-oscstr-serial for diamond example
     def test_exec_oscstr_diamond(self):
         # test whether both pathway and oscstr run without error
-        proc1_=sb.Popen(r'../../../bin/rixs-pathway-serial', 
+        proc1_=sb.Popen(r'../../../../bin/rixs-pathway-serial', 
                 cwd=r'./data/diamond/pathway')
         out1, err1=proc1_.communicate()
         self.assertEqual(proc1_.returncode,0)
-        proc2_=sb.Popen(r'../../../bin/rixs-oscstr-serial', 
+        proc2_=sb.Popen(r'../../../../bin/rixs-oscstr-serial', 
                 cwd=r'./data/diamond/pathway')
         out, err=proc2_.communicate()
         self.assertEqual(proc2_.returncode,0)
@@ -114,19 +114,19 @@ class TestCoherenceExecution(ut.TestCase):
     # testing the execution of rixs-coherence-serial for diamond example
     def test_exec_coherence_diamond(self):
         # test whether the code runs without error
-        proc_=sb.Popen(r'../../../bin/rixs-coherence-serial', 
+        proc_=sb.Popen(r'../../../../bin/rixs-coherence-serial', 
                 cwd=r'./data/diamond/coherence/')
         out, err=proc_.communicate()
         self.assertEqual(proc_.returncode,0)
 
         #open data.h5 and data_ref.h5
         rixs_=h5py.File('./data/diamond/coherence/rixs.h5','r')
-        ref_=h5py.File('./data/diamond/rixs_ref.h5','r')
+        ref_=h5py.File('./data/diamond/coherence/rixs_ref.h5','r')
 
         #test the eigenvalues
-        self.assertEqual(data_['evals'].shape[0],
+        self.assertEqual(rixs_['evals'].shape[0],
                 ref_['evals'].shape[0])
-        np.testing.assert_array_equal(data_['evals'], ref_['evals'])        
+        np.testing.assert_array_equal(rixs_['evals'], ref_['evals'])        
         
         #test the oscstr matrices
         self.assertEqual(len(rixs_['oscstr'].keys()),
