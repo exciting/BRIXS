@@ -8,7 +8,7 @@ all-electron many-body framework.
 
 Theoretical Background
 ------------------------------------------------------------------------------
-In RIXS, an x-ray photon with energy $\omega_1$ is absorbed, which leads to the
+In RIXS, an x-ray photon with energy `$\omega_1$` is absorbed, which leads to the
 excitation of a core electron to a conduction band. Coherently, an x-ray photon
 with energy $\omega_2$ is emitted as a valence electron fills the core hole. The
 final state of the scattering process contains a valence hole and an excited
