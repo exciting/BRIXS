@@ -1,5 +1,12 @@
 Tutorial: F K edge in LiF
 ============================================================================
+First, we create a directory for the BSE calculations. All subsequent
+calculations with the **exciting** code will be performed in that directory
+
+```
+mkdir lif-exciting
+cd lif-exciting/
+```
 
 F K Edge BSE in LiF
 ------------------------------------------------------------------------------
@@ -240,4 +247,55 @@ like this
 Once again, we write all 64 eigenstates of the BSE to file. With the `plan`
 subelement, we specify which tasks need to be performed. We re-calculate neither
 the KS electronic structure nor the screening. These quantities are supossed to
-be identical in the two BSE calculations.
+be identical in the two BSE calculations. Finally, we also rename this file
+
+```
+mv bse_output.h5 optical_output.h5
+```
+From this point on, only the files **core_output.h5**, **pmat.h5**, and
+**optical_output.h5** are required. We will move them to a different directory
+
+```
+mkdir ../lif-rixs
+mv *.h5 ../lif-rixs
+cd ../lif-rixs
+```
+
+RIXS Spectrum LiF
+------------------------------------------------------------------------------
+Now we have to create the file **input.cfg** that describes the input parameters
+for the **BRIXS** calculation. The file contains the following:
+
+```
+omega= 653 654 655 656
+pol=1.0 0.0 0.0
+broad=0.15
+nblocks=2
+eigstates_optical=64
+eigstates_core=32
+```
+Here, we specify the excitation energies (`omega`) and the polarization (`pol`)
+of the incoming photon. Note that the polarization should be identical to the
+one specified by the parameter `chibar0comp` in the **exciting** calculations.
+We furthermore specify the lifetime broadening (`broad`) of the intermediate
+state. With `eigstates_optical` and `eigstates_core` we specify how many
+eigenstates of the corresponding BSE calculations are used. Finally, `nblocks`
+defines in how many blocks the eigenvectors should be separated. More blocks
+will reduce the memory requirements of the calculations, but might increase the
+runtime. A good estimate is to use the number of k-points along a specific
+direction.
+
+We then execute the first **BRIXS** executable with
+
+```
+/path/to/BRIXS/bin/rixs-pathway-serial
+```
+
+which creates the file **data.h5**. The final result is then obtained by
+executing
+
+```
+/path/to/BRIXS/bin/rixs-oscstr-serial
+```
+
+The final result is stored in the file **rixs.h5**.
