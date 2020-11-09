@@ -103,18 +103,20 @@ since
 \lim_{q \rightarrow 0} M_{c \mu \mathbf{k}}(\mathbf{q},\mathbf{G}=0)=
 \lim_{q \rightarrow 0} \langle c \mathbf{k} |
 \mathrm{e}^{-\mathrm{i}\mathrm{q}\mathbf{r}} | \mu \mathbf{k} \rangle=
--\mathrm{i}\mathbf{q}\langle c \mathbf{k} |\mathbf{r}| \mu \mathbf{k} \rangle=
+-\mathrm{i}\mathbf{q}\langle c \mathbf{k} |\mathbf{r}| \mu \mathbf{k} \rangle +
+\mathcal{O}(q^2)=
 -\mathrm{i}\mathbf{q}\frac{\langle c \mathbf{k}|\mathbf{p}| \mu
-\mathbf{k}}{\epsilon_{c \mathbf{k}}-\epsilon_{\mu \mathbf{k}}}
+\mathbf{k} \rangle}{\epsilon_{c \mathbf{k}}-\epsilon_{\mu
+\mathbf{k}}}+\mathcal{O}(q^2)
 ```
 
 This yields
 
 ```math
-V_{c \mu \mathbf{k}, c' \mu' \mathbf{k}'}(\mathbf{q}=0, \mathbf{G}=0)=
+V_{c \mu \mathbf{k}, c' \mu' \mathbf{k}'}(\mathbf{q}=0, \mathbf{G}=0) \approx
 \frac{1}{V} \mathrm{e}_q \frac{\langle c \mathbf{k} |\mathbf{p}| \mu \mathbf{k}
 \rangle^* \langle c' \mathbf{k}' |\mathbf{p}| \mu'
-\mathbf{k}'}{\left(\epsilon_{c \mathbf{k}}-\epsilon_{\mu \mathbf{k}}
+\mathbf{k}' \rangle}{\left(\epsilon_{c \mathbf{k}}-\epsilon_{\mu \mathbf{k}}
 \right)\left( \epsilon_{c' \mathbf{k}'}-\epsilon_{v' \mathbf{k}'} \right)}
 ```
 As we can see, this matrix element depends on the direction $`\mathbf{e}_q`$ of
