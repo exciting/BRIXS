@@ -32,7 +32,6 @@ spectrum. We do this with the following input file:
   <groundstate
     do="fromscratch"
     ngridk="2 2 2"
-    rgkmax="4.0"
     xctype="GGA_PBE_SOL"/>
  <xs
       xstype="BSE"
@@ -62,8 +61,7 @@ spectrum. We do this with the following input file:
 	      xasatom="1"
         xasedge="K"
         bsetype="singlet" 
-	      nstlxas="1 2"
-        distribute="true"/>
+	      nstlxas="1 2"/>
  
       <qpointset>
       <qpoint>0.0 0.0 0.0</qpoint>
