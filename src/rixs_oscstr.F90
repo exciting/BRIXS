@@ -19,14 +19,14 @@ program rixs_oscstr
   integer(4) :: nblocks_, blsz_,nk_, k, k2, blsz_k
   integer(4) :: nu_optical, no_optical, global_optical
   type(block1d) :: oscstr_b
-  type(block1d) :: t1_b, evals_b, evals2_b
+  type(block1d) :: t1_b, evalsv_b, evalsc_b, evals2_b
   type(block2d) :: t2_b
   complex(8) :: alpha, beta
   real(8) ::  test
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: optical_id, output_id, core_id, inter_id
-  integer(hid_t) :: energy_id, t1_id, t2_id
+  integer(hid_t) :: energyc_id, energyv_id, t1_id, t2_id
   integer(hid_t), allocatable :: oscstr_id(:)
   integer :: matsize_(1), matsize2_(2)
   !Specify file/dataset name
@@ -79,9 +79,12 @@ program rixs_oscstr
   !-------------------------------------------------!
   ! create group in output file
   call phdf5_create_group(output_id,'/','oscstr')
-  ! open datasets for write of energies
+  ! open datasets for write of valence excitation energies
   matsize_=(/ inputparam%nstato /)
-  call phdf5_setup_write(1,matsize_,.false.,'evals','/',output_id,energy_id)
+  call phdf5_setup_write(1,matsize_,.false.,'vevals','/',output_id,energyv_id)
+  ! open datasets for write of core excitation energies
+  matsize_=(/ inputparam%nstatc /)
+  call phdf5_setup_write(1,matsize_,.false.,'cevals','/',output_id,energyc_id)
   ! prepare datasets for oscillator strength, dataset for each frequency
   nw_=size(inputparam%omega)
   if (allocated(oscstr_id)) deallocate(oscstr_id)
@@ -97,22 +100,38 @@ program rixs_oscstr
   call phdf5_setup_read(2,matsize2_,.true.,'t(2)','/',inter_id,t2_id)
   ! loop over blocks
   do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
-    ! set up block for eigenvalues (needed only for file output)
-    evals_b%nblocks=nblocks_
-    evals_b%blocksize=nofblock(k, inputparam%nstato, nblocks_)
-    evals_b%global=inputparam%nstato
-    evals_b%nk=nk_
-    evals_b%il=firstofblock(k, inputparam%nstato, nblocks_)
-    evals_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
-    evals_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
-    evals_b%id=k
+    ! set up block for valence BSE eigenvalues (needed only for file output)
+    evalsv_b%nblocks=nblocks_
+    evalsv_b%blocksize=nofblock(k, inputparam%nstato, nblocks_)
+    evalsv_b%global=inputparam%nstato
+    evalsv_b%nk=nk_
+    evalsv_b%il=firstofblock(k, inputparam%nstato, nblocks_)
+    evalsv_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
+    evalsv_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
+    evalsv_b%id=k
     ! generate block of eigenvalues
     if (.not. inputparam%ip_o) then
-      call get_evals(evals_b,optical_id)
+      call get_evals(evalsv_b,optical_id)
     else
-      call get_evalsIP(evals_b,optical_id)
+      call get_evalsIP(evalsv_b,optical_id)
     end if
-    call put_block1d(evals_b,energy_id)
+    call put_block1d(evalsv_b,energyv_id)
+    ! set up block for core BSE eigenvalues (needed only for file output)
+    evalsc_b%nblocks=nblocks_
+    evalsc_b%blocksize=nofblock(k, inputparam%nstatc, nblocks_)
+    evalsc_b%global=inputparam%nstatc
+    evalsc_b%nk=nk_
+    evalsc_b%il=firstofblock(k, inputparam%nstatc, nblocks_)
+    evalsc_b%iu=lastofblock(k, inputparam%nstatc, nblocks_)
+    evalsc_b%offset=firstofblock(k, inputparam%nstatc, nblocks_)-1
+    evalsc_b%id=k
+    ! generate block of eigenvalues
+    if (.not. inputparam%ip_c) then
+      call get_evals(evalsc_b,core_id)
+    else
+      call get_evalsIP(evalsc_b,core_id)
+    end if
+    call put_block1d(evalsc_b,energyc_id)
     do w1=1, nw_
       ! set up block of oscillator strength
       oscstr_b%nblocks=nblocks_
@@ -190,7 +209,8 @@ program rixs_oscstr
       call put_block1d(oscstr_b,oscstr_id(w1))
     end do !w1
   end do ! k
-  call phdf5_cleanup(energy_id)
+  call phdf5_cleanup(energyc_id)
+  call phdf5_cleanup(energyv_id)
   call phdf5_cleanup(t1_id)
   call phdf5_cleanup(t2_id)
   do w1=1, nw_
