@@ -54,7 +54,7 @@ spectrum. We do this with the following input file:
          nempty="100"/>
  
       <BSE 
-        chibar0="true"
+        chibar0="false"
         chibar0comp="1"
 	      xas="true"
         xasspecies="2"
@@ -136,7 +136,7 @@ computational cost by adjusting the input files such that it looks like:
          nempty="100"/>
  
       <BSE 
-        chibar0="true"
+        chibar0="false"
         chibar0comp="1"
 	      xas="true"
         xasspecies="2"
@@ -221,7 +221,7 @@ like this
               nempty="100" />
 
       <BSE
-        chibar0="true"
+        chibar0="false"
         chibar0comp="1"
         bsetype="singlet" 
         nstlbse="2 5 1 2"
