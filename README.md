@@ -6,6 +6,12 @@ This code determines resonant inelastic x-ray scattering (RIXS) spectra for
 solids, starting from Bethe-Salpeter Equation (BSE) calculations in an
 all-electron many-body framework. 
 
+How to Cite BRIXS
+------------------------------------------------------------------------------
+If you use BRIXS, I ask that you cite [our initial
+publication](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.2.042003),
+as well as [Christian Vorwerk's PhD thesis](https://edoc.hu-berlin.de/handle/18452/22938).
+
 Theoretical Background
 ------------------------------------------------------------------------------
 In RIXS, an x-ray photon with energy $`\omega_1`$ is absorbed, which leads to the
