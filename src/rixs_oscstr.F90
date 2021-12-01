@@ -87,6 +87,7 @@ program rixs_oscstr
   call phdf5_setup_write(1,matsize_,.false.,'cevals','/',output_id,energyc_id)
   ! prepare datasets for oscillator strength, dataset for each frequency
   nw_=size(inputparam%omega)
+  matsize_=(/ inputparam%nstato /)
   if (allocated(oscstr_id)) deallocate(oscstr_id)
   allocate(oscstr_id(nw_))
   do w1=1, nw_
