@@ -9,7 +9,8 @@ program rixs_oscstr
   implicit none
   real(8) :: broad, broad2
   real(8), allocatable :: omega(:), omega2(:)
-  real(8) :: pol(3)
+  real(8) :: pol_in(3)
+  real(8) :: pol_out(3)
   integer :: nkmax, w1, nw_, lambda
   integer :: interdim(2)
   type(io) :: optical
@@ -56,7 +57,8 @@ program rixs_oscstr
   
   ! set parameters
   broad=inputparam%broad
-  pol=inputparam%pol
+  pol_in=inputparam%pol_in
+  pol_out=inputparam%pol_out
   
   ! test whether the blocksize is possible
   interdim=shape(optical%koulims)
