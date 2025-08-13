@@ -237,7 +237,7 @@ module mod_blocks_k
       call get_eigvecs(eigvec_b, core_id)
         ! generate block of t
       call generate_t_k(t_b, k, core%koulims, core%smap, core%ismap, &
-       & inputparam%pol, pmat_id)
+       & inputparam%pol_in, pmat_id)
       ! matrix-vector multiplication
       alpha=cmplx(1.0d0, 0.0d0)
       beta=cmplx(0.0d0, 0.0d0)

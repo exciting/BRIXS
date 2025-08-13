@@ -7,6 +7,8 @@ program rixs_coherence
   use mod_blocks_k
   use hdf5, only: hid_t
 
+  ! not thought through with pol_in and pol_out
+
   implicit none
   real(8) :: broad
   real(8) :: pol(3)
@@ -55,7 +57,7 @@ program rixs_coherence
   
   ! set parameters
   broad=inputparam%broad
-  pol=inputparam%pol
+  pol=inputparam%pol_in
   
   ! test whether the blocksize is possible
   interdim=shape(optical%koulims)
@@ -149,7 +151,7 @@ program rixs_coherence
         ! generate block of tprime
         tprime_b%nblocks=nblocks_
         tprime_b%id=ik
-        call generate_tprime_k(tprime_b, ik, inputparam%pol,koulims_comb, pmat_id)
+        call generate_tprime_k(tprime_b, ik, inputparam%pol_in,koulims_comb, pmat_id)
         
         do blocks2_=1, nblocks_
           ! set up block for eigenvalues
@@ -246,7 +248,7 @@ program rixs_coherence
           ! generate block of tprime
           tprime_b%nblocks=nblocks_
           tprime_b%id=ik
-          call generate_tprime_k(tprime_b, ik1, inputparam%pol,koulims_comb, pmat_id)
+          call generate_tprime_k(tprime_b, ik1, inputparam%pol_in,koulims_comb, pmat_id)
           ! 2nd loop over k-poins
           do ik2=1, nkmax
             ! ik1=ik2 is the coherent contribution

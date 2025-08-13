@@ -172,7 +172,7 @@ program rixs_pathway
         call get_eigvecs(eigvec_b, core_id)
       end if
       ! generate block of t
-      call generate_t(t_b, core%koulims, core%smap, core%ismap, inputparam%pol, pmat_id)
+      call generate_t(t_b, core%koulims, core%smap, core%ismap, inputparam%pol_in, pmat_id)
       ! matrix-vector multiplication
       alpha=cmplx(1.0d0, 0.0d0)
       beta=cmplx(1.0d0, 0.0d0)

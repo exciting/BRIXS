@@ -597,7 +597,7 @@ module mod_blocks
       call transform_matrix2matrix(core%koulims,core%smap,eigvec,eigvec_matrix)
       
       ! generate block of tprime
-      call generate_tprime(tprime_b,inputparam%pol,koulims_comb,pmat_id)
+      call generate_tprime(tprime_b,inputparam%pol_out,koulims_comb,pmat_id)
       
       nk_=in2d%nk
       ! in case optical & core calculations have different numbers of empty states, the matrices have to be adjusted

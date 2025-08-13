@@ -27,7 +27,7 @@ module mod_io
   type :: input
     real(8), allocatable :: omega(:)
     real(8) :: broad
-    real(8) :: pol(3)
+    real(8) :: pol_in(3), pol_out(3)
     integer :: nblocks, nstato, nstatc
     logical :: ip_c, ip_o, calc_incoherent
   end type
@@ -288,7 +288,8 @@ module mod_io
     integer, parameter :: fh = 15
     real(8) :: inter(3), inter2(3)
     real(8) :: broad_, broad2_
-    real(8) :: pol_(3)
+    real(8) :: pol_in_(3)
+    real(8) :: pol_out_(3)
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
     logical :: ip_c_, ip_o_, calc_incoherent_
@@ -300,7 +301,7 @@ module mod_io
 #endif
       !define fields and set defaults
       call CFG_add(my_cfg, 'omega', (/1.0_dp, 2.0_dp/), 'Core Frequencies', dynamic_size=.true.)
-      call CFG_add(my_cfg, 'pol', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization')
+      call CFG_add(my_cfg, 'pol_in', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization incoming')
       call CFG_add(my_cfg, 'broad', 0.5_dp, 'Core Broadening')
       call CFG_add(my_cfg, 'nblocks', 1, 'Number of Blocks')
       call CFG_add(my_cfg, 'eigstates_optical', 1, 'Number of eigenstates in optical BSE calculation')
@@ -308,6 +309,7 @@ module mod_io
       call CFG_add(my_cfg, 'ip_core', .false., 'IPA for core BSE calculation')
       call CFG_add(my_cfg, 'ip_optical', .false., 'IPA for optical BSE calculation')
       call CFG_add(my_cfg, '_calc_incoherent_', .false., 'Calculate the incoherent contribution')
+      call CFG_add(my_cfg, 'pol_out', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization outgoing')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -317,8 +319,8 @@ module mod_io
       call CFG_get(my_cfg,'omega', omega_)
       ! get core broadening
       call CFG_get(my_cfg,'broad',broad_)
-      ! get light polarization
-      call CFG_get(my_cfg,'pol',pol_)
+      ! get light polarization incoming
+      call CFG_get(my_cfg,'pol_in',pol_in_)
       ! get number of blocks
       call CFG_get(my_cfg,'nblocks', nblocks_)
       ! get number of optical eigenstates
@@ -331,6 +333,8 @@ module mod_io
       call CFG_get(my_cfg,'ip_optical', ip_o_)
       ! determine whether the incoherent contribution is calculated (should be avoided) 
       call CFG_get(my_cfg,'_calc_incoherent_', calc_incoherent_)
+      ! get light polarization outgoing
+      call CFG_get(my_cfg,'pol_out',pol_out_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -338,13 +342,14 @@ module mod_io
     if (.not. allocated(omega_)) allocate(omega_(omegasize_))
     call mpi_bcast(omega_,omegasize_,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(broad_,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call mpi_bcast(pol_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(pol_in_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nblocks_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstato_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(nstatc_,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(ip_c_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(ip_o_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(calc_incoherent_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(pol_out_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
@@ -352,10 +357,11 @@ module mod_io
     object%nblocks=nblocks_
     object%nstato=nstato_
     object%nstatc=nstatc_
-    object%pol=pol_(:)
+    object%pol_in=pol_in_(:)
     object%ip_c=ip_c_
     object%ip_o=ip_o_
     object%calc_incoherent=calc_incoherent_
+    object%pol_out=pol_out_(:)
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
