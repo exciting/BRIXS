@@ -7,8 +7,6 @@ program rixs_coherence
   use mod_blocks_k
   use hdf5, only: hid_t
 
-  ! not thought through with pol_in and pol_out
-
   implicit none
   real(8) :: broad
   real(8) :: pol(3)
@@ -20,12 +18,12 @@ program rixs_coherence
    & gname_c, gname_ic, gname_w, cw1
   integer(4) :: nblocks_, ik, ik1, ik2, koulims_comb(4)
   integer(4) :: blocks_, blocks2_
-  type(block1d) :: oscstr_b, evals_b, evals2_b, t1_b
-  type(block2d) :: t2_b, tprime_b
+  type(block1d) :: oscstr_b, evalsv_b, evalsc_b, evals2_b, t1_b
+  type(block2d) :: t2_b, tprime_in_b, tprime_out_b
   complex(8) :: alpha, beta
   !MPI variables
   ! PHDF5 variables
-  integer(hid_t) :: optical_id, output_id, core_id, energy_id, pmat_id
+  integer(hid_t) :: optical_id, output_id, core_id, energyv_id, energyc_id, pmat_id
   integer(hid_t), allocatable :: coherent_id(:), incoherent_id(:)
   integer :: matsize_(1)
   !Specify file/dataset name
@@ -72,9 +70,12 @@ program rixs_coherence
   ! create group in output file
   
   call phdf5_create_group(output_id,'/','oscstr')
+  ! open datasets for write of valence excitation energies
   matsize_=(/ inputparam%nstato /)
-  call phdf5_setup_write(1,matsize_,.false.,'evals','/',output_id,energy_id)
-  
+  call phdf5_setup_write(1,matsize_,.false.,'vevals','/',output_id,energyv_id)
+  ! open datasets for write of core excitation energies
+  matsize_=(/ inputparam%nstatc /)
+  call phdf5_setup_write(1,matsize_,.false.,'cevals','/',output_id,energyc_id)
   gname_c='coherent'
   gname_ic='incoherent'
   ! prepare datasets for coherent oscillator-strength dataset for each frequency
@@ -101,24 +102,45 @@ program rixs_coherence
   end do
 
   !----------------------------------------------------!
-  !    Write optical BSE eigenvalues E_{\lambda}       !
+  !    Write BSE eigenvalues E_{\lambda}       !
   !----------------------------------------------------!
+  !--------------------------------------------!
+  ! write valence eigenvalues (vevals)         !
+  !--------------------------------------------!
   if (mpiglobal%rank .eq. 0) then
     do blocks_=1, nblocks_
-      ! set up block for eigenvalues (needed only for file output)
-      evals_b%nblocks=nblocks_
-      evals_b%blocksize=nofblock(blocks_, inputparam%nstato, nblocks_)
-      evals_b%global=inputparam%nstato
-      evals_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-      evals_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-      evals_b%offset=firstofblock(blocks_, inputparam%nstato, nblocks_)-1
-      evals_b%id=blocks_
-      
-      call get_evals(evals_b,optical_id)
-      call put_block1d(evals_b,energy_id)
+      evalsv_b%nblocks   = nblocks_
+      evalsv_b%blocksize = nofblock(blocks_, inputparam%nstato, nblocks_)
+      evalsv_b%global    = inputparam%nstato
+      evalsv_b%il        = firstofblock(blocks_, inputparam%nstato, nblocks_)
+      evalsv_b%iu        = lastofblock(blocks_, inputparam%nstato, nblocks_)
+      evalsv_b%offset    = firstofblock(blocks_, inputparam%nstato, nblocks_) - 1
+      evalsv_b%id        = blocks_
+
+      call get_evals(evalsv_b, optical_id)
+      call put_block1d(evalsv_b, energyv_id)
     end do
   end if
-  call phdf5_cleanup(energy_id)
+  call phdf5_cleanup(energyv_id)
+
+  !--------------------------------------------
+  ! write core eigenvalues (cevals)
+  !--------------------------------------------
+  if (mpiglobal%rank .eq. 0) then
+    do blocks_=1, nblocks_
+      evalsc_b%nblocks   = nblocks_
+      evalsc_b%blocksize = nofblock(blocks_, inputparam%nstatc, nblocks_)
+      evalsc_b%global    = inputparam%nstatc
+      evalsc_b%il        = firstofblock(blocks_, inputparam%nstatc, nblocks_)
+      evalsc_b%iu        = lastofblock(blocks_, inputparam%nstatc, nblocks_)
+      evalsc_b%offset    = firstofblock(blocks_, inputparam%nstatc, nblocks_) - 1
+      evalsc_b%id        = blocks_
+
+      call get_evals(evalsc_b, core_id)
+      call put_block1d(evalsc_b, energyc_id)
+    end do
+  end if
+  call phdf5_cleanup(energyc_id)  
   
   !----------------------------------------------------!
   !    Write coherent oscillator strength |t^{3}_c|    !
@@ -148,10 +170,15 @@ program rixs_coherence
         koulims_comb(3)=core%koulims(3,ik)
         koulims_comb(4)=core%koulims(4,ik)
         
-        ! generate block of tprime
-        tprime_b%nblocks=nblocks_
-        tprime_b%id=ik
-        call generate_tprime_k(tprime_b, ik, inputparam%pol_in,koulims_comb, pmat_id)
+        ! generate block of tprime with pol_in
+        tprime_in_b%nblocks=nblocks_
+        tprime_in_b%id=ik
+        call generate_tprime_k(tprime_in_b, ik, inputparam%pol_in, koulims_comb, pmat_id)
+
+        ! generate block of tprime with pol_out
+        tprime_out_b%nblocks=nblocks_
+        tprime_out_b%id=ik
+        call generate_tprime_k(tprime_out_b, ik, inputparam%pol_out, koulims_comb, pmat_id)
         
         do blocks2_=1, nblocks_
           ! set up block for eigenvalues
@@ -194,7 +221,7 @@ program rixs_coherence
           allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
           ! generate block of t(1) and t(2)
           call gen_t1_k(t1_b, ik, core, core_id, pmat_id, inputparam)
-          call gen_t2_k(t2_b, ik, tprime_b, core, optical, core_id, &
+          call gen_t2_k(t2_b, ik, tprime_in_b, tprime_out_b, core, optical, core_id, &
             optical_id, inputparam)
           
           ! adjust t(1) by multiplication with frequency-dependent prefactor
@@ -218,7 +245,7 @@ program rixs_coherence
   end do ! w1
   
   !----------------------------------------------------!
-  !    Write coherent oscillator strength |t^{3}_ic|   !
+  !    Write incoherent oscillator strength |t^{3}_ic|   !
   !----------------------------------------------------!
  if (inputparam%calc_incoherent) then
    ! loop over frequencies
@@ -245,10 +272,14 @@ program rixs_coherence
           koulims_comb(2)=optical%koulims(4,ik1)
           koulims_comb(3)=core%koulims(3,ik1)
           koulims_comb(4)=core%koulims(4,ik1)
-          ! generate block of tprime
-          tprime_b%nblocks=nblocks_
-          tprime_b%id=ik
-          call generate_tprime_k(tprime_b, ik1, inputparam%pol_in,koulims_comb, pmat_id)
+          ! generate block of tprime with pol_in
+          tprime_in_b%nblocks=nblocks_
+          tprime_in_b%id=ik
+          call generate_tprime_k(tprime_in_b, ik1, inputparam%pol_in, koulims_comb, pmat_id)
+          ! generate block of tprime with pol_out
+          tprime_out_b%nblocks=nblocks_
+          tprime_out_b%id=ik
+          call generate_tprime_k(tprime_out_b, ik1, inputparam%pol_out, koulims_comb, pmat_id)
           ! 2nd loop over k-poins
           do ik2=1, nkmax
             ! ik1=ik2 is the coherent contribution
@@ -294,7 +325,7 @@ program rixs_coherence
                 if (allocated(t2_b%zcontent)) deallocate(t2_b%zcontent)
                 allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
                 ! generate block of t(1) and t(2)
-                call gen_t2_k(t2_b, ik1, tprime_b, core, optical, core_id, &
+                call gen_t2_k(t2_b, ik1, tprime_in_b, tprime_out_b, core, optical, core_id, &
                   optical_id, inputparam)
                 call gen_t1_k(t1_b, ik2, core, core_id, pmat_id, inputparam)
                 ! adjust t(1) by multiplication with frequency-dependent prefactor

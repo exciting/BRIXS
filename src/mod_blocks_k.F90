@@ -247,7 +247,7 @@ module mod_blocks_k
     end subroutine
 
     !-----------------------------------------------------------------------------
-    subroutine gen_t2_k(outblock2d, ik, tprime_b, core, optical, core_id, &
+    subroutine gen_t2_k(outblock2d, ik, tprime_in_b, tprime_out_b, core, optical, core_id, &
         optical_id, inputparam)
       use  hdf5, only: hid_t
       use mod_io, only: io, input
@@ -258,7 +258,7 @@ module mod_blocks_k
       integer(4), intent(in) :: ik
       type(io), intent(in) :: core, optical
       integer(hid_t), intent(in) :: core_id, optical_id
-      type(block2d), intent(in) :: tprime_b
+      type(block2d), intent(in) :: tprime_in_b, tprime_out_b
       type(input), intent(in) :: inputparam
       !local variables
       type(block2d) :: prod_, eigvec_
@@ -298,7 +298,7 @@ module mod_blocks_k
       ! generate block of eigenvectors
       call get_eigvecs(eigvec_, optical_id)
       ! generate block of intermediate product
-      call gen_prod_k(prod_, tprime_b, ik, core, optical, core_id)
+      call gen_prod_k(prod_, tprime_in_b, tprime_out_b, ik, core, optical, core_id)
 
       !matrix-matrix multiplication
       alpha=cmplx(1.0d0, 0.0d0)
@@ -308,22 +308,25 @@ module mod_blocks_k
     end subroutine
   
     !-----------------------------------------------------------------------------
-    subroutine gen_prod_k(inbl, tprime_b, ik, core, optical, core_id)
+    subroutine gen_prod_k(inbl, tprime_in_b, tprime_out_b, ik, core, optical, core_id)
       use mod_io, only: io, input
       use hdf5, only: hid_t
       implicit none
       type(block2d), intent(inout) :: inbl
-      type(block2d), intent(in) :: tprime_b
+      type(block2d), intent(in) :: tprime_in_b, tprime_out_b
       integer, intent(in) :: ik
       type(io), intent(in) :: core, optical
       integer(hid_t), intent(in) :: core_id
+
       !local variables
       type(block2d) :: eigvec
       complex(8), allocatable :: eigvec_matrix(:,:,:)
       complex(8) :: alpha, beta
       complex(8), allocatable :: prod_prime(:,:,:), prod_matrix(:,:,:)
+      complex(8), allocatable :: tprime_comb(:,:)
       integer(4) :: id_(2), blsz_
       integer(4) :: lambda
+      integer :: ni, nj
 
       ! set temporary id and size
       ! core eigenvector block does not have
@@ -355,6 +358,21 @@ module mod_blocks_k
       prod_prime(:,:,:)=cmplx(0.0d0, 0.0d0)
       allocate(prod_matrix(optical%nu, optical%no, inbl%blocksize(2)))
       prod_matrix(:,:,:)=cmplx(0.0d0, 0.0d0)
+
+      ! combine tprime_in and tprime_out elementwise into tprime_comb 
+      ! assume tprime_in_b%zcontent and tprime_out_b%zcontent have same shape (ni x nj)
+      ni = size(tprime_in_b%zcontent, 1)
+      nj = size(tprime_in_b%zcontent, 2)
+      if ( (ni /= size(tprime_out_b%zcontent,1)) .or. (nj /= size(tprime_out_b%zcontent,2)) ) then
+        print *, 'ERROR gen_prod_k: shape mismatch between tprime_in and tprime_out at k =', ik
+        stop
+      end if
+      
+      ! elementwise product: tprime_comb = tprime_out * tprime_in
+      ! (both already include their polarization projection)
+      allocate(tprime_comb(ni, nj))
+      tprime_comb(:,:) = tprime_out_b%zcontent(:,:) * tprime_in_b%zcontent(:,:)
+
       ! loop over block ofcore excitons
       do lambda=1, inbl%blocksize(2)
         alpha=1.0d0
@@ -362,7 +380,7 @@ module mod_blocks_k
         ! complex conjugate of eigenstates needed
         eigvec_matrix(:,:,lambda)=conjg(eigvec_matrix(:,:,lambda))
         call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,lambda), & 
-          &core%nu, tprime_b%zcontent(:,:), core%no, beta, prod_prime(:,:,lambda), core%nu)
+          &core%nu, tprime_comb(:,:), core%no, beta, prod_prime(:,:,lambda), core%nu)
       end do
       if (optical%nu .gt. core%nu) then
         ! more empty states in optical calculation than in core one
@@ -377,7 +395,7 @@ module mod_blocks_k
       ! generate block of product vector
       call transform_matrix2vector_k(optical, ik, prod_matrix, inbl)
       
-      deallocate(prod_prime, prod_matrix, eigvec_matrix)
+      deallocate(prod_prime, prod_matrix, eigvec_matrix, tprime_comb)
 
     end subroutine
 end module
