@@ -19,7 +19,7 @@ program rixs_coherence
   integer(4) :: nblocks_, ik, ik1, ik2, koulims_comb(4)
   integer(4) :: blocks_, blocks2_
   type(block1d) :: oscstr_b, evalsv_b, evalsc_b, evals2_b, t1_b
-  type(block2d) :: t2_b, tprime_in_b, tprime_out_b
+  type(block2d) :: t2_b, tprime_out_b
   complex(8) :: alpha, beta
   !MPI variables
   ! PHDF5 variables
@@ -170,11 +170,6 @@ program rixs_coherence
         koulims_comb(3)=core%koulims(3,ik)
         koulims_comb(4)=core%koulims(4,ik)
         
-        ! generate block of tprime with pol_in
-        tprime_in_b%nblocks=nblocks_
-        tprime_in_b%id=ik
-        call generate_tprime_k(tprime_in_b, ik, inputparam%pol_in, koulims_comb, pmat_id)
-
         ! generate block of tprime with pol_out
         tprime_out_b%nblocks=nblocks_
         tprime_out_b%id=ik
@@ -221,7 +216,7 @@ program rixs_coherence
           allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
           ! generate block of t(1) and t(2)
           call gen_t1_k(t1_b, ik, core, core_id, pmat_id, inputparam)
-          call gen_t2_k(t2_b, ik, tprime_in_b, tprime_out_b, core, optical, core_id, &
+          call gen_t2_k(t2_b, ik, tprime_out_b, core, optical, core_id, &
             optical_id, inputparam)
           
           ! adjust t(1) by multiplication with frequency-dependent prefactor
@@ -272,10 +267,6 @@ program rixs_coherence
           koulims_comb(2)=optical%koulims(4,ik1)
           koulims_comb(3)=core%koulims(3,ik1)
           koulims_comb(4)=core%koulims(4,ik1)
-          ! generate block of tprime with pol_in
-          tprime_in_b%nblocks=nblocks_
-          tprime_in_b%id=ik
-          call generate_tprime_k(tprime_in_b, ik1, inputparam%pol_in, koulims_comb, pmat_id)
           ! generate block of tprime with pol_out
           tprime_out_b%nblocks=nblocks_
           tprime_out_b%id=ik
@@ -325,7 +316,7 @@ program rixs_coherence
                 if (allocated(t2_b%zcontent)) deallocate(t2_b%zcontent)
                 allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
                 ! generate block of t(1) and t(2)
-                call gen_t2_k(t2_b, ik1, tprime_in_b, tprime_out_b, core, optical, core_id, &
+                call gen_t2_k(t2_b, ik1, tprime_out_b, core, optical, core_id, &
                   optical_id, inputparam)
                 call gen_t1_k(t1_b, ik2, core, core_id, pmat_id, inputparam)
                 ! adjust t(1) by multiplication with frequency-dependent prefactor
