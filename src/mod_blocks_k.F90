@@ -247,7 +247,7 @@ module mod_blocks_k
     end subroutine
 
     !-----------------------------------------------------------------------------
-    subroutine gen_t2_k(outblock2d, ik, tprime_b, core, optical, core_id, &
+    subroutine gen_t2_k(outblock2d, ik, tprime_out_b, core, optical, core_id, &
         optical_id, inputparam)
       use  hdf5, only: hid_t
       use mod_io, only: io, input
@@ -258,7 +258,7 @@ module mod_blocks_k
       integer(4), intent(in) :: ik
       type(io), intent(in) :: core, optical
       integer(hid_t), intent(in) :: core_id, optical_id
-      type(block2d), intent(in) :: tprime_b
+      type(block2d), intent(in) :: tprime_out_b
       type(input), intent(in) :: inputparam
       !local variables
       type(block2d) :: prod_, eigvec_
@@ -298,7 +298,7 @@ module mod_blocks_k
       ! generate block of eigenvectors
       call get_eigvecs(eigvec_, optical_id)
       ! generate block of intermediate product
-      call gen_prod_k(prod_, tprime_b, ik, core, optical, core_id)
+      call gen_prod_k(prod_, tprime_out_b, ik, core, optical, core_id)
 
       !matrix-matrix multiplication
       alpha=cmplx(1.0d0, 0.0d0)
@@ -308,15 +308,16 @@ module mod_blocks_k
     end subroutine
   
     !-----------------------------------------------------------------------------
-    subroutine gen_prod_k(inbl, tprime_b, ik, core, optical, core_id)
+    subroutine gen_prod_k(inbl, tprime_out_b, ik, core, optical, core_id)
       use mod_io, only: io, input
       use hdf5, only: hid_t
       implicit none
       type(block2d), intent(inout) :: inbl
-      type(block2d), intent(in) :: tprime_b
+      type(block2d), intent(in) :: tprime_out_b
       integer, intent(in) :: ik
       type(io), intent(in) :: core, optical
       integer(hid_t), intent(in) :: core_id
+
       !local variables
       type(block2d) :: eigvec
       complex(8), allocatable :: eigvec_matrix(:,:,:)
@@ -362,7 +363,7 @@ module mod_blocks_k
         ! complex conjugate of eigenstates needed
         eigvec_matrix(:,:,lambda)=conjg(eigvec_matrix(:,:,lambda))
         call zgemm('N', 'N', core%nu, optical%no, core%no, alpha, eigvec_matrix(:,:,lambda), & 
-          &core%nu, tprime_b%zcontent(:,:), core%no, beta, prod_prime(:,:,lambda), core%nu)
+          &core%nu, tprime_out_b%zcontent(:,:), core%no, beta, prod_prime(:,:,lambda), core%nu)
       end do
       if (optical%nu .gt. core%nu) then
         ! more empty states in optical calculation than in core one

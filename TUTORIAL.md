@@ -61,7 +61,8 @@ spectrum. We do this with the following input file:
 	      xasatom="1"
         xasedge="K"
         bsetype="singlet" 
-	      nstlxas="1 2"/>
+	      nstlxas="1 2"
+        brixshdf5="true"/>
  
       <qpointset>
       <qpoint>0.0 0.0 0.0</qpoint>
@@ -144,6 +145,7 @@ computational cost by adjusting the input files such that it looks like:
         xasedge="K"
         bsetype="singlet" 
 	      nstlxas="1 2"
+        brixshdf5="true"
         distribute="true"/>
  
       <qpointset>
@@ -225,6 +227,7 @@ like this
         chibar0comp="1"
         bsetype="singlet" 
         nstlbse="2 5 1 2"
+        brixshdf5="true"
         distribute="true" />
 
       <qpointset>
@@ -266,21 +269,22 @@ for the **BRIXS** calculation. The file contains the following:
 
 ```
 omega= 653 654 655 656
-pol=1.0 0.0 0.0
+pol_in=1.0 0.0 0.0
+pol_out=1.0 0.0 0.0
 broad=0.15
 nblocks=2
 eigstates_optical=64
 eigstates_core=32
 ```
-Here, we specify the excitation energies (`omega`) and the polarization (`pol`)
-of the incoming photon. Note that the polarization should be identical to the
-one specified by the parameter `chibar0comp` in the **exciting** calculations.
-We furthermore specify the lifetime broadening (`broad`) of the intermediate
-state. With `eigstates_optical` and `eigstates_core` we specify how many
-eigenstates of the corresponding BSE calculations are used. Finally, `nblocks`
-defines in how many blocks the eigenvectors should be separated. More blocks
-will reduce the memory requirements of the calculations, but might increase the
-runtime. A good estimate is to use the number of k-points along a specific
+Here, we specify the excitation energies (`omega`) and the polarizations `pol_in`
+of the incoming and `pol_out` of the outgoing photon. Note that the polarization 
+should be identical to the one specified by the parameter `chibar0comp` in the 
+**exciting** calculations.We furthermore specify the lifetime broadening (`broad`) 
+of the intermediate state. With `eigstates_optical` and `eigstates_core` we specify 
+how many eigenstates of the corresponding BSE calculations are used. Finally, 
+`nblocks` defines in how many blocks the eigenvectors should be separated. More 
+blocks will reduce the memory requirements of the calculations, but might increase 
+the runtime. A good estimate is to use the number of k-points along a specific
 direction.
 
 We then execute the first **BRIXS** executable with
@@ -297,3 +301,8 @@ executing
 ```
 
 The final result is stored in the file **rixs.h5**.
+
+**Note:** For calculations done with `chibar0="false"` it is necessary to choose 
+`pol_in` and `pol_out` to be identical. Otherwise for calculations with 
+`chibar0="true"`, which is an approximation on the level of RIXS, it is possible 
+to use different polarizations for the incoming and outgoing photon. 

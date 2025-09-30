@@ -47,9 +47,12 @@ class TestFundamentalExecution(ut.TestCase):
         ref_=h5py.File('./data/diamond/pathway/rixs_ref.h5')
 
         #test the eigenvalues
-        np.testing.assert_array_equal(rixs_['evals'].shape,
-                ref_['evals'].shape)
-        np.testing.assert_array_equal(rixs_['evals'], ref_['evals'])        
+        np.testing.assert_array_equal(rixs_['cevals'].shape,
+                ref_['cevals'].shape)
+        np.testing.assert_array_equal(rixs_['cevals'], ref_['cevals'])
+        np.testing.assert_array_equal(rixs_['vevals'].shape,
+                ref_['vevals'].shape)
+        np.testing.assert_array_equal(rixs_['vevals'], ref_['vevals'])        
         #test the oscstr matrices
         self.assertEqual(len(rixs_['oscstr'].keys()),
                 len(ref_['oscstr'].keys()))
@@ -100,9 +103,12 @@ class TestFundamentalExecution(ut.TestCase):
         ref_=h5py.File('./data/lif/rixs_ref.h5')
 
         #test the eigenvalues
-        np.testing.assert_array_equal(rixs_['evals'].shape,
-                ref_['evals'].shape)
-        np.testing.assert_array_equal(rixs_['evals'], ref_['evals'])        
+        np.testing.assert_array_equal(rixs_['cevals'].shape,
+                ref_['cevals'].shape)
+        np.testing.assert_array_equal(rixs_['cevals'], ref_['cevals'])     
+        np.testing.assert_array_equal(rixs_['vevals'].shape,
+                ref_['vevals'].shape)
+        np.testing.assert_array_equal(rixs_['vevals'], ref_['vevals'])    
         #test the oscstr matrices
         self.assertEqual(len(rixs_['oscstr'].keys()),
                 len(ref_['oscstr'].keys()))
@@ -124,9 +130,12 @@ class TestCoherenceExecution(ut.TestCase):
         ref_=h5py.File('./data/diamond/coherence/rixs_ref.h5','r')
 
         #test the eigenvalues
-        self.assertEqual(rixs_['evals'].shape[0],
-                ref_['evals'].shape[0])
-        np.testing.assert_array_equal(rixs_['evals'], ref_['evals'])        
+        self.assertEqual(rixs_['cevals'].shape[0],
+                ref_['cevals'].shape[0])
+        np.testing.assert_array_equal(rixs_['cevals'], ref_['cevals'])        
+        self.assertEqual(rixs_['vevals'].shape[0],
+                ref_['vevals'].shape[0])
+        np.testing.assert_array_equal(rixs_['vevals'], ref_['vevals']) 
         
         #test the oscstr matrices
         self.assertEqual(len(rixs_['oscstr'].keys()),
