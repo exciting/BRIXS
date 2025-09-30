@@ -6,6 +6,7 @@ CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activ
 test:
 	$(CONDA_ACTIVATE) pybrixs_test
 	python test.py
+
 clean:
 	rm ./data/diamond/pathway/rixs.h5 ./data/diamond/pathway/data.h5
 	rm ./data/lif/rixs.h5 ./data/lif/data.h5
