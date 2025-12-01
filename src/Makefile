@@ -1,7 +1,7 @@
 #serial HDF5 (gfortran)
-#HDF5=/users/stud/richtere/CODES/bin/hdf5-1.12.0/bin/h5fc -L/usr/lib -llapack -L/usr/lib -lblas #-fcheck=all -fbacktrace -g
+#HDF5=/home1/richtere/CODES/hdf5/bin/h5fc -L/usr/lib -llapack -L/usr/lib -lblas #-fcheck=all -fbacktrace -g
 #serial HDF5 (ifort+MKL)
-HDF5=/users/stud/richtere/CODES/build-intel2019-hdf5-1.12.0/hdf5/bin/h5pfc -mkl
+HDF5=/home1/richtere/CODES/hdf5/bin/h5pfc -mkl
 #parallel HDF5 on DUNE
 #PHDF5_D=/users/stud/vorwerk/bin/phdf5-1.10.2/bin/h5pfc
 #parallel HDF5 on HLRN
