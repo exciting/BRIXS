@@ -4,8 +4,8 @@ serial:
 debug:
 	$(MAKE) -C ./src debug
 
-hlrn:
-	$(MAKE) -C ./src hlrn
+mpi:
+	$(MAKE) -C ./src mpi
 
 .PHONY: test
 test:

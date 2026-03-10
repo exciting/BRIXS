@@ -1,11 +1,13 @@
 #serial HDF5 (gfortran)
-#HDF5=/users/stud/richtere/CODES/bin/hdf5-1.12.0/bin/h5fc -L/usr/lib -llapack -L/usr/lib -lblas #-fcheck=all -fbacktrace -g
+#HDF5=/users/stud/richtere/CODES/bin/hdf5-1.12.0/bin/h5fc -fallow-argument-mismatch -L/usr/lib -llapack -L/usr/lib -lblas #-fcheck=all -fbacktrace -g
+#for gcc>10: fallow-argument-mismatch
+
 #serial HDF5 (ifort+MKL)
-HDF5=/users/stud/richtere/CODES/build-intel2019-hdf5-1.12.0/hdf5/bin/h5pfc -mkl
-#parallel HDF5 on DUNE
-#PHDF5_D=/users/stud/vorwerk/bin/phdf5-1.10.2/bin/h5pfc
-#parallel HDF5 on HLRN
-PHDF5=h5pfc -Wl,-rpath,/sw/dataformats/szip/intel.18/2.1.1/skl/lib/
+HDF5=/home1/richtere/CODES/hdf5/bin/h5pfc -qmkl
+
+#parallel HDF5:
+PHDF5=/home1/richtere/CODES/hdf5/bin/h5pfc -qmkl
+#h5pfc -Wl,-rpath,/sw/dataformats/szip/intel.18/2.1.1/skl/lib/
 
 
 serial:
@@ -19,24 +21,24 @@ serial:
 	cp rixs_pathway ../bin/rixs-pathway-serial
 	cp rixs_oscstr ../bin/rixs-oscstr-serial
 	cp rixs_coherence ../bin/rixs-coherence-serial
-	rm rixs_pathway rixs_oscstr	rixs_coherence
+	rm rixs_pathway rixs_oscstr rixs_coherence
 
 debug:
 	$(HDF5) -g -traceback -check all m_config.f90 mod_mpi.F90 mod_phdf5.F90 \
-	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o  \
+	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 rixs_pathway.F90 -o  \
 		rixs_pathway
 	$(HDF5) -g -traceback -check all  m_config.f90 mod_mpi.F90 mod_phdf5.F90 \
-	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o   \
+	 	mod_matmul.F90 mod_io.F90 mod_blocks.F90 rixs_oscstr.F90 -o   \
 	 	rixs_oscstr
 	cp rixs_pathway ../bin/rixs-pathway-debug
 	cp rixs_oscstr ../bin/rixs-oscstr-debug
 	rm rixs_pathway rixs_oscstr	
 
-hlrn:
-	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
-	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o rixs_pathway
-	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
-	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o rixs_oscstr
+mpi:
+	$(PHDF5) -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
+	 	mod_io.F90 mod_blocks.F90 rixs_pathway.F90 -o rixs_pathway
+	$(PHDF5) -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
+	 	mod_io.F90 mod_blocks.F90 rixs_oscstr.F90 -o rixs_oscstr
 	cp rixs_pathway ../bin/rixs-pathway-mpi
 	cp rixs_oscstr ../bin/rixs-oscstr-mpi
 	rm rixs_pathway rixs_oscstr	
