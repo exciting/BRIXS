@@ -1,5 +1,8 @@
 Tutorial: F K edge in LiF
 ============================================================================
+A detailed Tutorial is given on the [**exciting** webpage](https://exciting-code.org). It also covers the calculation of the cross-section, plotting, and the mixed polarizations case.
+
+------------------------------------------------------------------------------
 First, we create a directory for the BSE calculations. All subsequent
 calculations with the **exciting** code will be performed in that directory
 
@@ -43,7 +46,8 @@ spectrum. We do this with the following input file:
       gqmax="2.0" 
       broad="0.0276"
       tappinfo="true"
-      tevout="true">
+      tevout="true"
+      h5fname="core_output.h5">
 
       <energywindow 
          intv="23.6 24.6" 
@@ -79,15 +83,8 @@ will depend on the range of excitation energies one is interested in. The higher
 the excitation energy is beyond the absorption edge, the more eigenstates are
 required.
 
-Executing the **exciting** code with this input.xml will generate a output file
-named **bse_output.h5** which we rename by
-
-```
-mv bse_output.h5 core_output.h5
-```
-
-Renaming is important, because otherwise it will be overwritten when we
-calculate the valence excitation spectrum.
+Executing the **exciting** code with this input.xml will generate an output file
+named **core_output.h5**.
 
 Momentum Matrix Elements
 ------------------------------------------------------------------------------
@@ -112,7 +109,7 @@ computational cost by adjusting the input files such that it looks like:
     </species>
   </structure>
   <groundstate
-    do="fromscratch"
+    do="skip"
     ngridk="2 2 2"
     rgkmax="4.0"
     xctype="GGA_PBE_SOL"/>
@@ -126,7 +123,8 @@ computational cost by adjusting the input files such that it looks like:
       gqmax="2.0" 
       broad="0.0276"
       tappinfo="true"
-      tevout="true">
+      tevout="true"
+      h5fname="pmat.h5">
 
       <energywindow 
          intv="23.6 24.6" 
@@ -159,15 +157,10 @@ computational cost by adjusting the input files such that it looks like:
 </input>
 ```
 
-The input file is nearly identical to the one used for the calculation of the F K edge,
-with the only change being the subelement `plan` which triggers the calculation
-of the momentum matrix elements (`writepmatxs`) and the output to HDF5 file
-(`writepmatasc`). The matrix elements are written to the file **bse_output.h5**.
-We rename the file again
-
-```
-mv bse_output.h5 pmat.h5
-```
+The input file is almost identical to the one used for the calculation of the F K edge. 
+The only changes are skipping the re-calculation of the ground state and adding the subelement `plan` which triggers the calculation
+of the momentum matrix elements (`writepmatxs`) and the output to an HDF5 file
+(`writepmatasc`). The matrix elements are written to the file **pmat.h5**.
 
 Valence Spectrum in LiF
 ------------------------------------------------------------------------------
@@ -198,7 +191,7 @@ like this
     </species>
   </structure>
   <groundstate
-    do="fromscratch"
+    do="skip"
     ngridk="2 2 2"
     rgkmax="4.0"
     xctype="GGA_PBE_SOL"/>
@@ -212,7 +205,8 @@ like this
       gqmax="2.0" 
       broad="0.0276"
       tappinfo="true"
-      tevout="true">
+      tevout="true"
+      h5fname="optical_output.h5">
 
       <energywindow 
              intv="0 1.0" 
@@ -248,11 +242,9 @@ like this
 Once again, we write all 64 eigenstates of the BSE to file. With the `plan`
 subelement, we specify which tasks need to be performed. We re-calculate neither
 the KS electronic structure nor the screening. These quantities are supossed to
-be identical in the two BSE calculations. Finally, we also rename this file
+be identical in the two BSE calculations. We generate an output file
+named **core_output.h5**.
 
-```
-mv bse_output.h5 optical_output.h5
-```
 From this point on, only the files **core_output.h5**, **pmat.h5**, and
 **optical_output.h5** are required. We will move them to a different directory
 
@@ -279,7 +271,7 @@ eigstates_core=32
 Here, we specify the excitation energies (`omega`) and the polarizations `pol_in`
 of the incoming and `pol_out` of the outgoing photon. Note that the polarization 
 should be identical to the one specified by the parameter `chibar0comp` in the 
-**exciting** calculations.We furthermore specify the lifetime broadening (`broad`) 
+**exciting** calculations. We furthermore specify the lifetime broadening (`broad`) 
 of the intermediate state. With `eigstates_optical` and `eigstates_core` we specify 
 how many eigenstates of the corresponding BSE calculations are used. Finally, 
 `nblocks` defines in how many blocks the eigenvectors should be separated. More 
@@ -300,7 +292,7 @@ executing
 /path/to/BRIXS/bin/rixs-oscstr-serial
 ```
 
-The final result is stored in the file **rixs.h5**.
+The final result is stored in the file **rixs.h5**. Calculation of the RIXS cross-section is shifted to a python module named `pyBRIXS`, offering a convenient way to calculate the cross-section and display results.
 
 **Note:** For calculations done with `chibar0="false"` it is necessary to choose 
 `pol_in` and `pol_out` to be identical. Otherwise for calculations with 
