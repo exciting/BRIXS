@@ -27,9 +27,10 @@ program rixs_oscstr
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: optical_id, output_id, core_id, inter_id
+  integer(hid_t) :: omega_id
   integer(hid_t) :: energyc_id, energyv_id, t1_id, t2_id
   integer(hid_t), allocatable :: oscstr_id(:)
-  integer :: matsize_(1), matsize2_(2)
+  integer :: matsize_(1), matsize2_(2), offset_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
   fname_optical='./optical_output.h5'
@@ -79,16 +80,26 @@ program rixs_oscstr
   !-------------------------------------------------!
   !    Calculation of the oscillator strength       !
   !-------------------------------------------------!
-  ! create group in output file
+  ! create groups in output file
   call phdf5_create_group(output_id,'/','oscstr')
+  call phdf5_create_group(output_id,'/','omega')
   ! open datasets for write of valence excitation energies
   matsize_=(/ inputparam%nstato /)
   call phdf5_setup_write(1,matsize_,.false.,'vevals','/',output_id,energyv_id)
   ! open datasets for write of core excitation energies
   matsize_=(/ inputparam%nstatc /)
   call phdf5_setup_write(1,matsize_,.false.,'cevals','/',output_id,energyc_id)
-  ! prepare datasets for oscillator strength, dataset for each frequency
+  ! store the incident frequencies in the same order as the oscstr datasets
   nw_=size(inputparam%omega)
+  matsize_=(/ nw_ /)
+  offset_=(/ 0 /)
+  call phdf5_setup_write(1,matsize_,.false.,'values','/omega/',output_id,omega_id)
+  if (mpiglobal%rank .eq. 0) then
+    call phdf5_write(inputparam%omega(1),matsize_,matsize_,offset_,omega_id)
+  end if
+  call barrier(mpiglobal)
+  call phdf5_cleanup(omega_id)
+  ! prepare datasets for oscillator strength, dataset for each frequency
   matsize_=(/ inputparam%nstato /)
   if (allocated(oscstr_id)) deallocate(oscstr_id)
   allocate(oscstr_id(nw_))
@@ -228,4 +239,3 @@ program rixs_oscstr
   call finitmpi()
 
 end program
-

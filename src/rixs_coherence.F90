@@ -24,8 +24,9 @@ program rixs_coherence
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: optical_id, output_id, core_id, energyv_id, energyc_id, pmat_id
+  integer(hid_t) :: omega_id
   integer(hid_t), allocatable :: coherent_id(:), incoherent_id(:)
-  integer :: matsize_(1)
+  integer :: matsize_(1), offset_(1)
   !Specify file/dataset name
   fname_core='./core_output.h5'
   fname_optical='./optical_output.h5'
@@ -67,9 +68,10 @@ program rixs_coherence
   !-------------------------------------------------!
   !    Calculation of the oscillator strength       !
   !-------------------------------------------------!
-  ! create group in output file
+  ! create groups in output file
   
   call phdf5_create_group(output_id,'/','oscstr')
+  call phdf5_create_group(output_id,'/','omega')
   ! open datasets for write of valence excitation energies
   matsize_=(/ inputparam%nstato /)
   call phdf5_setup_write(1,matsize_,.false.,'vevals','/',output_id,energyv_id)
@@ -78,8 +80,17 @@ program rixs_coherence
   call phdf5_setup_write(1,matsize_,.false.,'cevals','/',output_id,energyc_id)
   gname_c='coherent'
   gname_ic='incoherent'
-  ! prepare datasets for coherent oscillator-strength dataset for each frequency
+  ! store the incident frequencies in the same order as the oscstr groups
   nw_=size(inputparam%omega)
+  matsize_=(/ nw_ /)
+  offset_=(/ 0 /)
+  call phdf5_setup_write(1,matsize_,.false.,'values','/omega/',output_id,omega_id)
+  if (mpiglobal%rank .eq. 0) then
+    call phdf5_write(inputparam%omega(1),matsize_,matsize_,offset_,omega_id)
+  end if
+  call barrier(mpiglobal)
+  call phdf5_cleanup(omega_id)
+  ! prepare datasets for coherent oscillator-strength dataset for each frequency
   if (allocated(coherent_id)) deallocate(coherent_id)
   allocate(coherent_id(nw_))
   if (inputparam%calc_incoherent) then
@@ -352,4 +363,3 @@ program rixs_coherence
   call finitmpi()
 
 end program rixs_coherence
-
