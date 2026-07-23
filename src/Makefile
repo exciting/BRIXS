@@ -1,21 +1,23 @@
-#serial HDF5 (gfortran)
-#HDF5=/home1/richtere/CODES/hdf5/bin/h5fc -L/usr/lib -llapack -L/usr/lib -lblas #-fcheck=all -fbacktrace -g
-#serial HDF5 (ifort+MKL)
-HDF5=/home1/richtere/CODES/hdf5/bin/h5pfc -mkl
-#parallel HDF5 on DUNE
-#PHDF5_D=/users/stud/vorwerk/bin/phdf5-1.10.2/bin/h5pfc
-#parallel HDF5 on HLRN
-PHDF5=h5pfc -Wl,-rpath,/sw/dataformats/szip/intel.18/2.1.1/skl/lib/
+HDF5_ROOT := /opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025b
 
+HDF5 := $(HDF5_ROOT)/bin/h5fc \
+         -I$(HDF5_ROOT)/include \
+         -fallow-argument-mismatch
+
+PHDF5 := $(HDF5_ROOT)/bin/h5pfc \
+          -I$(HDF5_ROOT)/include \
+          -fallow-argument-mismatch
+
+LIBS := -lflexiblas
 
 serial:
 	$(HDF5) m_config.f90 mod_mpi.F90 mod_phdf5.F90  mod_matmul.F90 \
-	 	mod_io.F90 mod_blocks.F90 rixs_pathway.F90 -o rixs_pathway
+	 	mod_io.F90 mod_blocks.F90 rixs_pathway.F90 -o rixs_pathway $(LIBS)
 	$(HDF5)  m_config.f90 mod_mpi.F90 mod_phdf5.F90  mod_matmul.F90 \
-		mod_io.F90 mod_blocks.F90 rixs_oscstr.F90 -o rixs_oscstr
+		mod_io.F90 mod_blocks.F90 rixs_oscstr.F90 -o rixs_oscstr $(LIBS)
 	$(HDF5)  m_config.f90 mod_mpi.F90 mod_phdf5.F90  mod_matmul.F90 \
 		mod_io.F90 mod_blocks.F90 mod_blocks_k.F90 rixs_coherence.F90 -o \
-	 	rixs_coherence
+	 	rixs_coherence $(LIBS)
 	cp rixs_pathway ../bin/rixs-pathway-serial
 	cp rixs_oscstr ../bin/rixs-oscstr-serial
 	cp rixs_coherence ../bin/rixs-coherence-serial
@@ -32,14 +34,16 @@ debug:
 	cp rixs_oscstr ../bin/rixs-oscstr-debug
 	rm rixs_pathway rixs_oscstr	
 
-hlrn:
+parallel:
 	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
-	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o rixs_pathway
+	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_pathway.F90 -o rixs_pathway $(LIBS)
 	$(PHDF5) -mkl -DMPI m_config.f90 mod_mpi.F90 mod_phdf5.F90 mod_matmul.F90 \
-	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o rixs_oscstr
+	 	mod_io.F90 mod_blocks.F90 mod_rixs.F90 rixs_oscstr.F90 -o rixs_oscstr $(LIBS)
 	cp rixs_pathway ../bin/rixs-pathway-mpi
 	cp rixs_oscstr ../bin/rixs-oscstr-mpi
 	rm rixs_pathway rixs_oscstr	
 
 clean:
 	rm *.o *.mod 
+
+
