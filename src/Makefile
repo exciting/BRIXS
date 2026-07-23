@@ -2,11 +2,11 @@ HDF5_ROOT := /opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025b
 
 HDF5 := $(HDF5_ROOT)/bin/h5fc \
          -I$(HDF5_ROOT)/include \
-         -fallow-argument-mismatch
+         -fallow-argument-mismatch -w
 
 PHDF5 := $(HDF5_ROOT)/bin/h5pfc \
           -I$(HDF5_ROOT)/include \
-          -fallow-argument-mismatch
+          -fallow-argument-mismatch -w
 
 LIBS := -lflexiblas
 
