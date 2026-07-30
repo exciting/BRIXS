@@ -21,7 +21,7 @@ module mod_io
   type :: io
     integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(:,:), ensortidx(:)
     integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no, global, globalk
-    real(8), allocatable :: evals(:)
+    real(8), allocatable :: evals(:), occupation_factors(:)
     complex(8), allocatable :: eigvecs(:,:)
   end type io
   type :: input
@@ -29,7 +29,9 @@ module mod_io
     real(8) :: broad
     real(8) :: pol_in(3), pol_out(3)
     integer :: nblocks, nstato, nstatc
-    logical :: ip_c, ip_o, calc_incoherent
+    logical :: ip_c, ip_o, calc_incoherent, non_equilibrium
+    character(1024) :: occupation_factors_core_file
+    character(1024) :: occupation_factors_optical_file
   end type
   
 
@@ -37,6 +39,7 @@ module mod_io
   public get_koulims
   public get_smap
   public get_ismap
+  public get_occupation_factors
     
   contains
   ! Methodenbereich
@@ -176,6 +179,46 @@ module mod_io
     call phdf5_cleanup(dataset_id)
   end subroutine 
 
+  !---------------------------------------------------------------------------
+  !> Read the square root of the transition occupation difference from an
+  !> exciting transitions HDF5 file. The data must use the same transition-space
+  !> ordering as the BSE eigenvectors (and therefore smap).
+  subroutine get_occupation_factors(object,file_id)
+    use hdf5, only: hid_t
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup
+    implicit none
+    type(io), intent(inout) :: object
+    integer(hid_t), intent(in) :: file_id
+    integer(4) :: dims(1), offset_(1)
+    integer(hid_t) :: dataset_id
+    character(len=*), parameter :: path='/IQMT_000001/transitions'
+    character(len=*), parameter :: dsetname='occupation_factors'
+
+    offset_=(/ 0 /)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
+
+    if (dims(1) .ne. object%hamsize) then
+      write(*,'(A,I0,A,I0)') 'Error(get_occupation_factors): dataset has ', &
+        & dims(1), ' entries, but the BSE transition space has ', object%hamsize
+      write(*,'(A)') 'The occupation factors and BSE eigenvectors must come from matching transition selections.'
+      error stop
+    end if
+
+    if (allocated(object%occupation_factors)) deallocate(object%occupation_factors)
+    allocate(object%occupation_factors(dims(1)))
+    call phdf5_setup_read(1,dims,.false.,dsetname,path,file_id,dataset_id)
+    call phdf5_read(object%occupation_factors(1),dims,dims,offset_,dataset_id)
+    call phdf5_cleanup(dataset_id)
+
+    if (any(.not. ieee_is_finite(object%occupation_factors)) .or. &
+      & any(object%occupation_factors < 0.0d0)) then
+      write(*,'(A)') 'Error(get_occupation_factors): occupation_factors must be finite and non-negative.'
+      error stop
+    end if
+  end subroutine get_occupation_factors
+
   !---------------------------------------------------------------------------  
   !> @author 
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
@@ -293,6 +336,9 @@ module mod_io
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
     logical :: ip_c_, ip_o_, calc_incoherent_
+    logical :: non_equilibrium_
+    character(1024) :: occupation_factors_core_file_
+    character(1024) :: occupation_factors_optical_file_
 
 
     ! only root reads the input file
@@ -310,6 +356,11 @@ module mod_io
       call CFG_add(my_cfg, 'ip_optical', .false., 'IPA for optical BSE calculation')
       call CFG_add(my_cfg, '_calc_incoherent_', .false., 'Calculate the incoherent contribution')
       call CFG_add(my_cfg, 'pol_out', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization outgoing')
+      call CFG_add(my_cfg, 'non_equilibrium', .false., 'Use transition occupation factors')
+      call CFG_add(my_cfg, 'occupation_factors_core_file', 'occupations_core.h5', &
+        & 'HDF5 file containing core transition occupation factors')
+      call CFG_add(my_cfg, 'occupation_factors_optical_file', 'occupations_optical.h5', &
+        & 'HDF5 file containing optical transition occupation factors')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -335,6 +386,9 @@ module mod_io
       call CFG_get(my_cfg,'_calc_incoherent_', calc_incoherent_)
       ! get light polarization outgoing
       call CFG_get(my_cfg,'pol_out',pol_out_)
+      call CFG_get(my_cfg,'non_equilibrium',non_equilibrium_)
+      call CFG_get(my_cfg,'occupation_factors_core_file',occupation_factors_core_file_)
+      call CFG_get(my_cfg,'occupation_factors_optical_file',occupation_factors_optical_file_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -350,6 +404,9 @@ module mod_io
     call mpi_bcast(ip_o_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(calc_incoherent_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(pol_out_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(non_equilibrium_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(occupation_factors_core_file_,1024,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(occupation_factors_optical_file_,1024,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
@@ -362,10 +419,12 @@ module mod_io
     object%ip_o=ip_o_
     object%calc_incoherent=calc_incoherent_
     object%pol_out=pol_out_(:)
+    object%non_equilibrium=non_equilibrium_
+    object%occupation_factors_core_file=trim(occupation_factors_core_file_)
+    object%occupation_factors_optical_file=trim(occupation_factors_optical_file_)
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
     object%omega(:)=omega_(:)
   end subroutine read_inputfile  
 end module
-

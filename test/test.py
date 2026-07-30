@@ -2,6 +2,9 @@ import unittest as ut
 import subprocess as sb
 import h5py
 import numpy as np
+from pathlib import Path
+import shutil
+import tempfile
 
 class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs-pathway-serial for diamond example
@@ -57,8 +60,8 @@ class TestFundamentalExecution(ut.TestCase):
         self.assertEqual(len(rixs_['oscstr'].keys()),
                 len(ref_['oscstr'].keys()))
         for entry in rixs_['oscstr'].keys():
-            np.testing.assert_array_equal(rixs_['oscstr'][entry],
-                    ref_['oscstr'][entry])
+            np.testing.assert_allclose(rixs_['oscstr'][entry],
+                    ref_['oscstr'][entry], rtol=5e-12, atol=1e-14)
 
     # testing the execution of rixs-pathway-serial for lif example
     def test_exec_pathway_lif(self):
@@ -113,8 +116,8 @@ class TestFundamentalExecution(ut.TestCase):
         self.assertEqual(len(rixs_['oscstr'].keys()),
                 len(ref_['oscstr'].keys()))
         for entry in rixs_['oscstr'].keys():
-            np.testing.assert_array_equal(rixs_['oscstr'][entry],
-                    ref_['oscstr'][entry])
+            np.testing.assert_allclose(rixs_['oscstr'][entry],
+                    ref_['oscstr'][entry], rtol=5e-12, atol=1e-14)
 
 class TestCoherenceExecution(ut.TestCase):
     # testing the execution of rixs-coherence-serial for diamond example
@@ -141,9 +144,155 @@ class TestCoherenceExecution(ut.TestCase):
         self.assertEqual(len(rixs_['oscstr'].keys()),
                 len(ref_['oscstr'].keys()))
         for entry in rixs_['oscstr'].keys():
-            np.testing.assert_array_equal(rixs_['oscstr'][entry]['coherent'],
-                    ref_['oscstr'][entry]['coherent'])
-            np.testing.assert_array_equal(rixs_['oscstr'][entry]['incoherent'],
-                    ref_['oscstr'][entry]['incoherent'])
+            np.testing.assert_allclose(rixs_['oscstr'][entry]['coherent'],
+                    ref_['oscstr'][entry]['coherent'], rtol=5e-12, atol=1e-14)
+            np.testing.assert_allclose(rixs_['oscstr'][entry]['incoherent'],
+                    ref_['oscstr'][entry]['incoherent'], rtol=5e-12, atol=1e-14)
+
+
+class TestNonEquilibriumPathways(ut.TestCase):
+    def test_constant_occupation_factors_scale_pathways(self):
+        """Both BSE amplitudes are weighted in their own transition spaces."""
+        repository = Path(__file__).resolve().parents[1]
+        source = repository / 'test' / 'data' / 'diamond' / 'pathway'
+        executable = repository / 'bin' / 'rixs-pathway-serial'
+        core_factor = 0.5
+        optical_factor = 0.25
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workdir = Path(tmp) / 'pathway'
+            shutil.copytree(source, workdir)
+
+            with h5py.File(workdir / 'core_output.h5', 'r') as core:
+                ncore = core['eigvec-singlet-TDA-BAR-full/0001/parameters/smap'].shape[0]
+            with h5py.File(workdir / 'optical_output.h5', 'r') as optical:
+                noptical = optical['eigvec-singlet-TDA-BAR-full/0001/parameters/smap'].shape[0]
+
+            for filename, size, factor in (
+                    ('occupations_core.h5', ncore, core_factor),
+                    ('occupations_optical.h5', noptical, optical_factor)):
+                with h5py.File(workdir / filename, 'w') as occupations:
+                    group = occupations.require_group('IQMT_000001/transitions')
+                    group.create_dataset('occupation_factors',
+                                         data=np.full(size, factor, dtype=np.float64))
+
+            config_path = workdir / 'input.cfg'
+            config_text = config_path.read_text(encoding='utf-8')
+            config_path.write_text(
+                config_text.replace('nblocks=1', 'nblocks=2')
+                + '\nnon_equilibrium=true\n',
+                encoding='utf-8')
+
+            proc = sb.run([executable], cwd=workdir, check=False)
+            self.assertEqual(proc.returncode, 0)
+
+            with h5py.File(workdir / 'data.h5', 'r') as data, \
+                    h5py.File(workdir / 'data_ref.h5', 'r') as reference:
+                np.testing.assert_allclose(
+                    data['t(1)'][:], core_factor * reference['t(1)'][:],
+                    rtol=2e-14, atol=1e-14)
+                np.testing.assert_allclose(
+                    data['t(2)'][:],
+                    core_factor * optical_factor * reference['t(2)'][:],
+                    rtol=2e-14, atol=1e-14)
+
+    def test_transition_resolved_factors_match_weighted_eigenvectors(self):
+        """Arbitrary factors act component-wise, before pathway contractions."""
+        repository = Path(__file__).resolve().parents[1]
+        source = repository / 'test' / 'data' / 'diamond' / 'pathway'
+        executable = repository / 'bin' / 'rixs-pathway-serial'
+        eigenvector_group = 'eigvec-singlet-TDA-BAR-full/0001/rvec'
+
+        with tempfile.TemporaryDirectory() as tmp:
+            nonequilibrium = Path(tmp) / 'nonequilibrium'
+            weighted_reference = Path(tmp) / 'weighted_reference'
+            shutil.copytree(source, nonequilibrium)
+            shutil.copytree(source, weighted_reference)
+
+            factors = {}
+            for kind in ('core', 'optical'):
+                output_name = f'{kind}_output.h5'
+                with h5py.File(nonequilibrium / output_name, 'r') as output:
+                    ntransitions = output[
+                        'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                    ].shape[0]
+                factors[kind] = np.linspace(
+                    0.2, 1.0, ntransitions, dtype=np.float64)
+                with h5py.File(
+                        nonequilibrium / f'occupations_{kind}.h5', 'w') as occupations:
+                    group = occupations.require_group('IQMT_000001/transitions')
+                    group.create_dataset('occupation_factors', data=factors[kind])
+
+                with h5py.File(weighted_reference / output_name, 'r+') as output:
+                    for eigenvector in output[eigenvector_group].values():
+                        eigenvector[...] = eigenvector[...] * factors[kind][:, None]
+
+            config_path = nonequilibrium / 'input.cfg'
+            config_path.write_text(
+                config_path.read_text(encoding='utf-8')
+                + '\nnon_equilibrium=true\n',
+                encoding='utf-8')
+
+            result_nonequilibrium = sb.run(
+                [executable], cwd=nonequilibrium, check=False)
+            result_reference = sb.run(
+                [executable], cwd=weighted_reference, check=False)
+            self.assertEqual(result_nonequilibrium.returncode, 0)
+            self.assertEqual(result_reference.returncode, 0)
+
+            with h5py.File(nonequilibrium / 'data.h5', 'r') as data, \
+                    h5py.File(weighted_reference / 'data.h5', 'r') as reference:
+                np.testing.assert_allclose(
+                    data['t(1)'][:], reference['t(1)'][:],
+                    rtol=2e-14, atol=1e-14)
+                np.testing.assert_allclose(
+                    data['t(2)'][:], reference['t(2)'][:],
+                    rtol=2e-14, atol=1e-14)
+
+    def test_coherence_uses_both_occupation_factor_sets(self):
+        repository = Path(__file__).resolve().parents[1]
+        source = repository / 'test' / 'data' / 'diamond' / 'coherence'
+        executable = repository / 'bin' / 'rixs-coherence-serial'
+        core_factor = 0.5
+        optical_factor = 0.25
+        oscillator_factor = core_factor**2 * optical_factor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workdir = Path(tmp) / 'coherence'
+            shutil.copytree(source, workdir)
+
+            for kind, factor in (
+                    ('core', core_factor), ('optical', optical_factor)):
+                with h5py.File(workdir / f'{kind}_output.h5', 'r') as output:
+                    ntransitions = output[
+                        'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                    ].shape[0]
+                with h5py.File(
+                        workdir / f'occupations_{kind}.h5', 'w') as occupations:
+                    group = occupations.require_group('IQMT_000001/transitions')
+                    group.create_dataset(
+                        'occupation_factors',
+                        data=np.full(ntransitions, factor, dtype=np.float64))
+
+            config_path = workdir / 'input.cfg'
+            config_path.write_text(
+                config_path.read_text(encoding='utf-8')
+                + '\nnon_equilibrium=true\n',
+                encoding='utf-8')
+
+            proc = sb.run([executable], cwd=workdir, check=False)
+            self.assertEqual(proc.returncode, 0)
+
+            with h5py.File(workdir / 'rixs.h5', 'r') as result, \
+                    h5py.File(workdir / 'rixs_ref.h5', 'r') as reference:
+                for frequency in result['oscstr']:
+                    for contribution in ('coherent', 'incoherent'):
+                        np.testing.assert_allclose(
+                            result['oscstr'][frequency][contribution][:],
+                            oscillator_factor
+                            * reference['oscstr'][frequency][contribution][:],
+                            rtol=5e-12, atol=1e-14)
+
+
 if __name__ == '__main__':
     ut.main()

@@ -235,6 +235,9 @@ module mod_blocks_k
       
       ! generate block of X
       call get_eigvecs(eigvec_b, core_id)
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec_b,core%occupation_factors)
+      end if
         ! generate block of t
       call generate_t_k(t_b, k, core%koulims, core%smap, core%ismap, &
        & inputparam%pol_in, pmat_id)
@@ -297,6 +300,9 @@ module mod_blocks_k
       eigvec_%id=(/ ik, blk_ /)
       ! generate block of eigenvectors
       call get_eigvecs(eigvec_, optical_id)
+      if (allocated(optical%occupation_factors)) then
+        call apply_occupation_factors(eigvec_,optical%occupation_factors)
+      end if
       ! generate block of intermediate product
       call gen_prod_k(prod_, tprime_out_b, ik, core, optical, core_id)
 
@@ -345,6 +351,9 @@ module mod_blocks_k
       
       ! get block of core eigenstates
       call get_eigvecs(eigvec, core_id)
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec,core%occupation_factors)
+      end if
       
       ! generate block of B matrix
       call transform_matrix2matrix_k(core%koulims,ik,core%smap,eigvec, &

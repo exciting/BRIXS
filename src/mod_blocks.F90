@@ -358,6 +358,32 @@ module mod_blocks
       end do
     end subroutine
 
+    !---------------------------------------------------------------------------
+    !> Multiply each transition-space component of a block of eigenvectors by
+    !> sqrt(f_initial-f_final). The factor vector uses absolute transition
+    !> indices, while the block stores only a contiguous slice.
+    subroutine apply_occupation_factors(inblock2d, occupation_factors)
+      implicit none
+      type(block2d), intent(inout) :: inblock2d
+      real(8), intent(in) :: occupation_factors(:)
+      integer(4) :: i, transition_index
+
+      if (.not. allocated(inblock2d%zcontent)) then
+        write(*,'(A)') 'Error(apply_occupation_factors): eigenvector block is not allocated.'
+        error stop
+      end if
+
+      do i=1,inblock2d%blocksize(1)
+        transition_index=inblock2d%offset(1)+i
+        if ((transition_index < 1) .or. (transition_index > size(occupation_factors))) then
+          write(*,'(A,I0,A,I0)') 'Error(apply_occupation_factors): transition index ', &
+            & transition_index, ' is outside factor vector of size ', size(occupation_factors)
+          error stop
+        end if
+        inblock2d%zcontent(i,:)=occupation_factors(transition_index)*inblock2d%zcontent(i,:)
+      end do
+    end subroutine apply_occupation_factors
+
     !---------------------------------------------------------------------------  
     !> @author 
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
@@ -591,6 +617,9 @@ module mod_blocks
         call get_eigvecsIP(eigvec, core)
       else
         call get_eigvecs(eigvec, core_id)
+      end if
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec,core%occupation_factors)
       end if
       
       ! generate block of B matrix

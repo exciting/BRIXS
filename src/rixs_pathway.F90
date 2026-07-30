@@ -40,6 +40,7 @@ program rixs_pathway
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: core_id, optical_id, pmat_id, inter_id
+  integer(hid_t) :: occupations_core_id, occupations_optical_id
   integer(hid_t) :: t1_id, t2_id, evalsc_id
   integer :: matsize_(1), matsize2_(2)
   !Specify file/dataset name
@@ -71,6 +72,14 @@ program rixs_pathway
   call get_ismap(core)
   ! read input file
   call read_inputfile(inputparam)
+  if (inputparam%non_equilibrium) then
+    call phdf5_open_file(trim(inputparam%occupation_factors_core_file),occupations_core_id)
+    call phdf5_open_file(trim(inputparam%occupation_factors_optical_file),occupations_optical_id)
+    call get_occupation_factors(core,occupations_core_id)
+    call get_occupation_factors(optical,occupations_optical_id)
+    call phdf5_close_file(occupations_core_id)
+    call phdf5_close_file(occupations_optical_id)
+  end if
   ! get number of k-grid (has to be the same for optical and core calculation)
   interdim=shape(core%koulims)
   nkmax=interdim(2)
@@ -171,6 +180,9 @@ program rixs_pathway
       else
         call get_eigvecs(eigvec_b, core_id)
       end if
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec_b,core%occupation_factors)
+      end if
       ! generate block of t
       call generate_t(t_b, core%koulims, core%smap, core%ismap, inputparam%pol_in, pmat_id)
       ! matrix-vector multiplication
@@ -243,6 +255,9 @@ program rixs_pathway
         else
           call get_eigvecs(eigvec_b, optical_id)
         end if
+        if (allocated(optical%occupation_factors)) then
+          call apply_occupation_factors(eigvec_b,optical%occupation_factors)
+        end if
         ! generate block of intermediate product
         call generate_product(prod_b, inputparam, core, optical, core_id, pmat_id)
 
@@ -268,4 +283,3 @@ program rixs_pathway
   call phdf5_finalize()
   call finitmpi()
 end program rixs_pathway
-
