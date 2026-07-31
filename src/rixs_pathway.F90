@@ -24,7 +24,7 @@ program rixs_pathway
   use hdf5, only: hid_t
 
   implicit none
-  integer :: nkmax, nu_optical, no_optical, nu_core, no_core, global_core, global_optical
+  integer :: nkmax, global_core, global_optical
   integer :: interdim(2)
   type(io) :: optical, core
   type(input) :: inputparam
@@ -32,7 +32,7 @@ program rixs_pathway
   integer(4) :: blocks_, blocks2_, blocks3_
   character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &
    & fname_inter, gname, gname2, ik, datasetname 
-  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k
+  integer(4) :: nblocks_, nk_, transition_il, transition_iu
   type(block1d) :: t1_b, t_b, evalsc_b
   type(block2d) :: eigvec_b, t2_b, prod_b
   real(8) ::  test
@@ -84,13 +84,8 @@ program rixs_pathway
   interdim=shape(core%koulims)
   nkmax=interdim(2)
   ! get global sizes
-  nu_optical=optical%koulims(2,1)-optical%koulims(1,1)+1
-  no_optical=optical%koulims(4,1)-optical%koulims(3,1)+1
-  global_optical=nu_optical*no_optical*nkmax
-
-  nu_core=core%koulims(2,1)-core%koulims(1,1)+1
-  no_core=core%koulims(4,1)-core%koulims(3,1)+1
-  global_core=nu_core*no_core*nkmax
+  global_optical=optical%hamsize
+  global_core=core%hamsize
   ! create combined map for valence-core transitions
   allocate(koulims_comb(4,nkmax))
   koulims_comb(1,:)=optical%koulims(3,:)
@@ -151,27 +146,28 @@ program rixs_pathway
 
     ! 2nd loop over the blocks
     do blocks2_= 1, nblocks_
+      t_b%kl=(blocks2_-1)*nk_+1
+      t_b%ku=blocks2_*nk_
+      call get_transition_range(core,t_b%kl,t_b%ku,transition_il,transition_iu)
       ! set-up for the blocks of core eigenvectors
       eigvec_b%nblocks=nblocks_
-      eigvec_b%blocksize=(/ nofblock(blocks2_, global_core, nblocks_), t1_b%blocksize /)
+      eigvec_b%blocksize=(/ transition_iu-transition_il+1, t1_b%blocksize /)
       eigvec_b%global=(/ global_core, inputparam%nstatc /)
-      eigvec_b%il=firstofblock(blocks2_, global_core, nblocks_)
-      eigvec_b%iu=lastofblock(blocks2_, global_core, nblocks_)
+      eigvec_b%il=transition_il
+      eigvec_b%iu=transition_iu
       eigvec_b%jl=t1_b%il
       eigvec_b%ju=t1_b%iu
-      eigvec_b%offset(1)=firstofblock(blocks2_, global_core, nblocks_)-1
+      eigvec_b%offset(1)=transition_il-1
       eigvec_b%offset(2)=t1_b%offset
       eigvec_b%id=(/ blocks2_, blocks_ /)
       ! set-up for the blocks of t
       t_b%nblocks=nblocks_
-      t_b%blocksize=nofblock(blocks2_, global_core, nblocks_)
+      t_b%blocksize=transition_iu-transition_il+1
       t_b%global=global_core
-      t_b%il=firstofblock(blocks2_, global_core, nblocks_)
-      t_b%iu=lastofblock(blocks2_, global_core, nblocks_)
+      t_b%il=transition_il
+      t_b%iu=transition_iu
       t_b%nk=nk_
-      t_b%kl=(blocks2_-1)*nk_+1
-      t_b%ku=blocks2_*nk_
-      t_b%offset=firstofblock(blocks2_, global_core, nblocks_)-1
+      t_b%offset=transition_il-1
       t_b%id=blocks2_
       
       ! generate block of X
@@ -224,29 +220,30 @@ program rixs_pathway
       allocate(t2_b%zcontent(t2_b%blocksize(1), t2_b%blocksize(2)))
       t2_b%zcontent(:,:)=cmplx(0.0d0, 0.0d0)
       do blocks3_=1, nblocks_
-        ! set-up block for prod vector
-        prod_b%nblocks=nblocks_
-        prod_b%blocksize=(/ nofblock(blocks3_, global_optical, nblocks_), nofblock(blocks2_, inputparam%nstatc, nblocks_)  /)
-        prod_b%global=(/ global_optical, inputparam%nstatc /)
-        prod_b%nk=nk_
-        prod_b%il=firstofblock(blocks3_, global_optical, nblocks_)
-        prod_b%iu=lastofblock(blocks3_, global_optical, nblocks_)
-        prod_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-        prod_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
         prod_b%k1l=(blocks3_-1)*nk_+1
         prod_b%k1u=blocks3_*nk_
-        prod_b%offset=(/ prod_b%il-1, prod_b%jl-1 /)
+        call get_transition_range(optical,prod_b%k1l,prod_b%k1u,transition_il,transition_iu)
+        ! set-up block for prod vector
+        prod_b%nblocks=nblocks_
+        prod_b%blocksize=(/ transition_iu-transition_il+1, nofblock(blocks2_, inputparam%nstatc, nblocks_)  /)
+        prod_b%global=(/ global_optical, inputparam%nstatc /)
+        prod_b%nk=nk_
+        prod_b%il=transition_il
+        prod_b%iu=transition_iu
+        prod_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
+        prod_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
+        prod_b%offset=(/ transition_il-1, prod_b%jl-1 /)
         prod_b%id=(/ blocks3_, blocks2_ /)
 
         ! set up block of optical eigenvectors
         eigvec_b%nblocks=nblocks_
-        eigvec_b%blocksize=(/ nofblock(blocks3_, global_optical, nblocks_), t2_b%blocksize(1) /)
+        eigvec_b%blocksize=(/ transition_iu-transition_il+1, t2_b%blocksize(1) /)
         eigvec_b%global=(/ global_optical, inputparam%nstato /)
-        eigvec_b%il=firstofblock(blocks3_, global_optical, nblocks_)
-        eigvec_b%iu=lastofblock(blocks3_, global_optical, nblocks_)
+        eigvec_b%il=transition_il
+        eigvec_b%iu=transition_iu
         eigvec_b%jl=t2_b%il
         eigvec_b%ju=t2_b%iu
-        eigvec_b%offset(1)=firstofblock(blocks3_, global_optical, nblocks_)-1
+        eigvec_b%offset(1)=transition_il-1
         eigvec_b%offset(2)=t2_b%offset(1)
         eigvec_b%id=(/ blocks3_, blocks_ /)
         ! generate block of eigenvectors

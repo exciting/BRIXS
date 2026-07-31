@@ -91,10 +91,10 @@ module mod_blocks
       dim_koulims=shape(inkoulims)
       dim_smap=shape(insmap)
       !determine sizes
-      lu=inkoulims(1,1)
-      uu=inkoulims(2,1)
-      lo=inkoulims(3,1)
-      uo=inkoulims(4,1)
+      lu=minval(inkoulims(1,:))
+      uu=maxval(inkoulims(2,:))
+      lo=minval(inkoulims(3,:))
+      uo=maxval(inkoulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=insmap(3,1)
@@ -103,6 +103,7 @@ module mod_blocks
       ! allocate the output matrix
       if (allocated(outbl4d)) deallocate(outbl4d)
       allocate(outbl4d(nu, no, inbl2d%nk,inbl2d%blocksize(2)))
+      outbl4d=cmplx(0.0d0,0.0d0)
       ! loop over all excitons
       do lambda=1, inbl2d%blocksize(2)
         ! loop over all transitions
@@ -149,10 +150,10 @@ module mod_blocks
       dim_koulims=shape(input%koulims)
       dim_smap=shape(input%smap)
       !determine sizes
-      lu=input%koulims(1,1)
-      uu=input%koulims(2,1)
-      lo=input%koulims(3,1)
-      uo=input%koulims(4,1)
+      lu=minval(input%koulims(1,:))
+      uu=maxval(input%koulims(2,:))
+      lo=minval(input%koulims(3,:))
+      uo=maxval(input%koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=input%smap(3,1)
@@ -162,6 +163,7 @@ module mod_blocks
       !generate the block output
       if (allocated(outbl2d%zcontent)) deallocate(outbl2d%zcontent)
       allocate(outbl2d%zcontent(outbl2d%blocksize(1), outbl2d%blocksize(2)))
+      outbl2d%zcontent=cmplx(0.0d0,0.0d0)
 
       ! loop over all transitions
       do lambda=1, outbl2d%blocksize(2)
@@ -417,7 +419,7 @@ module mod_blocks
       !internal variables
       integer(4), dimension(2) :: dim_koulims, dim_smap
       integer(4) :: lu, uu, lo, uo, nu, no, nk0
-      integer(4) :: k,i,j,dimensions(4), dimsg_(3), offset_(3)
+      integer(4) :: k,i,j,transition_index,dimensions(4), dimsg_(3), offset_(3)
       character(len=1024) :: path, dsetname, cik
       complex(8), allocatable :: pmat_(:,:,:)
       !complex(8) :: pmat_(3,2,35)
@@ -427,15 +429,16 @@ module mod_blocks
       ! allocate output
       if (allocated(inblock1d%zcontent)) deallocate(inblock1d%zcontent)
       allocate(inblock1d%zcontent(inblock1d%blocksize))
+      inblock1d%zcontent=cmplx(0.0d0,0.0d0)
       dsetname=trim(adjustl('pmat'))
       !get shapes
       dim_koulims=shape(koulims)
       dim_smap=shape(smap)
       !determine sizes
-      lu=koulims(1,1)
-      uu=koulims(2,1)
-      lo=koulims(3,1)
-      uo=koulims(4,1)
+      lu=minval(koulims(1,:))
+      uu=maxval(koulims(2,:))
+      lo=minval(koulims(3,:))
+      uo=maxval(koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=smap(3,1)
@@ -456,9 +459,14 @@ module mod_blocks
         ! in the BSE calculation
         do i=1, no
           do j=1, nu
-            inblock1d%zcontent(ismap(j,i,k)-inblock1d%offset)=conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+&
-              & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+&
-              & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
+            transition_index=ismap(j,i,k)
+            if (transition_index >= inblock1d%il .and. &
+              & transition_index <= inblock1d%iu) then
+              inblock1d%zcontent(transition_index-inblock1d%offset)= &
+                & conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+ &
+                & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+ &
+                & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
+            end if
           end do
         end do
       end do
@@ -499,10 +507,10 @@ module mod_blocks
       complex(8), allocatable :: pmat_(:,:,:)
       !complex(8) :: pmat_(3,2,35)
       !determine sizes
-      lu=koulims(1,1)
-      uu=koulims(2,1)
-      lo=koulims(3,1)
-      uo=koulims(4,1)
+      lu=minval(koulims(1,:))
+      uu=maxval(koulims(2,:))
+      lo=minval(koulims(3,:))
+      uo=maxval(koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       inter=shape(koulims)
@@ -511,6 +519,7 @@ module mod_blocks
       ! allocate output array
       if (allocated(in3d%zcontent)) deallocate(in3d%zcontent)
       allocate(in3d%zcontent(no,nu,nk_))
+      in3d%zcontent=cmplx(0.0d0,0.0d0)
       in3d%blocksize=(/no, nu, nk_/)
       dsetname='pmat'
       do k=in3d%kl, in3d%ku
@@ -560,7 +569,7 @@ module mod_blocks
     !> @param[in] pmat_id
     !---------------------------------------------------------------------------  
     subroutine generate_product(in2d, inputparam, core, optical, core_id, pmat_id)
-      use mod_io, only: io, input
+      use mod_io, only: io, input, get_transition_range
       use hdf5, only: hid_t
       implicit none
       type(block2d), intent(inout) :: in2d
@@ -576,7 +585,7 @@ module mod_blocks
       complex(8), allocatable :: inter(:,:), inter2(:,:), inter3(:,:)
       complex(8), allocatable :: prod_prime(:,:,:,:), prod_matrix(:,:,:,:)
       integer(4) :: interdim(2), nkmax, id_(2), blsz_, nk_, global_
-      integer(4) :: lambda, ik
+      integer(4) :: lambda, ik, transition_il, transition_iu
 
       ! generate combined koulims index range
       interdim=shape(core%koulims)
@@ -591,20 +600,21 @@ module mod_blocks
       ! core eigenvector block does not have
       ! the same size as the inblock
       id_=in2d%id
-      blsz_=core%no*core%nu*in2d%nk
-      global_=core%no*core%nu*nkmax
+      call get_transition_range(core,in2d%k1l,in2d%k1u,transition_il,transition_iu)
+      blsz_=transition_iu-transition_il+1
+      global_=core%hamsize
       ! set up block for core eigenstates
       eigvec%nblocks=in2d%nblocks
       eigvec%blocksize=(/ blsz_, in2d%blocksize(2) /)
       eigvec%global=global_
       eigvec%nk=in2d%nk
-      eigvec%il=(in2d%id(1)-1)*blsz_+1
-      eigvec%iu=in2d%id(1)*blsz_
+      eigvec%il=transition_il
+      eigvec%iu=transition_iu
       eigvec%jl=in2d%jl
       eigvec%ju=in2d%ju
       eigvec%k1l=in2d%k1l
       eigvec%k1u=in2d%k1u
-      eigvec%offset=(/ eigvec%il-1, in2d%offset(2) /)
+      eigvec%offset=(/ transition_il-1, in2d%offset(2) /)
       eigvec%id=in2d%id
       ! set up block for t' matrix
       tprime_b%nblocks=in2d%nblocks

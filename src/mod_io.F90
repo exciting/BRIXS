@@ -40,6 +40,7 @@ module mod_io
   public get_smap
   public get_ismap
   public get_occupation_factors
+  public get_transition_range
     
   contains
   ! Methodenbereich
@@ -247,6 +248,7 @@ module mod_io
       ! allocate ismap
       if (allocated(object%ismap)) deallocate(object%ismap)
       allocate(object%ismap(object%nu,object%no,object%nkmax))
+      object%ismap=0
       !fill in the inverse map
       do i=1,object%hamsize
         i1=object%smap(1,i)-object%lu+1
@@ -256,6 +258,32 @@ module mod_io
       end do
     end if
   end subroutine 
+
+  !---------------------------------------------------------------------------
+  !> Return the contiguous transition-space range belonging to a range of
+  !> relative k-point indices. exciting stores smap ordered by k point.
+  subroutine get_transition_range(object,kl,ku,il,iu)
+    implicit none
+    type(io), intent(in) :: object
+    integer(4), intent(in) :: kl, ku
+    integer(4), intent(out) :: il, iu
+    integer(4) :: i, ik
+
+    il=0
+    iu=-1
+    do i=1,object%hamsize
+      ik=object%smap(3,i)-object%nk0+1
+      if ((ik >= kl) .and. (ik <= ku)) then
+        if (il == 0) il=i
+        iu=i
+      end if
+    end do
+
+    if (il == 0) then
+      write(*,'(A,I0,A,I0)') 'Error(get_transition_range): no transitions for k-point range ',kl,' to ',ku
+      error stop
+    end if
+  end subroutine get_transition_range
   
   !---------------------------------------------------------------------------  
   !> @author 
@@ -283,17 +311,17 @@ module mod_io
       dim_koulims=shape(object%koulims)
       dim_smap=shape(object%smap)
       !set some parameters for convenience
-      object%lu=object%koulims(1,1)   ! lowest conduction band
-      object%uu=object%koulims(2,1)   ! highest conduction band
-      object%lo=object%koulims(3,1)   ! lowest valence band
-      object%uo=object%koulims(4,1)   ! highest valence band
+      object%lu=minval(object%koulims(1,:)) ! lowest conduction band
+      object%uu=maxval(object%koulims(2,:)) ! highest conduction band
+      object%lo=minval(object%koulims(3,:)) ! lowest valence band
+      object%uo=maxval(object%koulims(4,:)) ! highest valence band
       object%nu=object%uu-object%lu+1 ! number of conduction bands
       object%no=object%uo-object%lo+1 ! number of valence bands
       object%nk0=object%smap(3,1)     ! index of first k-point
       object%nkmax=dim_koulims(2)     ! Number of k-points
       object%hamsize=dim_smap(2)      ! Size of BSE Hamiltonian
       object%globalk=object%no*object%nu
-      object%global=object%no*object%nu*object%nkmax
+      object%global=object%hamsize
     else
       print *, 'koulims and smap have to be obtained from file before set_param can be called!'
     end if
