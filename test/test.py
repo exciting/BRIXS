@@ -171,10 +171,16 @@ class TestNonEquilibriumPathways(ut.TestCase):
             for filename, size, factor in (
                     ('occupations_core.h5', ncore, core_factor),
                     ('occupations_optical.h5', noptical, optical_factor)):
+                output_name = filename.replace('occupations_', '').replace('.h5', '_output.h5')
+                with h5py.File(workdir / output_name, 'r') as output:
+                    smap = output[
+                        'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                    ][:]
                 with h5py.File(workdir / filename, 'w') as occupations:
                     group = occupations.require_group('IQMT_000001/transitions')
                     group.create_dataset('occupation_factors',
                                          data=np.full(size, factor, dtype=np.float64))
+                    group.create_dataset('smap', data=smap)
 
             config_path = workdir / 'input.cfg'
             config_text = config_path.read_text(encoding='utf-8')
@@ -222,6 +228,12 @@ class TestNonEquilibriumPathways(ut.TestCase):
                         nonequilibrium / f'occupations_{kind}.h5', 'w') as occupations:
                     group = occupations.require_group('IQMT_000001/transitions')
                     group.create_dataset('occupation_factors', data=factors[kind])
+                    with h5py.File(nonequilibrium / output_name, 'r') as output:
+                        group.create_dataset(
+                            'smap',
+                            data=output[
+                                'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                            ][:])
 
                 with h5py.File(weighted_reference / output_name, 'r+') as output:
                     for eigenvector in output[eigenvector_group].values():
@@ -273,6 +285,12 @@ class TestNonEquilibriumPathways(ut.TestCase):
                     group.create_dataset(
                         'occupation_factors',
                         data=np.full(ntransitions, factor, dtype=np.float64))
+                    with h5py.File(workdir / f'{kind}_output.h5', 'r') as output:
+                        group.create_dataset(
+                            'smap',
+                            data=output[
+                                'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                            ][:])
 
             config_path = workdir / 'input.cfg'
             config_path.write_text(
@@ -292,6 +310,50 @@ class TestNonEquilibriumPathways(ut.TestCase):
                             oscillator_factor
                             * reference['oscstr'][frequency][contribution][:],
                             rtol=5e-12, atol=1e-14)
+
+    def test_non_equilibrium_requires_matching_transition_map(self):
+        """Missing or reordered transition maps are rejected before calculation."""
+        repository = Path(__file__).resolve().parents[1]
+        source = repository / 'test' / 'data' / 'diamond' / 'pathway'
+        executable = repository / 'bin' / 'rixs-pathway-serial'
+
+        for mode in ('missing', 'reordered'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                workdir = Path(tmp) / 'pathway'
+                shutil.copytree(source, workdir)
+
+                for kind in ('core', 'optical'):
+                    with h5py.File(workdir / f'{kind}_output.h5', 'r') as output:
+                        smap = output[
+                            'eigvec-singlet-TDA-BAR-full/0001/parameters/smap'
+                        ][:]
+                    with h5py.File(
+                            workdir / f'occupations_{kind}.h5', 'w') as occupations:
+                        group = occupations.require_group('IQMT_000001/transitions')
+                        group.create_dataset(
+                            'occupation_factors',
+                            data=np.ones(smap.shape[0], dtype=np.float64))
+                        if mode == 'reordered' or kind == 'optical':
+                            if mode == 'reordered' and kind == 'core':
+                                smap = smap.copy()
+                                smap[[0, 1]] = smap[[1, 0]]
+                            group.create_dataset('smap', data=smap)
+
+                config_path = workdir / 'input.cfg'
+                config_path.write_text(
+                    config_path.read_text(encoding='utf-8')
+                    + '\nnon_equilibrium=true\n',
+                    encoding='utf-8')
+
+                proc = sb.run(
+                    [executable], cwd=workdir, check=False,
+                    capture_output=True, text=True)
+                self.assertNotEqual(proc.returncode, 0)
+                output = proc.stdout + proc.stderr
+                if mode == 'missing':
+                    self.assertIn('required dataset', output)
+                else:
+                    self.assertIn('transition-map mismatch', output)
 
 
 if __name__ == '__main__':
