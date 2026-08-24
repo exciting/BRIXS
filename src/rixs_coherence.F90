@@ -5,6 +5,7 @@ program rixs_coherence
   use mod_matmul
   use mod_blocks
   use mod_blocks_k
+  use mod_constants, only: hartree_to_ev
   use hdf5, only: hid_t
 
   implicit none
@@ -232,7 +233,7 @@ program rixs_coherence
           
           ! adjust t(1) by multiplication with frequency-dependent prefactor
           do lambda=1, t1_b%blocksize
-            t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*27.211d0-inputparam%omega(w1) &
+            t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*hartree_to_ev-inputparam%omega(w1) &
               &+cmplx(0.0d0,inputparam%broad)))*t1_b%zcontent(lambda)
           end do
 
@@ -332,7 +333,7 @@ program rixs_coherence
                 call gen_t1_k(t1_b, ik2, core, core_id, pmat_id, inputparam)
                 ! adjust t(1) by multiplication with frequency-dependent prefactor
                 do lambda=1, t1_b%blocksize
-                  t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*27.211d0-inputparam%omega(w1) &
+                  t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*hartree_to_ev-inputparam%omega(w1) &
                     &+cmplx(0.0d0,inputparam%broad)))*t1_b%zcontent(lambda)
                 end do
                 ! generate block of oscstr

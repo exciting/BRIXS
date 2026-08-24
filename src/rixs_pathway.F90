@@ -94,7 +94,8 @@ program rixs_pathway
   
   if ((float(floor(test)) .ne. test) .and. (mpiglobal%rank .eq. 0)) then
     print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
-    stop
+    end if
+    call terminate
   end if 
   ! get number of k-points per block 
   nk_=nkmax/inputparam%nblocks

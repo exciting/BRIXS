@@ -4,6 +4,7 @@ program rixs_oscstr
   use mod_io
   use mod_matmul
   use mod_blocks
+  use mod_constants, only: hartree_to_ev
   use hdf5, only: hid_t
 
   implicit none
@@ -70,7 +71,8 @@ program rixs_oscstr
   
   if ((float(floor(test)) .ne. test) .and. (mpiglobal%rank .eq. 0)) then
     print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
-    stop
+    end if
+    call terminate
   end if 
   ! define blocks for oscillator strength
   nk_=nkmax/inputparam%nblocks
@@ -164,7 +166,7 @@ program rixs_oscstr
         ! set up block for eigenvalues
         evals2_b%nblocks=nblocks_
         evals2_b%blocksize=nofblock(k2, inputparam%nstatc, nblocks_)
-        evals2_b%global=inputparam%nstato
+        evals2_b%global=inputparam%nstatc
         evals2_b%nk=nk_
         evals2_b%il=firstofblock(k2, inputparam%nstatc, nblocks_)
         evals2_b%iu=lastofblock(k2, inputparam%nstatc, nblocks_)
@@ -210,7 +212,7 @@ program rixs_oscstr
         call get_block2d(t2_b,t2_id)
         ! adjust t(1) by multiplication with frequency-dependent prefactor
         do lambda=1, t1_b%blocksize
-          t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*27.211d0-inputparam%omega(w1) &
+          t1_b%zcontent(lambda)=(-1.0d0/(evals2_b%dcontent(lambda)*hartree_to_ev-inputparam%omega(w1) &
             &+cmplx(0.0d0,inputparam%broad)))*t1_b%zcontent(lambda)
         end do
         ! generate block of oscstr
