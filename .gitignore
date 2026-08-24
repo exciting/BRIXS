@@ -1,16 +1,10 @@
-# ignore all module files 
+# ignore all module/object files (only relevant for stray in-source builds;
+# the CMake build puts these in build/ instead, see below)
 *.o
 *.mod
-#ignore the executable
-rixs
-rixs_b
-rixs_b2
-debug_b
-scaling_b
-scaling_single
-rixs_oscstr
-rixs_vecA
-rixs_pathway
+#ignore out-of-source CMake build directories
+build/
+build-*/
 #ignore vim swp files
 .*.swp
 tags

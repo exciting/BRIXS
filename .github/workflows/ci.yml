@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test-gnu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran cmake libhdf5-dev liblapack-dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python test dependencies
+        run: pip install h5py numpy
+
+      - name: Configure (serial)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  build-and-test-intel:
+    # Serial-only sanity build with Intel's Fortran compiler (ifx). Fortran
+    # .mod files are compiler-specific, so HDF5 has to be built from source
+    # with ifx too -- Ubuntu's gfortran-built libhdf5-dev (used in the GNU
+    # job above) can't be linked against ifx-compiled code.
+    runs-on: ubuntu-latest
+    env:
+      HDF5_VERSION: 1.14.5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Intel oneAPI Fortran (ifx)
+        uses: fortran-lang/setup-fortran@v1
+        id: setup-fortran
+        with:
+          compiler: intel
+          version: '2024.2'
+
+      - name: Install CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python test dependencies
+        run: pip install h5py numpy
+
+      - name: Cache HDF5 (built with ifx)
+        id: cache-hdf5
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/hdf5-ifx
+          key: hdf5-${{ env.HDF5_VERSION }}-ifx-${{ steps.setup-fortran.outputs.version }}
+
+      - name: Build HDF5 from source with ifx
+        if: steps.cache-hdf5.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz" -o hdf5.tar.gz
+          tar xzf hdf5.tar.gz
+          cmake -S "hdf5-${HDF5_VERSION}" -B hdf5-build \
+            -DCMAKE_Fortran_COMPILER=${{ env.FC }} \
+            -DCMAKE_C_COMPILER=${{ env.CC }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/hdf5-ifx \
+            -DHDF5_BUILD_FORTRAN=ON \
+            -DHDF5_ENABLE_PARALLEL=OFF \
+            -DBUILD_TESTING=OFF \
+            -DHDF5_BUILD_EXAMPLES=OFF
+          cmake --build hdf5-build -j
+          cmake --install hdf5-build
+
+      - name: Configure BRIXS (serial, ifx)
+        run: |
+          cmake -B build \
+            -DCMAKE_Fortran_COMPILER=${{ env.FC }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DHDF5_ROOT=${{ github.workspace }}/hdf5-ifx
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
