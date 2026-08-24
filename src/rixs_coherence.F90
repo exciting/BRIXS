@@ -121,13 +121,7 @@ program rixs_coherence
   !--------------------------------------------!
   if (mpiglobal%rank .eq. 0) then
     do blocks_=1, nblocks_
-      evalsv_b%nblocks   = nblocks_
-      evalsv_b%blocksize = nofblock(blocks_, inputparam%nstato, nblocks_)
-      evalsv_b%global    = inputparam%nstato
-      evalsv_b%il        = firstofblock(blocks_, inputparam%nstato, nblocks_)
-      evalsv_b%iu        = lastofblock(blocks_, inputparam%nstato, nblocks_)
-      evalsv_b%offset    = firstofblock(blocks_, inputparam%nstato, nblocks_) - 1
-      evalsv_b%id        = blocks_
+      evalsv_b = make_block1d(blocks_, inputparam%nstato, nblocks_)
 
       call get_evals(evalsv_b, optical_id)
       call put_block1d(evalsv_b, energyv_id)
@@ -140,13 +134,7 @@ program rixs_coherence
   !--------------------------------------------
   if (mpiglobal%rank .eq. 0) then
     do blocks_=1, nblocks_
-      evalsc_b%nblocks   = nblocks_
-      evalsc_b%blocksize = nofblock(blocks_, inputparam%nstatc, nblocks_)
-      evalsc_b%global    = inputparam%nstatc
-      evalsc_b%il        = firstofblock(blocks_, inputparam%nstatc, nblocks_)
-      evalsc_b%iu        = lastofblock(blocks_, inputparam%nstatc, nblocks_)
-      evalsc_b%offset    = firstofblock(blocks_, inputparam%nstatc, nblocks_) - 1
-      evalsc_b%id        = blocks_
+      evalsc_b = make_block1d(blocks_, inputparam%nstatc, nblocks_)
 
       call get_evals(evalsc_b, core_id)
       call put_block1d(evalsc_b, energyc_id)
@@ -161,13 +149,7 @@ program rixs_coherence
     ! loop over kpoints
     do blocks_=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
       ! set up block of oscillator strength
-      oscstr_b%nblocks=nblocks_
-      oscstr_b%blocksize=nofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%global=inputparam%nstato
-      oscstr_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-      oscstr_b%offset=firstofblock(blocks_, inputparam%nstato, nblocks_)-1
-      oscstr_b%id=blocks_
+      oscstr_b = make_block1d(blocks_, inputparam%nstato, nblocks_)
 
       ! allocate content of oscillator strength
       if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
@@ -189,35 +171,13 @@ program rixs_coherence
         
         do blocks2_=1, nblocks_
           ! set up block for eigenvalues
-          evals2_b%nblocks=nblocks_
-          evals2_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-          evals2_b%global=inputparam%nstatc
-          evals2_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-          evals2_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-          evals2_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-          evals2_b%id=blocks2_
-          
+          evals2_b = make_block1d(blocks2_, inputparam%nstatc, nblocks_)
+
           ! set up block of t(1)
-          t1_b%nblocks=nblocks_
-          t1_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-          t1_b%global=inputparam%nstatc
-          t1_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-          t1_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-          t1_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-          t1_b%id=blocks2_
-          
+          t1_b = make_block1d(blocks2_, inputparam%nstatc, nblocks_)
+
           !set up block for t(2) matrix
-          t2_b%nblocks=nblocks_
-          t2_b%blocksize=(/ nofblock(blocks_ , inputparam%nstato, nblocks_), &
-           & nofblock(blocks2_, inputparam%nstatc, nblocks_) /)
-          t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
-          t2_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-          t2_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-          t2_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-          t2_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-          t2_b%offset(1)=t2_b%il-1
-          t2_b%offset(2)=t2_b%jl-1
-          t2_b%id=(/ blocks_, blocks2_ /)
+          t2_b = make_block2d(blocks_, inputparam%nstato, blocks2_, inputparam%nstatc, nblocks_)
           
           ! generate block of core eigenvalues
           call get_evals(evals2_b,core_id)
@@ -259,13 +219,7 @@ program rixs_coherence
    do w1=1, nw_
       do blocks_=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
         ! set up block of oscillator strength
-        oscstr_b%nblocks=nblocks_
-        oscstr_b%blocksize=nofblock(blocks_, inputparam%nstato, nblocks_)
-        oscstr_b%global=inputparam%nstato
-        oscstr_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-        oscstr_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-        oscstr_b%offset=firstofblock(blocks_, inputparam%nstato, nblocks_)-1
-        oscstr_b%id=blocks_
+        oscstr_b = make_block1d(blocks_, inputparam%nstato, nblocks_)
 
         ! allocate content of oscillator strength
         if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
@@ -289,35 +243,13 @@ program rixs_coherence
             if (ik1 .ne. ik2) then
               do blocks2_=1, nblocks_
                 ! set up block for eigenvalues
-                evals2_b%nblocks=nblocks_
-                evals2_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-                evals2_b%global=inputparam%nstatc
-                evals2_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-                evals2_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-                evals2_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-                evals2_b%id=blocks2_
-                
+                evals2_b = make_block1d(blocks2_, inputparam%nstatc, nblocks_)
+
                 !set up block for t(2) matrix
-                t2_b%nblocks=nblocks_
-                t2_b%blocksize=(/ nofblock(blocks_ , inputparam%nstato, nblocks_), &
-                 & nofblock(blocks2_, inputparam%nstatc, nblocks_) /)
-                t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
-                t2_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-                t2_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-                t2_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-                t2_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-                t2_b%offset(1)=t2_b%il-1
-                t2_b%offset(2)=t2_b%jl-1
-                t2_b%id=(/ blocks_, blocks2_ /)
-                
+                t2_b = make_block2d(blocks_, inputparam%nstato, blocks2_, inputparam%nstatc, nblocks_)
+
                 ! set up block of t(1)
-                t1_b%nblocks=nblocks_
-                t1_b%blocksize=nofblock(blocks2_, inputparam%nstatc, nblocks_)
-                t1_b%global=inputparam%nstatc
-                t1_b%il=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-                t1_b%iu=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
-                t1_b%offset=firstofblock(blocks2_, inputparam%nstatc, nblocks_)-1
-                t1_b%id=blocks2_
+                t1_b = make_block1d(blocks2_, inputparam%nstatc, nblocks_)
                 
                 
                 ! generate block of core eigenvalues

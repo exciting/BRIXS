@@ -92,11 +92,15 @@ program rixs_pathway
   ! test whether the blocksize is possible
   test=float(nkmax)/float(inputparam%nblocks)
   
-  if ((float(floor(test)) .ne. test) .and. (mpiglobal%rank .eq. 0)) then
-    print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
+  if (float(floor(test)) .ne. test) then
+    ! every rank evaluates this (purely local, deterministic) check and
+    ! terminates together; only rank 0 prints, avoiding a deadlock where
+    ! rank 0 would stop here while other ranks proceed into collective calls
+    if (mpiglobal%rank .eq. 0) then
+      print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
     end if
     call terminate
-  end if 
+  end if
   ! get number of k-points per block 
   nk_=nkmax/inputparam%nblocks
   !blsz_k=nu*no
@@ -113,21 +117,9 @@ program rixs_pathway
   !----------------------------------------------------!
   do blocks_= firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
     !set-up for the blocks of t(1)
-    t1_b%nblocks=nblocks_
-    t1_b%blocksize=nofblock(blocks_, inputparam%nstatc, nblocks_)
-    t1_b%global=inputparam%nstatc
-    t1_b%il=firstofblock(blocks_, inputparam%nstatc, nblocks_)
-    t1_b%iu=lastofblock(blocks_, inputparam%nstatc, nblocks_)
-    t1_b%offset=firstofblock(blocks_, inputparam%nstatc, nblocks_)-1
-    t1_b%id=blocks_
+    t1_b = make_block1d(blocks_, inputparam%nstatc, nblocks_)
     !set-up for the block of core eigenvalues
-    evalsc_b%nblocks=nblocks_
-    evalsc_b%blocksize=nofblock(blocks_, inputparam%nstatc, nblocks_)
-    evalsc_b%global=inputparam%nstatc
-    evalsc_b%il=firstofblock(blocks_, inputparam%nstatc, nblocks_)
-    evalsc_b%iu=lastofblock(blocks_, inputparam%nstatc, nblocks_)
-    evalsc_b%offset=firstofblock(blocks_, inputparam%nstatc, nblocks_)-1
-    evalsc_b%id=blocks_
+    evalsc_b = make_block1d(blocks_, inputparam%nstatc, nblocks_)
 
     ! get block of core eigenvalues and write it to intermediate file
     if (.not. inputparam%ip_c) then
@@ -144,27 +136,12 @@ program rixs_pathway
     ! 2nd loop over the blocks
     do blocks2_= 1, nblocks_
       ! set-up for the blocks of core eigenvectors
-      eigvec_b%nblocks=nblocks_
-      eigvec_b%blocksize=(/ nofblock(blocks2_, global_core, nblocks_), t1_b%blocksize /)
-      eigvec_b%global=(/ global_core, inputparam%nstatc /)
-      eigvec_b%il=firstofblock(blocks2_, global_core, nblocks_)
-      eigvec_b%iu=lastofblock(blocks2_, global_core, nblocks_)
-      eigvec_b%jl=t1_b%il
-      eigvec_b%ju=t1_b%iu
-      eigvec_b%offset(1)=firstofblock(blocks2_, global_core, nblocks_)-1
-      eigvec_b%offset(2)=t1_b%offset
-      eigvec_b%id=(/ blocks2_, blocks_ /)
+      eigvec_b = make_block2d(blocks2_, global_core, blocks_, inputparam%nstatc, nblocks_)
       ! set-up for the blocks of t
-      t_b%nblocks=nblocks_
-      t_b%blocksize=nofblock(blocks2_, global_core, nblocks_)
-      t_b%global=global_core
-      t_b%il=firstofblock(blocks2_, global_core, nblocks_)
-      t_b%iu=lastofblock(blocks2_, global_core, nblocks_)
+      t_b = make_block1d(blocks2_, global_core, nblocks_)
       t_b%nk=nk_
       t_b%kl=(blocks2_-1)*nk_+1
       t_b%ku=blocks2_*nk_
-      t_b%offset=firstofblock(blocks2_, global_core, nblocks_)-1
-      t_b%id=blocks2_
       
       ! generate block of X
       if (inputparam%ip_c) then
@@ -193,20 +170,12 @@ program rixs_pathway
   do blocks_= firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
     do blocks2_=1, nblocks_
       ! set-up block for t(2) matrix
-      t2_b%nblocks=nblocks_
-      t2_b%blocksize=(/ nofblock(blocks_, inputparam%nstato, nblocks_), nofblock(blocks2_, inputparam%nstatc, nblocks_) /)
-      t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
+      t2_b = make_block2d(blocks_, inputparam%nstato, blocks2_, inputparam%nstatc, nblocks_)
       t2_b%nk=nk_
-      t2_b%il=firstofblock(blocks_, inputparam%nstato, nblocks_)
-      t2_b%iu=lastofblock(blocks_, inputparam%nstato, nblocks_)
-      t2_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-      t2_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
       t2_b%k1l=(blocks_-1)*nk_+1
       t2_b%k1u=blocks_*nk_
       t2_b%k2l=(blocks2_-1)*nk_+1
       t2_b%k2u=blocks2_*nk_
-      t2_b%offset=(/ t2_b%il-1, t2_b%jl-1 /)
-      t2_b%id=(/ blocks_, blocks2_ /)
      
       ! prepare output array
       if (allocated(t2_b%zcontent)) deallocate(t2_b%zcontent)
@@ -214,30 +183,13 @@ program rixs_pathway
       t2_b%zcontent(:,:)=cmplx(0.0d0, 0.0d0)
       do blocks3_=1, nblocks_
         ! set-up block for prod vector
-        prod_b%nblocks=nblocks_
-        prod_b%blocksize=(/ nofblock(blocks3_, global_optical, nblocks_), nofblock(blocks2_, inputparam%nstatc, nblocks_)  /)
-        prod_b%global=(/ global_optical, inputparam%nstatc /)
+        prod_b = make_block2d(blocks3_, global_optical, blocks2_, inputparam%nstatc, nblocks_)
         prod_b%nk=nk_
-        prod_b%il=firstofblock(blocks3_, global_optical, nblocks_)
-        prod_b%iu=lastofblock(blocks3_, global_optical, nblocks_)
-        prod_b%jl=firstofblock(blocks2_, inputparam%nstatc, nblocks_)
-        prod_b%ju=lastofblock(blocks2_, inputparam%nstatc, nblocks_)
         prod_b%k1l=(blocks3_-1)*nk_+1
         prod_b%k1u=blocks3_*nk_
-        prod_b%offset=(/ prod_b%il-1, prod_b%jl-1 /)
-        prod_b%id=(/ blocks3_, blocks2_ /)
 
         ! set up block of optical eigenvectors
-        eigvec_b%nblocks=nblocks_
-        eigvec_b%blocksize=(/ nofblock(blocks3_, global_optical, nblocks_), t2_b%blocksize(1) /)
-        eigvec_b%global=(/ global_optical, inputparam%nstato /)
-        eigvec_b%il=firstofblock(blocks3_, global_optical, nblocks_)
-        eigvec_b%iu=lastofblock(blocks3_, global_optical, nblocks_)
-        eigvec_b%jl=t2_b%il
-        eigvec_b%ju=t2_b%iu
-        eigvec_b%offset(1)=firstofblock(blocks3_, global_optical, nblocks_)-1
-        eigvec_b%offset(2)=t2_b%offset(1)
-        eigvec_b%id=(/ blocks3_, blocks_ /)
+        eigvec_b = make_block2d(blocks3_, global_optical, blocks_, inputparam%nstato, nblocks_)
         ! generate block of eigenvectors
         if (inputparam%ip_o) then
           call get_eigvecsIP(eigvec_b, optical)

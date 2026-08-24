@@ -69,11 +69,15 @@ program rixs_oscstr
   no_optical=optical%koulims(4,1)-optical%koulims(3,1)+1
   test=float(nkmax)/float(inputparam%nblocks)
   
-  if ((float(floor(test)) .ne. test) .and. (mpiglobal%rank .eq. 0)) then
-    print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
+  if (float(floor(test)) .ne. test) then
+    ! every rank evaluates this (purely local, deterministic) check and
+    ! terminates together; only rank 0 prints, avoiding a deadlock where
+    ! rank 0 would stop here while other ranks proceed into collective calls
+    if (mpiglobal%rank .eq. 0) then
+      print *, 'Blocksize', inputparam%nblocks, 'not compatible with ', nkmax, 'k-points'
     end if
     call terminate
-  end if 
+  end if
   ! define blocks for oscillator strength
   nk_=nkmax/inputparam%nblocks
   nblocks_=inputparam%nblocks
@@ -117,14 +121,8 @@ program rixs_oscstr
   ! loop over blocks
   do k=firstofset(mpiglobal%rank, nblocks_), lastofset(mpiglobal%rank, nblocks_)
     ! set up block for valence BSE eigenvalues (needed only for file output)
-    evalsv_b%nblocks=nblocks_
-    evalsv_b%blocksize=nofblock(k, inputparam%nstato, nblocks_)
-    evalsv_b%global=inputparam%nstato
+    evalsv_b = make_block1d(k, inputparam%nstato, nblocks_)
     evalsv_b%nk=nk_
-    evalsv_b%il=firstofblock(k, inputparam%nstato, nblocks_)
-    evalsv_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
-    evalsv_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
-    evalsv_b%id=k
     ! generate block of eigenvalues
     if (.not. inputparam%ip_o) then
       call get_evals(evalsv_b,optical_id)
@@ -133,14 +131,8 @@ program rixs_oscstr
     end if
     call put_block1d(evalsv_b,energyv_id)
     ! set up block for core BSE eigenvalues (needed only for file output)
-    evalsc_b%nblocks=nblocks_
-    evalsc_b%blocksize=nofblock(k, inputparam%nstatc, nblocks_)
-    evalsc_b%global=inputparam%nstatc
+    evalsc_b = make_block1d(k, inputparam%nstatc, nblocks_)
     evalsc_b%nk=nk_
-    evalsc_b%il=firstofblock(k, inputparam%nstatc, nblocks_)
-    evalsc_b%iu=lastofblock(k, inputparam%nstatc, nblocks_)
-    evalsc_b%offset=firstofblock(k, inputparam%nstatc, nblocks_)-1
-    evalsc_b%id=k
     ! generate block of eigenvalues
     if (.not. inputparam%ip_c) then
       call get_evals(evalsc_b,core_id)
@@ -150,14 +142,8 @@ program rixs_oscstr
     call put_block1d(evalsc_b,energyc_id)
     do w1=1, nw_
       ! set up block of oscillator strength
-      oscstr_b%nblocks=nblocks_
-      oscstr_b%blocksize=nofblock(k, inputparam%nstato, nblocks_)
-      oscstr_b%global=inputparam%nstato
+      oscstr_b = make_block1d(k, inputparam%nstato, nblocks_)
       oscstr_b%nk=nk_
-      oscstr_b%il=firstofblock(k, inputparam%nstato, nblocks_)
-      oscstr_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
-      oscstr_b%offset=firstofblock(k, inputparam%nstato, nblocks_)-1
-      oscstr_b%id=k
       ! allocate content of oscillator strength
       if (allocated(oscstr_b%zcontent)) deallocate(oscstr_b%zcontent)
       allocate(oscstr_b%zcontent(oscstr_b%blocksize))
@@ -174,27 +160,12 @@ program rixs_oscstr
         evals2_b%id=k2
         
         ! set up block of t(1)
-        t1_b%nblocks=nblocks_
-        t1_b%blocksize=nofblock(k2, inputparam%nstatc, nblocks_)
-        t1_b%global=inputparam%nstatc
-        t1_b%il=firstofblock(k2, inputparam%nstatc, nblocks_)
-        t1_b%iu=lastofblock(k2, inputparam%nstatc, nblocks_)
+        t1_b = make_block1d(k2, inputparam%nstatc, nblocks_)
         t1_b%nk=nk_
-        t1_b%offset=firstofblock(k2, inputparam%nstatc, nblocks_)-1
-        t1_b%id=k2
-        
+
         !set up block for t(2) matrix
-        t2_b%nblocks=nblocks_
-        t2_b%blocksize=(/ nofblock(k, inputparam%nstato, nblocks_), nofblock(k2, inputparam%nstatc, nblocks_) /)
-        t2_b%global=(/ inputparam%nstato, inputparam%nstatc /)
+        t2_b = make_block2d(k, inputparam%nstato, k2, inputparam%nstatc, nblocks_)
         t2_b%nk=nk_
-        t2_b%il=firstofblock(k, inputparam%nstato, nblocks_)
-        t2_b%iu=lastofblock(k, inputparam%nstato, nblocks_)
-        t2_b%jl=firstofblock(k2, inputparam%nstatc, nblocks_)
-        t2_b%ju=lastofblock(k2, inputparam%nstatc, nblocks_)
-        t2_b%offset(1)=t2_b%il-1
-        t2_b%offset(2)=t2_b%jl-1
-        t2_b%id=(/ k, k2 /)
         
         ! generate block of core eigenvalues
         if (.not. inputparam%ip_c) then

@@ -817,4 +817,42 @@ module mod_blocks
 
       end function lastofblock
 
+    !--------------------------------------------------------------------------
+    !> Builds the block1d metadata for block `id` out of `nblocks` blocks
+    !> partitioning a vector of length `globalsize`.
+    !> Caller sets nk/kl/ku afterward, if the block also needs a k-point range.
+    function make_block1d(id, globalsize, nblocks) result(b)
+      implicit none
+      integer(4), intent(in) :: id, globalsize, nblocks
+      type(block1d) :: b
+
+      b%nblocks   = nblocks
+      b%blocksize = nofblock(id, globalsize, nblocks)
+      b%global    = globalsize
+      b%il        = firstofblock(id, globalsize, nblocks)
+      b%iu        = lastofblock(id, globalsize, nblocks)
+      b%offset    = b%il - 1
+      b%id        = id
+    end function make_block1d
+
+    !--------------------------------------------------------------------------
+    !> Builds the block2d metadata for block (id1, id2), partitioning two
+    !> independent dimensions of length global1/global2 into nblocks each.
+    !> Caller sets nk/k1l/k1u/k2l/k2u afterward, if needed.
+    function make_block2d(id1, global1, id2, global2, nblocks) result(b)
+      implicit none
+      integer(4), intent(in) :: id1, global1, id2, global2, nblocks
+      type(block2d) :: b
+
+      b%nblocks   = nblocks
+      b%blocksize = (/ nofblock(id1, global1, nblocks), nofblock(id2, global2, nblocks) /)
+      b%global    = (/ global1, global2 /)
+      b%il        = firstofblock(id1, global1, nblocks)
+      b%iu        = lastofblock(id1, global1, nblocks)
+      b%jl        = firstofblock(id2, global2, nblocks)
+      b%ju        = lastofblock(id2, global2, nblocks)
+      b%offset    = (/ b%il - 1, b%jl - 1 /)
+      b%id        = (/ id1, id2 /)
+    end function make_block2d
+
 end module mod_blocks
