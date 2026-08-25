@@ -17,6 +17,9 @@
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
 ! 24 01 2025 - 2 Pol treatment
+! 31 07 2026 - Support non-equilibrium occupations
+! 25 08 2026 - Update make_block functions for non-equilibrium
+!
 !------------------------------------------------------------------------------
 module mod_blocks
   implicit none
@@ -70,12 +73,13 @@ module mod_blocks
     !> 2D matrix is preserved.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 31 07 2026 - Support non-equilibrium occupations
     !
-    !> @param[in] inkoulims   
+    !> @param[in] inkoulims
     !> @param[in] insmap
     !> @param[in] inbl2d
-    !> @return outbl4d    
+    !> @return outbl4d
     !---------------------------------------------------------------------------  
     subroutine transform_matrix2matrix(inkoulims,insmap,inbl2d,outbl4d)
       implicit none
@@ -92,10 +96,10 @@ module mod_blocks
       dim_koulims=shape(inkoulims)
       dim_smap=shape(insmap)
       !determine sizes
-      lu=inkoulims(1,1)
-      uu=inkoulims(2,1)
-      lo=inkoulims(3,1)
-      uo=inkoulims(4,1)
+      lu=minval(inkoulims(1,:))
+      uu=maxval(inkoulims(2,:))
+      lo=minval(inkoulims(3,:))
+      uo=maxval(inkoulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=insmap(3,1)
@@ -104,6 +108,7 @@ module mod_blocks
       ! allocate the output matrix
       if (allocated(outbl4d)) deallocate(outbl4d)
       allocate(outbl4d(nu, no, inbl2d%nk,inbl2d%blocksize(2)))
+      outbl4d=cmplx(0.0d0,0.0d0)
       ! loop over all excitons
       do lambda=1, inbl2d%blocksize(2)
         ! loop over all transitions
@@ -128,11 +133,12 @@ module mod_blocks
     !> transition space.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 31 07 2026 - Support non-equilibrium occupations
     !
-    !> @param[in] input   
+    !> @param[in] input
     !> @param[in] in4d
-    !> @return outbl2d    
+    !> @return outbl2d
     !---------------------------------------------------------------------------  
     subroutine transform_matrix2vector(input, in4d, outbl2d)
       use mod_io, only: io
@@ -150,10 +156,10 @@ module mod_blocks
       dim_koulims=shape(input%koulims)
       dim_smap=shape(input%smap)
       !determine sizes
-      lu=input%koulims(1,1)
-      uu=input%koulims(2,1)
-      lo=input%koulims(3,1)
-      uo=input%koulims(4,1)
+      lu=minval(input%koulims(1,:))
+      uu=maxval(input%koulims(2,:))
+      lo=minval(input%koulims(3,:))
+      uo=maxval(input%koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=input%smap(3,1)
@@ -163,6 +169,7 @@ module mod_blocks
       !generate the block output
       if (allocated(outbl2d%zcontent)) deallocate(outbl2d%zcontent)
       allocate(outbl2d%zcontent(outbl2d%blocksize(1), outbl2d%blocksize(2)))
+      outbl2d%zcontent=cmplx(0.0d0,0.0d0)
 
       ! loop over all transitions
       do lambda=1, outbl2d%blocksize(2)
@@ -359,6 +366,41 @@ module mod_blocks
       end do
     end subroutine
 
+    !---------------------------------------------------------------------------
+    !> @author
+    !> Elias Richter, Humboldt Universität zu Berlin.
+    !
+    ! DESCRIPTION:
+    !> @brief
+    !> Applies non-equilibrium occupation factors to a block of eigenvectors,
+    !> weighting each transition by sqrt(f_initial-f_final).
+    !
+    !
+    !> @param[inout] inblock2d
+    !> @param[in] occupation_factors
+    !---------------------------------------------------------------------------
+    subroutine apply_occupation_factors(inblock2d, occupation_factors)
+      implicit none
+      type(block2d), intent(inout) :: inblock2d
+      real(8), intent(in) :: occupation_factors(:)
+      integer(4) :: i, transition_index
+
+      if (.not. allocated(inblock2d%zcontent)) then
+        write(*,'(A)') 'Error(apply_occupation_factors): eigenvector block is not allocated.'
+        error stop
+      end if
+
+      do i=1,inblock2d%blocksize(1)
+        transition_index=inblock2d%offset(1)+i
+        if ((transition_index < 1) .or. (transition_index > size(occupation_factors))) then
+          write(*,'(A,I0,A,I0)') 'Error(apply_occupation_factors): transition index ', &
+            & transition_index, ' is outside factor vector of size ', size(occupation_factors)
+          error stop
+        end if
+        inblock2d%zcontent(i,:)=occupation_factors(transition_index)*inblock2d%zcontent(i,:)
+      end do
+    end subroutine apply_occupation_factors
+
     !---------------------------------------------------------------------------  
     !> @author 
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
@@ -370,9 +412,10 @@ module mod_blocks
     !> The output is stored in a vector in transition space. 
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 31 07 2026 - Support non-equilibrium occupations
     !
-    !> @param[inout] inblock1d  
+    !> @param[inout] inblock1d
     !> @param[in] koulims
     !> @param[in] smap
     !> @param[in] ismap
@@ -392,7 +435,7 @@ module mod_blocks
       !internal variables
       integer(4), dimension(2) :: dim_koulims, dim_smap
       integer(4) :: lu, uu, lo, uo, nu, no, nk0
-      integer(4) :: k,i,j,dimensions(4), dimsg_(3), offset_(3)
+      integer(4) :: k,i,j,transition_index,dimensions(4), dimsg_(3), offset_(3)
       character(len=1024) :: path, dsetname, cik
       complex(8), allocatable :: pmat_(:,:,:)
       !complex(8) :: pmat_(3,2,35)
@@ -402,15 +445,16 @@ module mod_blocks
       ! allocate output
       if (allocated(inblock1d%zcontent)) deallocate(inblock1d%zcontent)
       allocate(inblock1d%zcontent(inblock1d%blocksize))
+      inblock1d%zcontent=cmplx(0.0d0,0.0d0)
       dsetname=trim(adjustl('pmat'))
       !get shapes
       dim_koulims=shape(koulims)
       dim_smap=shape(smap)
       !determine sizes
-      lu=koulims(1,1)
-      uu=koulims(2,1)
-      lo=koulims(3,1)
-      uo=koulims(4,1)
+      lu=minval(koulims(1,:))
+      uu=maxval(koulims(2,:))
+      lo=minval(koulims(3,:))
+      uo=maxval(koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       nk0=smap(3,1)
@@ -431,9 +475,14 @@ module mod_blocks
         ! in the BSE calculation
         do i=1, no
           do j=1, nu
-            inblock1d%zcontent(ismap(j,i,k)-inblock1d%offset)=conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+&
-              & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+&
-              & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
+            transition_index=ismap(j,i,k)
+            if (transition_index >= inblock1d%il .and. &
+              & transition_index <= inblock1d%iu) then
+              inblock1d%zcontent(transition_index-inblock1d%offset)= &
+                & conjg(pmat_(1,i+lo-1,j+lu-1))*pol(1)+ &
+                & conjg(pmat_(2,i+lo-1,j+lu-1))*pol(2)+ &
+                & conjg(pmat_(3,i+lo-1,j+lu-1))*pol(3)
+            end if
           end do
         end do
       end do
@@ -450,9 +499,10 @@ module mod_blocks
     !> \f$ \langle \mu \mathbf{k} | \mathbf{e}_2 \cdot \mathbf{p} | v \mathbf{k} \f$.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 31 07 2026 - Support non-equilibrium occupations
     !
-    !> @param[inout] in3d  
+    !> @param[inout] in3d
     !> @param[in] pol
     !> @param[in] koulims
     !> @param[in] file_id
@@ -474,10 +524,10 @@ module mod_blocks
       complex(8), allocatable :: pmat_(:,:,:)
       !complex(8) :: pmat_(3,2,35)
       !determine sizes
-      lu=koulims(1,1)
-      uu=koulims(2,1)
-      lo=koulims(3,1)
-      uo=koulims(4,1)
+      lu=minval(koulims(1,:))
+      uu=maxval(koulims(2,:))
+      lo=minval(koulims(3,:))
+      uo=maxval(koulims(4,:))
       nu=uu-lu+1
       no=uo-lo+1
       inter=shape(koulims)
@@ -486,6 +536,7 @@ module mod_blocks
       ! allocate output array
       if (allocated(in3d%zcontent)) deallocate(in3d%zcontent)
       allocate(in3d%zcontent(no,nu,nk_))
+      in3d%zcontent=cmplx(0.0d0,0.0d0)
       in3d%blocksize=(/no, nu, nk_/)
       dsetname='pmat'
       do k=in3d%kl, in3d%ku
@@ -537,7 +588,7 @@ module mod_blocks
     !> @param[in] pmat_id
     !---------------------------------------------------------------------------
     subroutine generate_product(in2d, inputparam, core, optical, core_id, pmat_id)
-      use mod_io, only: io, input
+      use mod_io, only: io, input, get_transition_range
       use hdf5, only: hid_t
       implicit none
       type(block2d), intent(inout) :: in2d
@@ -553,7 +604,7 @@ module mod_blocks
       complex(8), allocatable :: inter(:,:), inter2(:,:), inter3(:,:)
       complex(8), allocatable :: prod_prime(:,:,:,:), prod_matrix(:,:,:,:)
       integer(4) :: interdim(2), nkmax, id_(2), blsz_, nk_, global_
-      integer(4) :: lambda, ik
+      integer(4) :: lambda, ik, transition_il, transition_iu
 
       ! generate combined koulims index range
       interdim=shape(core%koulims)
@@ -568,20 +619,21 @@ module mod_blocks
       ! core eigenvector block does not have
       ! the same size as the inblock
       id_=in2d%id
-      blsz_=core%no*core%nu*in2d%nk
-      global_=core%no*core%nu*nkmax
+      call get_transition_range(core,in2d%k1l,in2d%k1u,transition_il,transition_iu)
+      blsz_=transition_iu-transition_il+1
+      global_=core%hamsize
       ! set up block for core eigenstates
       eigvec%nblocks=in2d%nblocks
       eigvec%blocksize=(/ blsz_, in2d%blocksize(2) /)
       eigvec%global=global_
       eigvec%nk=in2d%nk
-      eigvec%il=(in2d%id(1)-1)*blsz_+1
-      eigvec%iu=in2d%id(1)*blsz_
+      eigvec%il=transition_il
+      eigvec%iu=transition_iu
       eigvec%jl=in2d%jl
       eigvec%ju=in2d%ju
       eigvec%k1l=in2d%k1l
       eigvec%k1u=in2d%k1u
-      eigvec%offset=(/ eigvec%il-1, in2d%offset(2) /)
+      eigvec%offset=(/ transition_il-1, in2d%offset(2) /)
       eigvec%id=in2d%id
       ! set up block for t' matrix
       tprime_b%nblocks=in2d%nblocks
@@ -594,6 +646,9 @@ module mod_blocks
         call get_eigvecsIP(eigvec, core)
       else
         call get_eigvecs(eigvec, core_id)
+      end if
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec,core%occupation_factors)
       end if
       
       ! generate block of B matrix
@@ -821,39 +876,57 @@ module mod_blocks
       end function lastofblock
 
     !--------------------------------------------------------------------------
-    !> Builds the block1d metadata for block `id` out of `nblocks` blocks
-    !> partitioning a vector of length `globalsize`.
-    !> Caller sets nk/kl/ku afterward, if the block also needs a k-point range.
-    function make_block1d(id, globalsize, nblocks) result(b)
+    !> Builds the block1d metadata for block `id`, splitting a vector of
+    !> length `globalsize` evenly into `nblocks` blocks.
+    !> Pass il/iu to override this with an explicit index range instead
+    !> (from get_transition_range, needed for non-equilibrium
+    !> occupations).
+    !> Caller sets nk/kl/ku afterward, if needed.
+    function make_block1d(id, globalsize, nblocks, il, iu) result(b)
       implicit none
       integer(4), intent(in) :: id, globalsize, nblocks
+      integer(4), intent(in), optional :: il, iu
       type(block1d) :: b
 
       b%nblocks   = nblocks
-      b%blocksize = nofblock(id, globalsize, nblocks)
       b%global    = globalsize
-      b%il        = firstofblock(id, globalsize, nblocks)
-      b%iu        = lastofblock(id, globalsize, nblocks)
+      if (present(il) .and. present(iu)) then
+        b%il = il
+        b%iu = iu
+      else
+        b%il = firstofblock(id, globalsize, nblocks)
+        b%iu = lastofblock(id, globalsize, nblocks)
+      end if
+      b%blocksize = b%iu - b%il + 1
       b%offset    = b%il - 1
       b%id        = id
     end function make_block1d
 
     !--------------------------------------------------------------------------
-    !> Builds the block2d metadata for block (id1, id2), partitioning two
-    !> independent dimensions of length global1/global2 into nblocks each.
+    !> Builds the block2d metadata for block (id1, id2), splitting global1
+    !> and global2 evenly into nblocks each.
+    !> Pass il/iu to override the first dimension with an explicit index
+    !> range instead (from get_transition_range, needed for
+    !> non-equilibrium occupations).
     !> Caller sets nk/k1l/k1u/k2l/k2u afterward, if needed.
-    function make_block2d(id1, global1, id2, global2, nblocks) result(b)
+    function make_block2d(id1, global1, id2, global2, nblocks, il, iu) result(b)
       implicit none
       integer(4), intent(in) :: id1, global1, id2, global2, nblocks
+      integer(4), intent(in), optional :: il, iu
       type(block2d) :: b
 
       b%nblocks   = nblocks
-      b%blocksize = (/ nofblock(id1, global1, nblocks), nofblock(id2, global2, nblocks) /)
       b%global    = (/ global1, global2 /)
-      b%il        = firstofblock(id1, global1, nblocks)
-      b%iu        = lastofblock(id1, global1, nblocks)
+      if (present(il) .and. present(iu)) then
+        b%il = il
+        b%iu = iu
+      else
+        b%il = firstofblock(id1, global1, nblocks)
+        b%iu = lastofblock(id1, global1, nblocks)
+      end if
       b%jl        = firstofblock(id2, global2, nblocks)
       b%ju        = lastofblock(id2, global2, nblocks)
+      b%blocksize = (/ b%iu - b%il + 1, b%ju - b%jl + 1 /)
       b%offset    = (/ b%il - 1, b%jl - 1 /)
       b%id        = (/ id1, id2 /)
     end function make_block2d

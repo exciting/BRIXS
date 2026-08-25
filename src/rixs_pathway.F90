@@ -16,6 +16,8 @@
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
 ! 24 01 2025 - 2 Pol treatment
+! 31 07 2026 - Use non-non_equilibrium occupations
+!
 !------------------------------------------------------------------------------
 program rixs_pathway
   use mod_phdf5
@@ -26,7 +28,7 @@ program rixs_pathway
   use hdf5, only: hid_t
 
   implicit none
-  integer :: nkmax, nu_optical, no_optical, nu_core, no_core, global_core, global_optical
+  integer :: nkmax, global_core, global_optical
   integer :: interdim(2)
   type(io) :: optical, core
   type(input) :: inputparam
@@ -34,7 +36,7 @@ program rixs_pathway
   integer(4) :: blocks_, blocks2_, blocks3_
   character(1024) :: fname_core, fname_optical,fname_pmat, fname_output, &
    & fname_inter, gname, gname2, ik, datasetname 
-  integer(4) :: nblocks_, blsz_,nk_, k, blsz_k
+  integer(4) :: nblocks_, nk_, transition_il, transition_iu
   type(block1d) :: t1_b, t_b, evalsc_b
   type(block2d) :: eigvec_b, t2_b, prod_b
   real(8) ::  test
@@ -42,6 +44,7 @@ program rixs_pathway
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: core_id, optical_id, pmat_id, inter_id
+  integer(hid_t) :: occupations_core_id, occupations_optical_id
   integer(hid_t) :: t1_id, t2_id, evalsc_id
   integer :: matsize_(1), matsize2_(2)
   !Specify file/dataset name
@@ -73,17 +76,20 @@ program rixs_pathway
   call get_ismap(core)
   ! read input file
   call read_inputfile(inputparam)
+  if (inputparam%non_equilibrium) then
+    call phdf5_open_file(trim(inputparam%occupation_factors_core_file),occupations_core_id)
+    call phdf5_open_file(trim(inputparam%occupation_factors_optical_file),occupations_optical_id)
+    call get_occupation_factors(core,occupations_core_id)
+    call get_occupation_factors(optical,occupations_optical_id)
+    call phdf5_close_file(occupations_core_id)
+    call phdf5_close_file(occupations_optical_id)
+  end if
   ! get number of k-grid (has to be the same for optical and core calculation)
   interdim=shape(core%koulims)
   nkmax=interdim(2)
   ! get global sizes
-  nu_optical=optical%koulims(2,1)-optical%koulims(1,1)+1
-  no_optical=optical%koulims(4,1)-optical%koulims(3,1)+1
-  global_optical=nu_optical*no_optical*nkmax
-
-  nu_core=core%koulims(2,1)-core%koulims(1,1)+1
-  no_core=core%koulims(4,1)-core%koulims(3,1)+1
-  global_core=nu_core*no_core*nkmax
+  global_optical=optical%hamsize
+  global_core=core%hamsize
   ! create combined map for valence-core transitions
   allocate(koulims_comb(4,nkmax))
   koulims_comb(1,:)=optical%koulims(3,:)
@@ -137,10 +143,14 @@ program rixs_pathway
 
     ! 2nd loop over the blocks
     do blocks2_= 1, nblocks_
+      t_b%kl=(blocks2_-1)*nk_+1
+      t_b%ku=blocks2_*nk_
+      call get_transition_range(core,t_b%kl,t_b%ku,transition_il,transition_iu)
       ! set-up for the blocks of core eigenvectors
-      eigvec_b = make_block2d(blocks2_, global_core, blocks_, inputparam%nstatc, nblocks_)
+      eigvec_b = make_block2d(blocks2_, global_core, blocks_, inputparam%nstatc, nblocks_, &
+        & transition_il, transition_iu)
       ! set-up for the blocks of t
-      t_b = make_block1d(blocks2_, global_core, nblocks_)
+      t_b = make_block1d(blocks2_, global_core, nblocks_, transition_il, transition_iu)
       t_b%nk=nk_
       t_b%kl=(blocks2_-1)*nk_+1
       t_b%ku=blocks2_*nk_
@@ -150,6 +160,9 @@ program rixs_pathway
         call get_eigvecsIP(eigvec_b, core)
       else
         call get_eigvecs(eigvec_b, core_id)
+      end if
+      if (allocated(core%occupation_factors)) then
+        call apply_occupation_factors(eigvec_b,core%occupation_factors)
       end if
       ! generate block of t
       call generate_t(t_b, core%koulims, core%smap, core%ismap, inputparam%pol_in, pmat_id)
@@ -185,18 +198,26 @@ program rixs_pathway
       t2_b%zcontent(:,:)=cmplx(0.0d0, 0.0d0)
       do blocks3_=1, nblocks_
         ! set-up block for prod vector
-        prod_b = make_block2d(blocks3_, global_optical, blocks2_, inputparam%nstatc, nblocks_)
+        prod_b%k1l=(blocks3_-1)*nk_+1
+        prod_b%k1u=blocks3_*nk_
+        call get_transition_range(optical,prod_b%k1l,prod_b%k1u,transition_il,transition_iu)
+        prod_b = make_block2d(blocks3_, global_optical, blocks2_, inputparam%nstatc, nblocks_, &
+          & transition_il, transition_iu)
         prod_b%nk=nk_
         prod_b%k1l=(blocks3_-1)*nk_+1
         prod_b%k1u=blocks3_*nk_
 
         ! set up block of optical eigenvectors
-        eigvec_b = make_block2d(blocks3_, global_optical, blocks_, inputparam%nstato, nblocks_)
+        eigvec_b = make_block2d(blocks3_, global_optical, blocks_, inputparam%nstato, nblocks_, &
+          & transition_il, transition_iu)
         ! generate block of eigenvectors
         if (inputparam%ip_o) then
           call get_eigvecsIP(eigvec_b, optical)
         else
           call get_eigvecs(eigvec_b, optical_id)
+        end if
+        if (allocated(optical%occupation_factors)) then
+          call apply_occupation_factors(eigvec_b,optical%occupation_factors)
         end if
         ! generate block of intermediate product
         call generate_product(prod_b, inputparam, core, optical, core_id, pmat_id)
@@ -223,4 +244,3 @@ program rixs_pathway
   call phdf5_finalize()
   call finitmpi()
 end program rixs_pathway
-

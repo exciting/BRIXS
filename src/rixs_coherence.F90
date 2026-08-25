@@ -16,6 +16,8 @@
 !
 ! REVISION HISTORY:
 ! 15 09 2025 - 2 Pol treatment
+! 31 07 2026 - Use non-non_equilibrium occupations
+!
 !------------------------------------------------------------------------------
 program rixs_coherence
   use mod_phdf5
@@ -44,6 +46,7 @@ program rixs_coherence
   !MPI variables
   ! PHDF5 variables
   integer(hid_t) :: optical_id, output_id, core_id, energyv_id, energyc_id, pmat_id
+  integer(hid_t) :: occupations_core_id, occupations_optical_id
   integer(hid_t) :: omega_id
   integer(hid_t), allocatable :: coherent_id(:), incoherent_id(:)
   integer :: matsize_(1), offset_(1)
@@ -73,6 +76,14 @@ program rixs_coherence
   call get_ismap(core)
   ! read input file
   call read_inputfile(inputparam)
+  if (inputparam%non_equilibrium) then
+    call phdf5_open_file(trim(inputparam%occupation_factors_core_file),occupations_core_id)
+    call phdf5_open_file(trim(inputparam%occupation_factors_optical_file),occupations_optical_id)
+    call get_occupation_factors(core,occupations_core_id)
+    call get_occupation_factors(optical,occupations_optical_id)
+    call phdf5_close_file(occupations_core_id)
+    call phdf5_close_file(occupations_optical_id)
+  end if
   
   ! set parameters
   broad=inputparam%broad

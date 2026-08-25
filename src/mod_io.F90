@@ -16,6 +16,7 @@
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
 ! 24 01 2025 - 2 Pol treatment
+! 31 07 2026 - Use non-equilibrium occupations
 !------------------------------------------------------------------------------
 module mod_io
   implicit none
@@ -23,7 +24,7 @@ module mod_io
   type :: io
     integer(4), allocatable :: smap(:,:), ismap(:,:,:), koulims(:,:), ensortidx(:)
     integer(4) :: hamsize, lu,uu,lo,uo, nk0, nkmax, nu, no, global, globalk
-    real(8), allocatable :: evals(:)
+    real(8), allocatable :: evals(:), occupation_factors(:)
     complex(8), allocatable :: eigvecs(:,:)
   end type io
   type :: input
@@ -31,7 +32,9 @@ module mod_io
     real(8) :: broad
     real(8) :: pol_in(3), pol_out(3)
     integer :: nblocks, nstato, nstatc
-    logical :: ip_c, ip_o, calc_incoherent
+    logical :: ip_c, ip_o, calc_incoherent, non_equilibrium
+    character(1024) :: occupation_factors_core_file
+    character(1024) :: occupation_factors_optical_file
   end type
   
 
@@ -39,6 +42,8 @@ module mod_io
   public get_koulims
   public get_smap
   public get_ismap
+  public get_occupation_factors
+  public get_transition_range
     
   contains
   !-----------------------------------------------------------------------------
@@ -179,6 +184,87 @@ module mod_io
 
   !---------------------------------------------------------------------------  
   !> @author 
+  !> Elias Richter, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Read the square root of the transition occupation difference from an
+  !> exciting transitions HDF5 file. The data must use the same transition-space
+  !> ordering as the BSE eigenvectors. If an smap dataset is present, that ordering 
+  !> is verified against object%smap.
+  !
+  !> @param[inout] object   
+  !> @param[in] file_id      
+  !---------------------------------------------------------------------------  
+  subroutine get_occupation_factors(object,file_id)
+    use hdf5, only: hid_t
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+    use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
+     &                   phdf5_read, phdf5_cleanup, phdf5_exist_group
+    implicit none
+    type(io), intent(inout) :: object
+    integer(hid_t), intent(in) :: file_id
+    integer(4) :: dims(1), offset_(1), smap_dims(2), smap_offset(2), i
+    integer(4), allocatable :: occupation_smap(:,:)
+    integer(hid_t) :: dataset_id
+    character(len=*), parameter :: path='/IQMT_000001/transitions'
+    character(len=*), parameter :: dsetname='occupation_factors'
+    character(len=*), parameter :: smap_dsetname='smap'
+
+    offset_=(/ 0 /)
+    call phdf5_get_dims(file_id,path,dsetname,dims)
+
+    if (dims(1) .ne. object%hamsize) then
+      write(*,'(A,I0,A,I0)') 'Error(get_occupation_factors): dataset has ', &
+        & dims(1), ' entries, but the BSE transition space has ', object%hamsize
+      write(*,'(A)') 'The occupation factors and BSE eigenvectors must come from matching transition selections.'
+      error stop
+    end if
+
+    if (.not. phdf5_exist_group(file_id,path,smap_dsetname)) then
+      write(*,'(A)') 'Warning(get_occupation_factors): optional dataset /IQMT_000001/transitions/smap is missing.'
+      write(*,'(A)') 'Skipping transition-map validation; occupation factors are assumed to already ' // &
+        & 'match the BSE transition ordering.'
+    else
+      call phdf5_get_dims(file_id,path,smap_dsetname,smap_dims)
+      if (any(smap_dims .ne. shape(object%smap))) then
+        write(*,'(A,2(I0,1X),A,2(I0,1X))') 'Error(get_occupation_factors): occupation smap shape ', &
+          & smap_dims, 'does not match BSE smap shape ', shape(object%smap)
+        error stop
+      end if
+
+      allocate(occupation_smap(smap_dims(1),smap_dims(2)))
+      smap_offset=(/ 0, 0 /)
+      call phdf5_setup_read(2,smap_dims,.false.,smap_dsetname,path,file_id,dataset_id)
+      call phdf5_read(occupation_smap(1,1),smap_dims,smap_dims,smap_offset,dataset_id)
+      call phdf5_cleanup(dataset_id)
+
+      do i=1,object%hamsize
+        if (any(occupation_smap(:,i) .ne. object%smap(:,i))) then
+          write(*,'(A,I0)') 'Error(get_occupation_factors): transition-map mismatch at index ',i
+          write(*,'(A,3(I0,1X))') 'Occupation file (c, v, k): ',occupation_smap(:,i)
+          write(*,'(A,3(I0,1X))') 'BSE eigenvectors (c, v, k): ',object%smap(:,i)
+          error stop
+        end if
+      end do
+      deallocate(occupation_smap)
+    end if
+
+    if (allocated(object%occupation_factors)) deallocate(object%occupation_factors)
+    allocate(object%occupation_factors(dims(1)))
+    call phdf5_setup_read(1,dims,.false.,dsetname,path,file_id,dataset_id)
+    call phdf5_read(object%occupation_factors(1),dims,dims,offset_,dataset_id)
+    call phdf5_cleanup(dataset_id)
+
+    if (any(.not. ieee_is_finite(object%occupation_factors)) .or. &
+      & any(object%occupation_factors < 0.0d0)) then
+      write(*,'(A)') 'Error(get_occupation_factors): occupation_factors must be finite and non-negative.'
+      error stop
+    end if
+  end subroutine get_occupation_factors
+
+  !---------------------------------------------------------------------------  
+  !> @author 
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
   !
   ! DESCRIPTION: 
@@ -205,6 +291,7 @@ module mod_io
       ! allocate ismap
       if (allocated(object%ismap)) deallocate(object%ismap)
       allocate(object%ismap(object%nu,object%no,object%nkmax))
+      object%ismap=0
       !fill in the inverse map
       do i=1,object%hamsize
         i1=object%smap(1,i)-object%lu+1
@@ -214,6 +301,39 @@ module mod_io
       end do
     end if
   end subroutine 
+
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Elias Richter, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
+  !> Return the contiguous transition-space range belonging to a range of
+  !> relative k-point indices. exciting stores smap ordered by k point.
+  !    
+  !---------------------------------------------------------------------------  
+  subroutine get_transition_range(object,kl,ku,il,iu)
+    implicit none
+    type(io), intent(in) :: object
+    integer(4), intent(in) :: kl, ku
+    integer(4), intent(out) :: il, iu
+    integer(4) :: i, ik
+
+    il=0
+    iu=-1
+    do i=1,object%hamsize
+      ik=object%smap(3,i)-object%nk0+1
+      if ((ik >= kl) .and. (ik <= ku)) then
+        if (il == 0) il=i
+        iu=i
+      end if
+    end do
+
+    if (il == 0) then
+      write(*,'(A,I0,A,I0)') 'Error(get_transition_range): no transitions for k-point range ',kl,' to ',ku
+      error stop
+    end if
+  end subroutine get_transition_range
   
   !---------------------------------------------------------------------------  
   !> @author 
@@ -225,10 +345,11 @@ module mod_io
   !> for convenience. 
   !
   ! REVISION HISTORY:
-  ! 09 07 2020 - Added documentation 
+  ! 09 07 2020 - Added documentation
+  ! 31 07 2026 - Support non-equilibrium occupations
   !
-  !> @param[inout] object   
-  !---------------------------------------------------------------------------  
+  !> @param[inout] object
+  !---------------------------------------------------------------------------
   subroutine set_param(object)
     implicit none
     type(io), intent(inout) :: object
@@ -241,17 +362,17 @@ module mod_io
       dim_koulims=shape(object%koulims)
       dim_smap=shape(object%smap)
       !set some parameters for convenience
-      object%lu=object%koulims(1,1)   ! lowest conduction band
-      object%uu=object%koulims(2,1)   ! highest conduction band
-      object%lo=object%koulims(3,1)   ! lowest valence band
-      object%uo=object%koulims(4,1)   ! highest valence band
+      object%lu=minval(object%koulims(1,:)) ! lowest conduction band
+      object%uu=maxval(object%koulims(2,:)) ! highest conduction band
+      object%lo=minval(object%koulims(3,:)) ! lowest valence band
+      object%uo=maxval(object%koulims(4,:)) ! highest valence band
       object%nu=object%uu-object%lu+1 ! number of conduction bands
       object%no=object%uo-object%lo+1 ! number of valence bands
       object%nk0=object%smap(3,1)     ! index of first k-point
       object%nkmax=dim_koulims(2)     ! Number of k-points
       object%hamsize=dim_smap(2)      ! Size of BSE Hamiltonian
       object%globalk=object%no*object%nu
-      object%global=object%no*object%nu*object%nkmax
+      object%global=object%hamsize
     else
       print *, 'koulims and smap have to be obtained from file before set_param can be called!'
     end if
@@ -269,6 +390,7 @@ module mod_io
   ! REVISION HISTORY:
   ! 09 07 2020 - Added documentation 
   ! 24 01 2025 - 2 Pol treatment
+  ! 31 07 2026 - Use non-equilibrium occupations
   !
   !> @param[out] object   
   !---------------------------------------------------------------------------  
@@ -296,6 +418,9 @@ module mod_io
     integer :: nblocks_, nstato_, nstatc_
     logical :: oscstr_, vecA_
     logical :: ip_c_, ip_o_, calc_incoherent_
+    logical :: non_equilibrium_
+    character(1024) :: occupation_factors_core_file_
+    character(1024) :: occupation_factors_optical_file_
 
 
     ! only root reads the input file
@@ -313,6 +438,11 @@ module mod_io
       call CFG_add(my_cfg, 'ip_optical', .false., 'IPA for optical BSE calculation')
       call CFG_add(my_cfg, '_calc_incoherent_', .false., 'Calculate the incoherent contribution')
       call CFG_add(my_cfg, 'pol_out', (/1.0_dp, 0.0_dp, 0.0_dp/), 'Light Polarization outgoing')
+      call CFG_add(my_cfg, 'non_equilibrium', .false., 'Use transition occupation factors')
+      call CFG_add(my_cfg, 'occupation_factors_core_file', 'occupations_core.h5', &
+        & 'HDF5 file containing core transition occupation factors')
+      call CFG_add(my_cfg, 'occupation_factors_optical_file', 'occupations_optical.h5', &
+        & 'HDF5 file containing optical transition occupation factors')
       ! read input file
       call CFG_read_file(my_cfg, 'input.cfg')
       ! get size and values of core frequencies
@@ -338,6 +468,9 @@ module mod_io
       call CFG_get(my_cfg,'_calc_incoherent_', calc_incoherent_)
       ! get light polarization outgoing
       call CFG_get(my_cfg,'pol_out',pol_out_)
+      call CFG_get(my_cfg,'non_equilibrium',non_equilibrium_)
+      call CFG_get(my_cfg,'occupation_factors_core_file',occupation_factors_core_file_)
+      call CFG_get(my_cfg,'occupation_factors_optical_file',occupation_factors_optical_file_)
 #ifdef MPI
     end if
     ! broadcast input parameters to everybody
@@ -353,6 +486,9 @@ module mod_io
     call mpi_bcast(ip_o_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(calc_incoherent_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
     call mpi_bcast(pol_out_,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(non_equilibrium_,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(occupation_factors_core_file_,1024,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+    call mpi_bcast(occupation_factors_optical_file_,1024,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 #endif
     
     ! get input parameters from read
@@ -365,10 +501,12 @@ module mod_io
     object%ip_o=ip_o_
     object%calc_incoherent=calc_incoherent_
     object%pol_out=pol_out_(:)
+    object%non_equilibrium=non_equilibrium_
+    object%occupation_factors_core_file=trim(occupation_factors_core_file_)
+    object%occupation_factors_optical_file=trim(occupation_factors_optical_file_)
     ! calculate frequency ranges
     if (allocated(object%omega)) deallocate(object%omega) 
     allocate(object%omega(omegasize_))
     object%omega(:)=omega_(:)
   end subroutine read_inputfile  
 end module
-
