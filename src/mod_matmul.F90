@@ -81,6 +81,9 @@ module mod_matmul
       ! local variables
       integer :: dim1(2), dim3, dim2, M, N, K
       complex(8) :: alpha, beta
+      ! zgemm expects rank-2 B(LDB,*) and C(LDC,*); view the vectors as
+      ! single-column matrices
+      complex(8) :: b_(size(b),1), c_(size(c),1)
       !get dimensions
       dim1=shape(a)
       dim2=size(b)
@@ -93,8 +96,10 @@ module mod_matmul
       M=dim1(1)
       N=1
       K=dim1(2)
-      call zgemm('N','N', M, N, K, alpha, a, dim1(1), b, dim2, beta, &
-       & c, dim3)
+      b_(:,1)=b
+      call zgemm('N','N', M, N, K, alpha, a, dim1(1), b_, dim2, beta, &
+       & c_, dim3)
+      c=c_(:,1)
     end subroutine matprod_matvec
 
   
@@ -118,9 +123,15 @@ module mod_matmul
       complex(8), intent(out) :: c
       !local variables
       complex(8) :: alpha, beta
-      
+      ! zgemm expects rank-2 A(LDA,*), B(LDB,*) and C(LDC,*); view the
+      ! vectors/scalar as single-column/1x1 matrices
+      complex(8) :: a_(size(a),1), b_(size(b),1), c_(1,1)
+
       alpha=1.0d0
       beta=0.0d0
-      call zgemm('C','N',1,1,size(a),alpha,a,size(a),b,size(b),beta,c,1)
+      a_(:,1)=a
+      b_(:,1)=b
+      call zgemm('C','N',1,1,size(a),alpha,a_,size(a),b_,size(b),beta,c_,1)
+      c=c_(1,1)
     end subroutine matprod_vecvec
 end module
