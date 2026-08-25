@@ -1,3 +1,21 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! PROGRAM: rixs_oscstr
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION:
+!> This program computes the RIXS oscillator strength from the matrices
+!> \f$ t^{(1)} \f$ and \f$ t^{(2)} \f$ stored in data.h5, summed over
+!> k-points, and writes the resulting \f$ t^{(3)} \f$ to rixs.h5.
+!
+! REVISION HISTORY:
+! 24 08 2026 - Bug fixing
+!------------------------------------------------------------------------------
 program rixs_oscstr
   use mod_phdf5
   use mod_mpi

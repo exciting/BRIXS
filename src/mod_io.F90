@@ -6,14 +6,16 @@
 !
 !> @author
 !> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
 !
-! DESCRIPTION: 
+! DESCRIPTION:
 !> This module provides subroutines to read the information from the HDF5 files
 !> that store the information of the valence and core BSE calculations, as well 
 !> as the information from the input.cfg.
 !
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
+! 24 01 2025 - 2 Pol treatment
 !------------------------------------------------------------------------------
 module mod_io
   implicit none
@@ -39,7 +41,6 @@ module mod_io
   public get_ismap
     
   contains
-  ! Methodenbereich
   !-----------------------------------------------------------------------------
 
   !---------------------------------------------------------------------------  
@@ -257,15 +258,17 @@ module mod_io
   end subroutine
 
   !---------------------------------------------------------------------------  
-  !> @author 
+  !> @author
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
+  !> Elias Richter, Humboldt Universität zu Berlin.
   !
-  ! DESCRIPTION: 
+  ! DESCRIPTION:
   !> @brief
-  !> Reads input.cfg file and stores all information in input-object 
+  !> Reads input.cfg file and stores all information in input-object
   !
   ! REVISION HISTORY:
   ! 09 07 2020 - Added documentation 
+  ! 24 01 2025 - 2 Pol treatment
   !
   !> @param[out] object   
   !---------------------------------------------------------------------------  

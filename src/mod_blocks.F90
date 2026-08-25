@@ -6,6 +6,7 @@
 !
 !> @author
 !> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
 !
 ! DESCRIPTION: 
 !> This modules contains subroutines that perform all block-wise operations.
@@ -15,6 +16,7 @@
 !
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
+! 24 01 2025 - 2 Pol treatment
 !------------------------------------------------------------------------------
 module mod_blocks
   implicit none
@@ -54,7 +56,6 @@ module mod_blocks
     complex(8), allocatable :: zcontent(:,:,:) ! complex-valued content
   end type block3d
   contains
-  ! Methodenbereich
 
     !---------------------------------------------------------------------------  
     !> @author 
@@ -515,24 +516,26 @@ module mod_blocks
     end subroutine 
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
+    !> Elias Richter, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
-    !> Generates block of the momentum-matrix elements of the de-excitation 
+    !> Generates block of the momentum-matrix elements of the de-excitation
     !> \f$ \langle \mu \mathbf{k} | \mathbf{e}_2 \cdot \mathbf{p} | v \mathbf{k} \f$.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 24 01 2025 - 2 Pol treatment
     !
-    !> @param[inout] in2d  
+    !> @param[inout] in2d
     !> @param[in] inputparam
     !> @param[in] core
     !> @param[in] optical
     !> @param[in] core_id
     !> @param[in] pmat_id
-    !---------------------------------------------------------------------------  
+    !---------------------------------------------------------------------------
     subroutine generate_product(in2d, inputparam, core, optical, core_id, pmat_id)
       use mod_io, only: io, input
       use hdf5, only: hid_t

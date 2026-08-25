@@ -1,3 +1,16 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! MODULE: mod_constants
+!
+!> @author
+!> Elias Richter, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION: 
+! This module contains all physical constants used throughout.
+!
+!------------------------------------------------------------------------------
 module mod_constants
   implicit none
   private

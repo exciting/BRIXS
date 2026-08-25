@@ -6,12 +6,14 @@
 !
 !> @author
 !> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
 !
-! DESCRIPTION: 
+! DESCRIPTION:
 ! This module contains subroutines for convenient matrix-matrix multiplications.
 !
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
+! 25 08 2026 - Fixed zgemm argument-mismatch
 !------------------------------------------------------------------------------
 module mod_matmul
   implicit none
@@ -23,7 +25,6 @@ module mod_matmul
   end interface
 
   contains
-  ! Methodenbereich
   !-----------------------------------------------------------------------------
   
     !---------------------------------------------------------------------------  
@@ -61,14 +62,16 @@ module mod_matmul
     end subroutine matprod_matmat
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
+    !> Elias Richter, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Matrix-vector multiplication of 2D matrix with 1D vector.
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 25 08 2026 - Fixed zgemm argument-mismatch
     !
     !> @param[in]  a   
     !> @param[in]  b 
@@ -104,14 +107,16 @@ module mod_matmul
 
   
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
+    !> Elias Richter, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Scalar product of two 1D vectors.
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
+    ! 25 08 2026 - Fixed zgemm argument-mismatch
     !
     !> @param[in]  a   
     !> @param[in]  b 

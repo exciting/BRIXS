@@ -6,14 +6,16 @@
 !
 !> @author
 !> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
 !
-! DESCRIPTION: 
+! DESCRIPTION:
 !> This program determines the matrices \f$ t^{(1)} \f$ and \f$ t^{(2)} \f$ from
 !> the results of two BSE calculations stored in core_output.h5 and 
 !> optical_output.h5. The results are stored in data.h5.
 ! 
 ! REVISION HISTORY:
 ! 09 07 2020 - Added documentation
+! 24 01 2025 - 2 Pol treatment
 !------------------------------------------------------------------------------
 program rixs_pathway
   use mod_phdf5

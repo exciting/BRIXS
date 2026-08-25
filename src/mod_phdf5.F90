@@ -1,3 +1,20 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! MODULE: mod_phdf5
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION:
+!> This module provides wrapper subroutines for the (parallel) HDF5 file I/O
+!> used to read and write the BSE and RIXS data.
+!
+! REVISION HISTORY:
+! 25 08 2026 - Fixed argument-mismatch
+!------------------------------------------------------------------------------
 module mod_phdf5
   interface phdf5_write
     module procedure phdf5_write_d, &

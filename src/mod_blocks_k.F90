@@ -1,3 +1,21 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! MODULE: mod_blocks_k
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION:
+!> This module contains the k-point-resolved analogues of the block-wise
+!> operations in mod_blocks, needed to evaluate individual k-point
+!> contributions to the RIXS oscillator strength.
+!
+! REVISION HISTORY:
+! 15 09 2025 - 2 Pol treatment
+!------------------------------------------------------------------------------
 module mod_blocks_k
   use mod_blocks
   use mod_mpi

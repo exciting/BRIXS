@@ -1,3 +1,22 @@
+!------------------------------------------------------------------------------
+! BRIXS: BSE Calculations for RIXS spectra
+!------------------------------------------------------------------------------
+!
+! PROGRAM: rixs_coherence
+!
+!> @author
+!> Christian Vorwerk, Humboldt Universität zu Berlin.
+!> Elias Richter, Humboldt Universität zu Berlin.
+!
+! DESCRIPTION:
+!> This program computes the coherent and incoherent contributions to the
+!> RIXS oscillator strength from the matrices \f$ t^{(1)} \f$ and
+!> \f$ t^{(2)} \f$ stored in data.h5, and writes the resulting \f$ t^{(3)} \f$ 
+!> to rixs.h5.
+!
+! REVISION HISTORY:
+! 15 09 2025 - 2 Pol treatment
+!------------------------------------------------------------------------------
 program rixs_coherence
   use mod_phdf5
   use mod_mpi
