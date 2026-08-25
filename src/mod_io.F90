@@ -180,10 +180,20 @@ module mod_io
     call phdf5_cleanup(dataset_id)
   end subroutine 
 
-  !---------------------------------------------------------------------------
+  !---------------------------------------------------------------------------  
+  !> @author 
+  !> Elias Richter, Humboldt Universität zu Berlin.
+  !
+  ! DESCRIPTION: 
+  !> @brief
   !> Read the square root of the transition occupation difference from an
   !> exciting transitions HDF5 file. The data must use the same transition-space
-  !> ordering as the BSE eigenvectors (and therefore smap).
+  !> ordering as the BSE eigenvectors. If an smap dataset is present, that ordering 
+  !> is verified against object%smap.
+  !
+  !> @param[inout] object   
+  !> @param[in] file_id      
+  !---------------------------------------------------------------------------  
   subroutine get_occupation_factors(object,file_id)
     use hdf5, only: hid_t
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
@@ -210,33 +220,33 @@ module mod_io
     end if
 
     if (.not. phdf5_exist_group(file_id,path,smap_dsetname)) then
-      write(*,'(A)') 'Error(get_occupation_factors): required dataset /IQMT_000001/transitions/smap is missing.'
-      write(*,'(A)') 'Non-equilibrium occupation factors require an exact transition-map match.'
-      error stop
-    end if
-
-    call phdf5_get_dims(file_id,path,smap_dsetname,smap_dims)
-    if (any(smap_dims .ne. shape(object%smap))) then
-      write(*,'(A,2(I0,1X),A,2(I0,1X))') 'Error(get_occupation_factors): occupation smap shape ', &
-        & smap_dims, 'does not match BSE smap shape ', shape(object%smap)
-      error stop
-    end if
-
-    allocate(occupation_smap(smap_dims(1),smap_dims(2)))
-    smap_offset=(/ 0, 0 /)
-    call phdf5_setup_read(2,smap_dims,.false.,smap_dsetname,path,file_id,dataset_id)
-    call phdf5_read(occupation_smap(1,1),smap_dims,smap_dims,smap_offset,dataset_id)
-    call phdf5_cleanup(dataset_id)
-
-    do i=1,object%hamsize
-      if (any(occupation_smap(:,i) .ne. object%smap(:,i))) then
-        write(*,'(A,I0)') 'Error(get_occupation_factors): transition-map mismatch at index ',i
-        write(*,'(A,3(I0,1X))') 'Occupation file (c, v, k): ',occupation_smap(:,i)
-        write(*,'(A,3(I0,1X))') 'BSE eigenvectors (c, v, k): ',object%smap(:,i)
+      write(*,'(A)') 'Warning(get_occupation_factors): optional dataset /IQMT_000001/transitions/smap is missing.'
+      write(*,'(A)') 'Skipping transition-map validation; occupation factors are assumed to already ' // &
+        & 'match the BSE transition ordering.'
+    else
+      call phdf5_get_dims(file_id,path,smap_dsetname,smap_dims)
+      if (any(smap_dims .ne. shape(object%smap))) then
+        write(*,'(A,2(I0,1X),A,2(I0,1X))') 'Error(get_occupation_factors): occupation smap shape ', &
+          & smap_dims, 'does not match BSE smap shape ', shape(object%smap)
         error stop
       end if
-    end do
-    deallocate(occupation_smap)
+
+      allocate(occupation_smap(smap_dims(1),smap_dims(2)))
+      smap_offset=(/ 0, 0 /)
+      call phdf5_setup_read(2,smap_dims,.false.,smap_dsetname,path,file_id,dataset_id)
+      call phdf5_read(occupation_smap(1,1),smap_dims,smap_dims,smap_offset,dataset_id)
+      call phdf5_cleanup(dataset_id)
+
+      do i=1,object%hamsize
+        if (any(occupation_smap(:,i) .ne. object%smap(:,i))) then
+          write(*,'(A,I0)') 'Error(get_occupation_factors): transition-map mismatch at index ',i
+          write(*,'(A,3(I0,1X))') 'Occupation file (c, v, k): ',occupation_smap(:,i)
+          write(*,'(A,3(I0,1X))') 'BSE eigenvectors (c, v, k): ',object%smap(:,i)
+          error stop
+        end if
+      end do
+      deallocate(occupation_smap)
+    end if
 
     if (allocated(object%occupation_factors)) deallocate(object%occupation_factors)
     allocate(object%occupation_factors(dims(1)))
