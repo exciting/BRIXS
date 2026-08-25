@@ -282,14 +282,14 @@ direction.
 We then execute the first **BRIXS** executable with
 
 ```
-/path/to/BRIXS/bin/rixs-pathway-serial
+/path/to/BRIXS/bin/rixs_pathway
 ```
 
 which creates the file **data.h5**. The final result is then obtained by
 executing
 
 ```
-/path/to/BRIXS/bin/rixs-oscstr-serial
+/path/to/BRIXS/bin/rixs_oscstr
 ```
 
 The final result is stored in the file **rixs.h5**. Calculation of the RIXS cross-section is shifted to a python module named `pyBRIXS`, offering a convenient way to calculate the cross-section and display results.

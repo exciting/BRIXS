@@ -63,6 +63,37 @@ t^{(2)}_{\lambda_o,\lambda_c}=\sum_{c v \mathbf{k}} \sum_{\mu} X_{cv \mathbf{k},
 \left[ X_{c \mu \mathbf{k}, \lambda_c} \right]^*
 ```
 
+Building BRIXS
+------------------------------------------------------------------------------
+BRIXS is built with [CMake](https://cmake.org) (>= 3.18). You need:
+
+- a Fortran compiler (gfortran, ifort)
+- [HDF5](https://www.hdfgroup.org/solutions/hdf5/) built with Fortran bindings
+  (`hdf5.mod`, `libhdf5_fortran`), for the `-DBRIXS_ENABLE_MPI=ON` build:
+  an MPI-enabled ("parallel") HDF5 build
+- LAPACK/BLAS (e.g. MKL, OpenBLAS)
+- an MPI implementation, only if building with `-DBRIXS_ENABLE_MPI=ON`
+
+```bash
+# configure (Release is the default build type; add -DBRIXS_ENABLE_MPI=ON for
+# the MPI/parallel-HDF5 build, add -DHDF5_ROOT=/path/to/hdf5)
+cmake -B build
+
+# build all three executables (rixs_pathway, rixs_oscstr, rixs_coherence),
+# written to build/bin/
+cmake --build build
+
+# optional: install the executables to bin/ or -DCMAKE_INSTALL_PREFIX
+cmake --install build
+
+# run the regression suite (requires a `pybrixs_test` conda env with numpy
+# and h5py, matching the environment activated by test/run_tests.sh)
+ctest --test-dir build --output-on-failure
+```
+
+For a debug build with runtime checks enabled, configure with
+`-DCMAKE_BUILD_TYPE=Debug` instead.
+
 Code Usage
 -----------------------------------------------------------------------------
 To perform calculations with **BRIXS**, you first need to calculate two BSE
@@ -136,8 +167,8 @@ with the corresponding component obtained from a calculation with
 
 Once the BSE calculations are performed, the HDF5 files *optical_output.h5*,
 *core_output.h5*, and *pmat.h5* have to be gathered in a directory together with
-the input file *input.cfg*. Then, the execution of *rixs-pathway* creates the
-file *data.h5*. Once  this file is present, the execution of *rixs-oscstr*
+the input file *input.cfg*. Then, the execution of *rixs_pathway* creates the
+file *data.h5*. Once  this file is present, the execution of *rixs_oscstr*
 creates the final output in the file *rixs.h5*. A more detailed tutorial is
 provided in the file *TUTORIAL.md*
 
