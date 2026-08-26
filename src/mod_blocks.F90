@@ -633,7 +633,7 @@ module mod_blocks
       eigvec%ju=in2d%ju
       eigvec%k1l=in2d%k1l
       eigvec%k1u=in2d%k1u
-      eigvec%offset=(/ transition_il-1, in2d%offset(2) /)
+      eigvec%offset=(/ eigvec%il-1, in2d%offset(2) /)
       eigvec%id=in2d%id
       ! set up block for t' matrix
       tprime_b%nblocks=in2d%nblocks

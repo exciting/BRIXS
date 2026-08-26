@@ -218,7 +218,7 @@ module mod_blocks_k
     !-----------------------------------------------------------------------------
     subroutine gen_t1_k(t1_b, k, core, core_id, pmat_id, inputparam)
       use  hdf5, only: hid_t
-      use mod_io, only: io, input
+      use mod_io, only: io, input, get_transition_range
 
       implicit none
 
@@ -230,27 +230,28 @@ module mod_blocks_k
       ! local variables
       type(block1d) :: t_b
       complex(8) :: alpha, beta
-      integer :: id_
+      integer :: id_, transition_il, transition_iu
       type(block2d) :: eigvec_b
-      
+
       id_=t1_b%id
+      call get_transition_range(core,k,k,transition_il,transition_iu)
 
       ! set-up for the blocks of core eigenvectors
-      eigvec_b%blocksize=(/ core%globalk, t1_b%blocksize /)
-      eigvec_b%global=(/ core%global, inputparam%nstatc /)
-      eigvec_b%il=(k-1)*core%globalk+1
-      eigvec_b%iu=k*core%globalk
+      eigvec_b%blocksize=(/ transition_iu-transition_il+1, t1_b%blocksize /)
+      eigvec_b%global=(/ core%hamsize, inputparam%nstatc /)
+      eigvec_b%il=transition_il
+      eigvec_b%iu=transition_iu
       eigvec_b%jl=t1_b%il
       eigvec_b%ju=t1_b%iu
-      eigvec_b%offset(1)=(k-1)*core%globalk
+      eigvec_b%offset(1)=eigvec_b%il-1
       eigvec_b%offset(2)=t1_b%offset
       eigvec_b%id=(/ k, id_ /)
       ! set-up for the blocks of t
-      t_b%blocksize=core%globalk
-      t_b%global=core%global
-      t_b%il=(k-1)*core%globalk+1
-      t_b%iu=k*core%globalk
-      t_b%offset=(k-1)*core%globalk
+      t_b%blocksize=transition_iu-transition_il+1
+      t_b%global=core%hamsize
+      t_b%il=transition_il
+      t_b%iu=transition_iu
+      t_b%offset=t_b%il-1
       t_b%id=k
       
       ! generate block of X
@@ -273,10 +274,10 @@ module mod_blocks_k
     subroutine gen_t2_k(outblock2d, ik, tprime_out_b, core, optical, core_id, &
         optical_id, inputparam)
       use  hdf5, only: hid_t
-      use mod_io, only: io, input
-      
+      use mod_io, only: io, input, get_transition_range
+
       implicit none
-      
+
       type(block2d), intent(inout) :: outblock2d
       integer(4), intent(in) :: ik
       type(io), intent(in) :: core, optical
@@ -285,9 +286,9 @@ module mod_blocks_k
       type(input), intent(in) :: inputparam
       !local variables
       type(block2d) :: prod_, eigvec_
-      integer(4) :: nblocks_, blk_, blk2_
+      integer(4) :: nblocks_, blk_, blk2_, transition_il, transition_iu
       complex(8) :: alpha, beta
-      
+
       nblocks_=inputparam%nblocks
       blk_=outblock2d%id(1)
       blk2_=outblock2d%id(2)
@@ -295,13 +296,14 @@ module mod_blocks_k
       if (allocated(outblock2d%zcontent)) deallocate(outblock2d%zcontent)
       allocate(outblock2d%zcontent(outblock2d%blocksize(1), outblock2d%blocksize(2)))
       outblock2d%zcontent(:,:)=cmplx(0.0d0, 0.0d0)
-          
+      call get_transition_range(optical,ik,ik,transition_il,transition_iu)
+
       ! set-up block for prod vector
       prod_%nblocks=nblocks_
-      prod_%blocksize=(/ optical%globalk, nofblock(blk2_, inputparam%nstatc, nblocks_)  /)
-      prod_%global=(/ optical%global, inputparam%nstatc /)
-      prod_%il=(ik-1)*optical%globalk+1
-      prod_%iu=ik*optical%globalk
+      prod_%blocksize=(/ transition_iu-transition_il+1, nofblock(blk2_, inputparam%nstatc, nblocks_)  /)
+      prod_%global=(/ optical%hamsize, inputparam%nstatc /)
+      prod_%il=transition_il
+      prod_%iu=transition_iu
       prod_%jl=firstofblock(blk2_, inputparam%nstatc, nblocks_)
       prod_%ju=lastofblock(blk2_, inputparam%nstatc, nblocks_)
       prod_%offset=(/ prod_%il-1, prod_%jl-1 /)
@@ -309,10 +311,10 @@ module mod_blocks_k
 
       ! set up block of optical eigenvectors
       eigvec_%nblocks=nblocks_
-      eigvec_%blocksize=(/ optical%globalk, outblock2d%blocksize(1) /)
-      eigvec_%global=(/ optical%global, inputparam%nstato /)
-      eigvec_%il=(ik-1)*optical%globalk+1
-      eigvec_%iu=ik*optical%globalk
+      eigvec_%blocksize=(/ transition_iu-transition_il+1, outblock2d%blocksize(1) /)
+      eigvec_%global=(/ optical%hamsize, inputparam%nstato /)
+      eigvec_%il=transition_il
+      eigvec_%iu=transition_iu
       eigvec_%jl=outblock2d%il
       eigvec_%ju=outblock2d%iu
       eigvec_%offset(1)=eigvec_%il-1
@@ -335,7 +337,7 @@ module mod_blocks_k
   
     !-----------------------------------------------------------------------------
     subroutine gen_prod_k(inbl, tprime_out_b, ik, core, optical, core_id)
-      use mod_io, only: io, input
+      use mod_io, only: io, input, get_transition_range
       use hdf5, only: hid_t
       implicit none
       type(block2d), intent(inout) :: inbl
@@ -349,20 +351,21 @@ module mod_blocks_k
       complex(8), allocatable :: eigvec_matrix(:,:,:)
       complex(8) :: alpha, beta
       complex(8), allocatable :: prod_prime(:,:,:), prod_matrix(:,:,:)
-      integer(4) :: id_(2), blsz_
+      integer(4) :: id_(2), blsz_, transition_il, transition_iu
       integer(4) :: lambda
 
       ! set temporary id and size
       ! core eigenvector block does not have
       ! the same size as the inblock
       id_=inbl%id
-      blsz_=core%no*core%nu
+      call get_transition_range(core,ik,ik,transition_il,transition_iu)
+      blsz_=transition_iu-transition_il+1
       ! set up block for core eigenstates
       eigvec%nblocks=inbl%nblocks
       eigvec%blocksize=(/ blsz_, inbl%blocksize(2) /)
-      eigvec%global=core%global
-      eigvec%il=(inbl%id(1)-1)*blsz_+1
-      eigvec%iu=inbl%id(1)*blsz_
+      eigvec%global=core%hamsize
+      eigvec%il=transition_il
+      eigvec%iu=transition_iu
       eigvec%jl=inbl%jl
       eigvec%ju=inbl%ju
       eigvec%nk=1
