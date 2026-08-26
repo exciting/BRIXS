@@ -17,6 +17,7 @@
 ! REVISION HISTORY:
 ! 15 09 2025 - 2 Pol treatment
 ! 31 07 2026 - Use non-non_equilibrium occupations
+! 26 08 2026 - Fixed argument-mismatch, split phdf5_read/phdf5_write by rank
 !
 !------------------------------------------------------------------------------
 program rixs_coherence
@@ -117,7 +118,7 @@ program rixs_coherence
   offset_=(/ 0 /)
   call phdf5_setup_write(1,matsize_,.false.,'values','/omega/',output_id,omega_id)
   if (mpiglobal%rank .eq. 0) then
-    call phdf5_write(inputparam%omega(1),matsize_,matsize_,offset_,omega_id)
+    call phdf5_write(inputparam%omega,matsize_,matsize_,offset_,omega_id)
   end if
   call barrier(mpiglobal)
   call phdf5_cleanup(omega_id)

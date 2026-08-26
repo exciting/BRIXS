@@ -19,6 +19,7 @@
 ! 24 01 2025 - 2 Pol treatment
 ! 31 07 2026 - Support non-equilibrium occupations
 ! 25 08 2026 - Update make_block functions for non-equilibrium
+! 26 08 2026 - Fixed argument-mismatch, split phdf5_read/phdf5_write by rank
 !
 !------------------------------------------------------------------------------
 module mod_blocks
@@ -183,17 +184,17 @@ module mod_blocks
     end subroutine 
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
-    !> Reads block of BSE eigenvalues from HDF5 file. 
+    !> Reads block of BSE eigenvalues from HDF5 file.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] inblock1d  
+    !> @param[inout] inblock1d
     !> @param[in] file_id
     !---------------------------------------------------------------------------  
     subroutine get_evals(inblock1d,file_id)
@@ -220,24 +221,24 @@ module mod_blocks
       ! open the dataset
       call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
       ! read data
-      call phdf5_read(inblock1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(inblock1d%dcontent,dims_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
     end subroutine
     
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Reads block of IP eigenvalues, i.e. energy differences between conduction
-    !> and valence states, from HDF5 file. The array is stored in the inblock1d. 
+    !> and valence states, from HDF5 file. The array is stored in the inblock1d.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] inblock1d  
+    !> @param[inout] inblock1d
     !> @param[in] file_id
     !---------------------------------------------------------------------------  
     subroutine get_evalsIP(inblock1d,file_id)
@@ -264,24 +265,24 @@ module mod_blocks
       ! open the dataset
       call phdf5_setup_read(1,dims_,.false.,dsetname,path,file_id,dataset_id)
       ! read data
-      call phdf5_read(inblock1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
+      call phdf5_read(inblock1d%dcontent,dims_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
     end subroutine
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Read block of BSE eigenvectors from HDF5 file and store information in
-    !> 2D block matrix, i.e. in transition-space representation. 
+    !> 2D block matrix, i.e. in transition-space representation.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] inblock2d  
+    !> @param[inout] inblock2d
     !> @param[in] file_id
     !---------------------------------------------------------------------------  
     subroutine get_eigvecs(inblock2d,file_id)
@@ -318,7 +319,7 @@ module mod_blocks
         !open dataset
         call phdf5_setup_read(1,dim_,.true.,dsetname,path,file_id,dataset_id)
         !read data
-        call phdf5_read(eigvec_(1),dim_,dimsg_,offset_,dataset_id)
+        call phdf5_read(eigvec_,dim_,dimsg_,offset_,dataset_id)
         !close dataset
         call phdf5_cleanup(dataset_id)
         ! Write data to final array
@@ -402,14 +403,14 @@ module mod_blocks
     end subroutine apply_occupation_factors
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Generates block of the momentum-matrix elements of the initial
     !> excitation \f$ \langle c \mathbf{k} | \mathbf{e}_1 \cdot \mathbf{p} | \mu \mathbf{k} \f$.
-    !> The output is stored in a vector in transition space. 
+    !> The output is stored in a vector in transition space.
     !
     ! REVISION HISTORY:
     ! 09 07 2020 - Added documentation
@@ -469,7 +470,7 @@ module mod_blocks
         if (allocated(pmat_)) deallocate(pmat_)
         allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
         call phdf5_setup_read(3,dimsg_,.true.,dsetname,path,file_id,dataset_id)
-        call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
+        call phdf5_read(pmat_,dimsg_,dimsg_,offset_,dataset_id)
         call phdf5_cleanup(dataset_id)
         ! write  transition matrix into file for the states included 
         ! in the BSE calculation
@@ -490,12 +491,12 @@ module mod_blocks
     end subroutine 
     
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
-    !> Generates block of the momentum-matrix elements of the de-excitation 
+    !> Generates block of the momentum-matrix elements of the de-excitation
     !> \f$ \langle \mu \mathbf{k} | \mathbf{e}_2 \cdot \mathbf{p} | v \mathbf{k} \f$.
     !
     ! REVISION HISTORY:
@@ -552,7 +553,7 @@ module mod_blocks
         !open dataset
         call phdf5_setup_read(3,dimsg_,.true.,trim(adjustl(dsetname)),path,file_id,dataset_id)
         !read data
-        call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
+        call phdf5_read(pmat_,dimsg_,dimsg_,offset_,dataset_id)
         ! close dataset
         call phdf5_cleanup(dataset_id)
         do i=1,no
@@ -695,20 +696,20 @@ module mod_blocks
     end subroutine
   
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Writes 1D block matrix into HDF5 file. If parallel HDF5 is used, the
-    !> blocks can be written parallely. 
+    !> blocks can be written parallely.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] in1d  
-    !> @param[in] dataset_id 
-    !---------------------------------------------------------------------------  
+    !> @param[inout] in1d
+    !> @param[in] dataset_id
+    !---------------------------------------------------------------------------
     subroutine put_block1d(in1d,dataset_id)
       use hdf5, only: hid_t
       use mod_phdf5
@@ -723,27 +724,27 @@ module mod_blocks
       offset_(1)=in1d%offset
       ! if allocated, write the dcontent
       if (allocated(in1d%dcontent)) then
-        call phdf5_write(in1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_write(in1d%dcontent,dims_,dimsg_,offset_,dataset_id)
       elseif (allocated(in1d%zcontent)) then
-        call phdf5_write(in1d%zcontent(1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_write(in1d%zcontent,dims_,dimsg_,offset_,dataset_id)
       end if
     end subroutine
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Reads 1D block matrix into HDF5 file. If parallel HDF5 is used, the
-    !> blocks can be read parallely. 
+    !> blocks can be read parallely.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] in1d  
-    !> @param[in] dataset_id 
-    !---------------------------------------------------------------------------  
+    !> @param[inout] in1d
+    !> @param[in] dataset_id
+    !---------------------------------------------------------------------------
     subroutine get_block1d(in1d,dataset_id)
       use hdf5, only: hid_t
       use mod_phdf5
@@ -758,27 +759,27 @@ module mod_blocks
       offset_(1)=in1d%offset
       ! if allocated, write the dcontent
       if (allocated(in1d%dcontent)) then
-        call phdf5_read(in1d%dcontent(1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_read(in1d%dcontent,dims_,dimsg_,offset_,dataset_id)
       elseif (allocated(in1d%zcontent)) then
-        call phdf5_read(in1d%zcontent(1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_read(in1d%zcontent,dims_,dimsg_,offset_,dataset_id)
       end if
     end subroutine
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Writes 2D block matrix into HDF5 file. If parallel HDF5 is used, the
-    !> blocks can be written parallely. 
+    !> blocks can be written parallely.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] in2d  
-    !> @param[in] dataset_id 
-    !---------------------------------------------------------------------------  
+    !> @param[inout] in2d
+    !> @param[in] dataset_id
+    !---------------------------------------------------------------------------
     subroutine put_block2d(in2d,dataset_id)
       use hdf5, only: hid_t
       use mod_phdf5
@@ -793,27 +794,27 @@ module mod_blocks
       offset_=in2d%offset
       ! if allocated, write the dcontent
       if (allocated(in2d%dcontent)) then
-        call phdf5_write(in2d%dcontent(1,1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_write(in2d%dcontent,dims_,dimsg_,offset_,dataset_id)
       elseif (allocated(in2d%zcontent)) then
-        call phdf5_write(in2d%zcontent(1,1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_write(in2d%zcontent,dims_,dimsg_,offset_,dataset_id)
       end if
     end subroutine
 
     !---------------------------------------------------------------------------  
-    !> @author 
+    !> @author
     !> Christian Vorwerk, Humboldt Universität zu Berlin.
     !
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     !> @brief
     !> Reads 2D block matrix into HDF5 file. If parallel HDF5 is used, the
-    !> blocks can be read parallely. 
+    !> blocks can be read parallely.
     !
     ! REVISION HISTORY:
-    ! 09 07 2020 - Added documentation 
+    ! 09 07 2020 - Added documentation
     !
-    !> @param[inout] in2d  
-    !> @param[in] dataset_id 
-    !---------------------------------------------------------------------------  
+    !> @param[inout] in2d
+    !> @param[in] dataset_id
+    !---------------------------------------------------------------------------
     subroutine get_block2d(in2d,dataset_id)
       use hdf5, only: hid_t
       use mod_phdf5
@@ -828,9 +829,9 @@ module mod_blocks
       offset_=in2d%offset
       ! if allocated, write the dcontent
       if (allocated(in2d%dcontent)) then
-        call phdf5_read(in2d%dcontent(1,1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_read(in2d%dcontent,dims_,dimsg_,offset_,dataset_id)
       elseif (allocated(in2d%zcontent)) then
-        call phdf5_read(in2d%zcontent(1,1),dims_,dimsg_,offset_,dataset_id)
+        call phdf5_read(in2d%zcontent,dims_,dimsg_,offset_,dataset_id)
       end if
     end subroutine
  

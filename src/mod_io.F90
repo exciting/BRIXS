@@ -17,6 +17,7 @@
 ! 09 07 2020 - Added documentation
 ! 24 01 2025 - 2 Pol treatment
 ! 31 07 2026 - Use non-equilibrium occupations
+! 26 08 2026 - Fixed argument-mismatch, split phdf5_read/phdf5_write by rank
 !------------------------------------------------------------------------------
 module mod_io
   implicit none
@@ -49,21 +50,21 @@ module mod_io
   !-----------------------------------------------------------------------------
 
   !---------------------------------------------------------------------------  
-  !> @author 
+  !> @author
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
   !
-  ! DESCRIPTION: 
-  !> Brief description of routine. 
+  ! DESCRIPTION:
+  !> Brief description of routine.
   !> @brief
   !> Read valence and conduction band limits for each \f$ \mathbf{k} \f$-point
   !> from HDF5 file and store in io-object
   !
   ! REVISION HISTORY:
-  ! 09 07 2020 - Added documentation 
+  ! 09 07 2020 - Added documentation
   !
-  !> @param[inout] object   
-  !> @param[in] file_id      
-  !---------------------------------------------------------------------------  
+  !> @param[inout] object
+  !> @param[in] file_id
+  !---------------------------------------------------------------------------
   subroutine get_koulims(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -88,27 +89,27 @@ module mod_io
     !open dataset
     call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     !get data
-    call phdf5_read(object%koulims(1,1),dims,dims,offset_,dataset_id)
+    call phdf5_read(object%koulims,dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine
   
   !---------------------------------------------------------------------------  
-  !> @author 
+  !> @author
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
   !
-  ! DESCRIPTION: 
-  !> Brief description of routine. 
+  ! DESCRIPTION:
+  !> Brief description of routine.
   !> @brief
-  !> Read mapping between transition space and valence, conduction, and k-point 
+  !> Read mapping between transition space and valence, conduction, and k-point
   !> index from HDF5 file and store it in io-object
   !
   ! REVISION HISTORY:
-  ! 09 07 2020 - Added documentation 
+  ! 09 07 2020 - Added documentation
   !
-  !> @param[inout] object   
-  !> @param[in] file_id      
-  !---------------------------------------------------------------------------  
+  !> @param[inout] object
+  !> @param[in] file_id
+  !---------------------------------------------------------------------------
   subroutine get_smap(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -133,27 +134,27 @@ module mod_io
     ! open dataset
     call phdf5_setup_read(2,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
-    call phdf5_read(object%smap(1,1),dims,dims,offset_,dataset_id)
+    call phdf5_read(object%smap,dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine 
 
   !---------------------------------------------------------------------------  
-  !> @author 
+  !> @author
   !> Christian Vorwerk, Humboldt Universität zu Berlin.
   !
-  ! DESCRIPTION: 
+  ! DESCRIPTION:
   !> @brief
-  !> Read sorting vector from HDF5 file and store it in the io-object. The 
-  !> vector stores the indices that sort the IP energy differences with 
+  !> Read sorting vector from HDF5 file and store it in the io-object. The
+  !> vector stores the indices that sort the IP energy differences with
   !> increasing energy
   !
   ! REVISION HISTORY:
-  ! 09 07 2020 - Added documentation 
+  ! 09 07 2020 - Added documentation
   !
-  !> @param[inout] object   
-  !> @param[in] file_id      
-  !---------------------------------------------------------------------------  
+  !> @param[inout] object
+  !> @param[in] file_id
+  !---------------------------------------------------------------------------
   subroutine get_ensortidx(object,file_id)
     use hdf5, only: hid_t
     use mod_phdf5, only: phdf5_get_dims, phdf5_setup_read, &
@@ -177,7 +178,7 @@ module mod_io
     ! open dataset
     call phdf5_setup_read(1,dims,.false.,dsetname,path,file_id,dataset_id)
     ! get data
-    call phdf5_read(object%ensortidx(1),dims,dims,offset_,dataset_id)
+    call phdf5_read(object%ensortidx,dims,dims,offset_,dataset_id)
     ! close dataset
     call phdf5_cleanup(dataset_id)
   end subroutine 
@@ -190,12 +191,12 @@ module mod_io
   !> @brief
   !> Read the square root of the transition occupation difference from an
   !> exciting transitions HDF5 file. The data must use the same transition-space
-  !> ordering as the BSE eigenvectors. If an smap dataset is present, that ordering 
+  !> ordering as the BSE eigenvectors. If an smap dataset is present, that ordering
   !> is verified against object%smap.
   !
-  !> @param[inout] object   
-  !> @param[in] file_id      
-  !---------------------------------------------------------------------------  
+  !> @param[inout] object
+  !> @param[in] file_id
+  !---------------------------------------------------------------------------
   subroutine get_occupation_factors(object,file_id)
     use hdf5, only: hid_t
     use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
@@ -236,7 +237,7 @@ module mod_io
       allocate(occupation_smap(smap_dims(1),smap_dims(2)))
       smap_offset=(/ 0, 0 /)
       call phdf5_setup_read(2,smap_dims,.false.,smap_dsetname,path,file_id,dataset_id)
-      call phdf5_read(occupation_smap(1,1),smap_dims,smap_dims,smap_offset,dataset_id)
+      call phdf5_read(occupation_smap,smap_dims,smap_dims,smap_offset,dataset_id)
       call phdf5_cleanup(dataset_id)
 
       do i=1,object%hamsize
@@ -253,7 +254,7 @@ module mod_io
     if (allocated(object%occupation_factors)) deallocate(object%occupation_factors)
     allocate(object%occupation_factors(dims(1)))
     call phdf5_setup_read(1,dims,.false.,dsetname,path,file_id,dataset_id)
-    call phdf5_read(object%occupation_factors(1),dims,dims,offset_,dataset_id)
+    call phdf5_read(object%occupation_factors,dims,dims,offset_,dataset_id)
     call phdf5_cleanup(dataset_id)
 
     if (any(.not. ieee_is_finite(object%occupation_factors)) .or. &

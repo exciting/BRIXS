@@ -15,6 +15,7 @@
 !
 ! REVISION HISTORY:
 ! 24 08 2026 - Bug fixing
+! 26 08 2026 - Fixed argument-mismatch, split phdf5_read/phdf5_write by rank
 !------------------------------------------------------------------------------
 program rixs_oscstr
   use mod_phdf5
@@ -119,7 +120,7 @@ program rixs_oscstr
   offset_=(/ 0 /)
   call phdf5_setup_write(1,matsize_,.false.,'values','/omega/',output_id,omega_id)
   if (mpiglobal%rank .eq. 0) then
-    call phdf5_write(inputparam%omega(1),matsize_,matsize_,offset_,omega_id)
+    call phdf5_write(inputparam%omega,matsize_,matsize_,offset_,omega_id)
   end if
   call barrier(mpiglobal)
   call phdf5_cleanup(omega_id)

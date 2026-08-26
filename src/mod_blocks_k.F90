@@ -16,6 +16,7 @@
 ! REVISION HISTORY:
 ! 15 09 2025 - 2 Pol treatment
 ! 31 07 2026 - Support non-equilibrium occupations
+! 26 08 2026 - Fixed argument-mismatch, split phdf5_read/phdf5_write by rank
 !
 !------------------------------------------------------------------------------
 module mod_blocks_k
@@ -146,7 +147,7 @@ module mod_blocks_k
       if (allocated(pmat_)) deallocate(pmat_)
       allocate(pmat_(dimensions(2),dimensions(3),dimensions(4)), stat=stat_var)
       call phdf5_setup_read(3,dimsg_,.true.,dsetname,path,file_id,dataset_id)
-      call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
+      call phdf5_read(pmat_,dimsg_,dimsg_,offset_,dataset_id)
       call phdf5_cleanup(dataset_id)
       ! write  transition matrix into file for the states included 
       ! in the BSE calculation
@@ -202,7 +203,7 @@ module mod_blocks_k
       !open dataset
       call phdf5_setup_read(3,dimsg_,.true.,trim(adjustl(dsetname)),path,file_id,dataset_id)
       !read data
-      call phdf5_read(pmat_(1,1,1),dimsg_,dimsg_,offset_,dataset_id)
+      call phdf5_read(pmat_,dimsg_,dimsg_,offset_,dataset_id)
       ! close dataset
       call phdf5_cleanup(dataset_id)
       do i=1,no
