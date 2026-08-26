@@ -175,7 +175,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
     def test_constant_occupation_factors_scale_pathways(self):
         """Both BSE amplitudes are weighted in their own transition spaces."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs-pathway-serial'))
+        executable = Path(binary('rixs_pathway'))
         core_factor = 0.5
         optical_factor = 0.25
 
@@ -222,7 +222,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
     def test_transition_resolved_factors_match_weighted_eigenvectors(self):
         """Arbitrary factors act component-wise, before pathway contractions."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs-pathway-serial'))
+        executable = Path(binary('rixs_pathway'))
         eigenvector_group = 'eigvec-singlet-TDA-BAR-full/0001/rvec'
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -275,7 +275,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
 
     def test_coherence_uses_both_occupation_factor_sets(self):
         source = Path(data_dir('diamond', 'coherence'))
-        executable = Path(binary('rixs-coherence-serial'))
+        executable = Path(binary('rixs_coherence'))
         core_factor = 0.5
         optical_factor = 0.25
         oscillator_factor = core_factor**2 * optical_factor
@@ -324,7 +324,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
     def test_non_equilibrium_requires_matching_transition_map(self):
         """Missing or reordered transition maps are rejected before calculation."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs-pathway-serial'))
+        executable = Path(binary('rixs_pathway'))
 
         for mode in ('missing', 'reordered'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
