@@ -321,8 +321,8 @@ class TestNonEquilibriumPathways(ut.TestCase):
                             oscillator_factor
                             * reference['oscstr'][frequency][contribution][:])
 
-    def test_non_equilibrium_requires_matching_transition_map(self):
-        """Missing or reordered transition maps are rejected before calculation."""
+    def test_non_equilibrium_checks_transition_map_when_present(self):
+        """A reordered transition map is rejected; a missing one only warns."""
         source = Path(data_dir('diamond', 'pathway'))
         executable = Path(binary('rixs_pathway'))
 
@@ -357,11 +357,15 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 proc = sb.run(
                     [executable], cwd=workdir, check=False,
                     capture_output=True, text=True)
-                self.assertNotEqual(proc.returncode, 0)
                 output = proc.stdout + proc.stderr
                 if mode == 'missing':
-                    self.assertIn('required dataset', output)
+                    # smap is optional: exciting may not always emit it next to
+                    # the occupation factors, so validation is skipped, not fatal.
+                    self.assertEqual(proc.returncode, 0)
+                    self.assertIn('smap is missing', output)
+                    self.assertIn('Skipping transition-map validation', output)
                 else:
+                    self.assertNotEqual(proc.returncode, 0)
                     self.assertIn('transition-map mismatch', output)
 
 

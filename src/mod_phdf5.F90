@@ -444,7 +444,7 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_write_array_d((/val/),ndims_,dims_,dimsg_,offset_,dataset_id)
+    call phdf5_write_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
@@ -459,7 +459,6 @@ contains
     ! local variables
     integer(hsize_t), allocatable, dimension(:) :: dims_, dimsg_, offset_
     integer :: ndims_
-    real(8) :: val_(2)
     ! get number of dimensions & allocate hdf5 size arrays
     ndims_=size(dims)+1
     allocate(dims_(ndims_),dimsg_(ndims_),offset_(ndims_))
@@ -470,9 +469,8 @@ contains
     dimsg_(2:)=dimsg(:)
     offset_(1)=0
     offset_(2:)=offset(:)
-    ! write to hdf5 (reinterpret complex(8) as a pair of real(8))
-    val_=transfer(val,val_)
-    call phdf5_write_array_d(val_,ndims_,dims_,dimsg_,offset_,dataset_id)
+    ! write to hdf5
+    call phdf5_write_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
@@ -487,7 +485,6 @@ contains
     ! local variables
     integer(hsize_t), allocatable, dimension(:) :: dims_, dimsg_, offset_
     integer :: ndims_
-    real(8) :: val_(1)
     ! get number of dimensions & allocate hdf5 size arrays
     ndims_=size(dims)
     allocate(dims_(ndims_),dimsg_(ndims_),offset_(ndims_))
@@ -496,8 +493,7 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_read_array_d(val_,ndims_,dims_,dimsg_,offset_,dataset_id)
-    val=val_(1)
+    call phdf5_read_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
@@ -512,7 +508,6 @@ contains
     ! local variables
     integer(hsize_t), allocatable, dimension(:) :: dims_, dimsg_, offset_
     integer(4) :: ndims_
-    integer(4) :: val_(1)
     ! get number of dimensions & allocate hdf5 size arrays
     ndims_=size(dims)
     allocate(dims_(ndims_),dimsg_(ndims_),offset_(ndims_))
@@ -521,8 +516,7 @@ contains
     dimsg_(:)=dimsg(:)
     offset_(:)=offset(:)
     ! write to hdf5
-    call phdf5_read_array_i(val_,ndims_,dims_,dimsg_,offset_,dataset_id)
-    val=val_(1)
+    call phdf5_read_array_i(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine
@@ -536,7 +530,6 @@ contains
     ! local variables
     integer(hsize_t), allocatable, dimension(:) :: dims_, dimsg_, offset_
     integer :: ndims_
-    real(8) :: val_(2)
     ! get number of dimensions & allocate hdf5 size arrays
     ndims_=size(dims)+1
     allocate(dims_(ndims_),dimsg_(ndims_),offset_(ndims_))
@@ -547,9 +540,8 @@ contains
     dimsg_(2:)=dimsg(:)
     offset_(1)=0
     offset_(2:)=offset(:)
-    ! read from hdf5, then reinterpret the real(8) pair as complex(8)
-    call phdf5_read_array_d(val_,ndims_,dims_,dimsg_,offset_,dataset_id)
-    val=transfer(val_,val)
+    ! write to hdf5
+    call phdf5_read_array_d(val,ndims_,dims_,dimsg_,offset_,dataset_id)
     !deallocate arrays
     deallocate(dims_,dimsg_,offset_)
   end subroutine

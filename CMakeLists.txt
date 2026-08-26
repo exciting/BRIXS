@@ -39,6 +39,9 @@ endif()
 find_package(LAPACK REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+  # gfortran >= 10 defaults to -fallow-argument-mismatch off; HDF5/MPI's
+  # Fortran interfaces still rely on the old lax argument-matching behavior.
+  add_compile_options($<$<COMPILE_LANGUAGE:Fortran>:-fallow-argument-mismatch>)
   set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -fcheck=all")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
