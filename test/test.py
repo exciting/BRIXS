@@ -8,6 +8,19 @@ from pathlib import Path
 import shutil
 import tempfile
 
+
+class _ClearErrorFile(h5py.File):
+    # Names the missing file/key on a hdf5 KeyError
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError as e:
+            raise AssertionError(
+                "{}: missing '{}'".format(self.filename, key)) from e
+
+
+h5py.File = _ClearErrorFile
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 # Overridden by test/CMakeLists.txt to point at the build tree; falls back
 # to the installed BRIXS/bin/ for a manual `python test.py` run.
@@ -38,14 +51,24 @@ def assert_close(actual, desired):
     np.testing.assert_allclose(actual, desired, rtol=1e-12, atol=1e-14)
 
 
+def run_ok(argv, cwd):
+    # Captures stdout/stderr and raises with them included on a nonzero
+    # exit, instead of an uninformative "0 != <code>" that discards the
+    # process's own error message.
+    proc = sb.run(argv, cwd=cwd, stdout=sb.PIPE, stderr=sb.PIPE,
+                  universal_newlines=True)
+    if proc.returncode != 0:
+        raise AssertionError(
+            '{} exited with code {} (cwd={})\n--- stdout ---\n{}\n'
+            '--- stderr ---\n{}'.format(
+                ' '.join(argv), proc.returncode, cwd, proc.stdout, proc.stderr))
+    return proc
+
+
 class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs_pathway for diamond example
     def test_exec_pathway_diamond(self):
-        # test whether the code runs without error
-        proc_=sb.Popen(launch('rixs_pathway'),
-                cwd=data_dir('diamond', 'pathway'))
-        out, err=proc_.communicate()
-        self.assertEqual(proc_.returncode,0)
+        run_ok(launch('rixs_pathway'), data_dir('diamond', 'pathway'))
 
         #open data.h5 and data_ref.h5
         data_=h5py.File(data_dir('diamond', 'pathway', 'data.h5'),'r')
@@ -67,15 +90,8 @@ class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs_pathway and
     # rixs_oscstr for diamond example
     def test_exec_oscstr_diamond(self):
-        # test whether both pathway and oscstr run without error
-        proc1_=sb.Popen(launch('rixs_pathway'),
-                cwd=data_dir('diamond', 'pathway'))
-        out1, err1=proc1_.communicate()
-        self.assertEqual(proc1_.returncode,0)
-        proc2_=sb.Popen(launch('rixs_oscstr'),
-                cwd=data_dir('diamond', 'pathway'))
-        out, err=proc2_.communicate()
-        self.assertEqual(proc2_.returncode,0)
+        run_ok(launch('rixs_pathway'), data_dir('diamond', 'pathway'))
+        run_ok(launch('rixs_oscstr'), data_dir('diamond', 'pathway'))
 
         #open rixs.h5 and rixs_ref.h5
         rixs_=h5py.File(data_dir('diamond', 'pathway', 'rixs.h5'))
@@ -101,11 +117,7 @@ class TestFundamentalExecution(ut.TestCase):
 
     # testing the execution of rixs_pathway for lif example
     def test_exec_pathway_lif(self):
-        # test whether the code runs without error
-        proc_=sb.Popen(launch('rixs_pathway'),
-                cwd=data_dir('lif'))
-        out, err=proc_.communicate()
-        self.assertEqual(proc_.returncode,0)
+        run_ok(launch('rixs_pathway'), data_dir('lif'))
 
         #open data.h5 and data_ref.h5
         data_=h5py.File(data_dir('lif', 'data.h5'),'r')
@@ -127,15 +139,8 @@ class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs_pathway and
     # rixs_oscstr for lif example
     def test_exec_oscstr_lif(self):
-        # test whether both pathway and oscstr run without error
-        proc1_=sb.Popen(launch('rixs_pathway'),
-                cwd=data_dir('lif'))
-        out1, err1=proc1_.communicate()
-        self.assertEqual(proc1_.returncode,0)
-        proc2_=sb.Popen(launch('rixs_oscstr'),
-                cwd=data_dir('lif'))
-        out, err=proc2_.communicate()
-        self.assertEqual(proc2_.returncode,0)
+        run_ok(launch('rixs_pathway'), data_dir('lif'))
+        run_ok(launch('rixs_oscstr'), data_dir('lif'))
 
         #open rixs.h5 and rixs_ref.h5
         rixs_=h5py.File(data_dir('lif', 'rixs.h5'))
@@ -162,11 +167,7 @@ class TestFundamentalExecution(ut.TestCase):
 class TestCoherenceExecution(ut.TestCase):
     # testing the execution of rixs_coherence for diamond example
     def test_exec_coherence_diamond(self):
-        # test whether the code runs without error
-        proc_=sb.Popen(launch('rixs_coherence'),
-                cwd=data_dir('diamond', 'coherence'))
-        out, err=proc_.communicate()
-        self.assertEqual(proc_.returncode,0)
+        run_ok(launch('rixs_coherence'), data_dir('diamond', 'coherence'))
 
         #open data.h5 and data_ref.h5
         rixs_=h5py.File(data_dir('diamond', 'coherence', 'rixs.h5'),'r')
@@ -211,10 +212,8 @@ class TestBlockDistribution(ut.TestCase):
                     'nblocks=1', 'nblocks=2'),
                 encoding='utf-8')
 
-            proc1 = sb.run(launch('rixs_pathway'), cwd=workdir, check=False)
-            self.assertEqual(proc1.returncode, 0)
-            proc2 = sb.run(launch('rixs_oscstr'), cwd=workdir, check=False)
-            self.assertEqual(proc2.returncode, 0)
+            run_ok(launch('rixs_pathway'), workdir)
+            run_ok(launch('rixs_oscstr'), workdir)
 
             with h5py.File(workdir / 'data.h5', 'r') as data, \
                     h5py.File(source / 'data_ref.h5', 'r') as ref:
@@ -228,8 +227,10 @@ class TestBlockDistribution(ut.TestCase):
                 np.testing.assert_array_equal(rixs['vevals'], ref['vevals'])
                 for entry in rixs['oscstr'].keys():
                     assert_close(rixs['oscstr'][entry], ref['oscstr'][entry])
-                np.testing.assert_array_equal(
-                    rixs['omega/values'], ref['omega/values'])
+                #test the omega grid
+                np.testing.assert_array_equal(rixs['omega/values'].shape,
+                        ref['omega/values'].shape)
+                np.testing.assert_array_equal(rixs['omega/values'], ref['omega/values'])
 
 
 class TestNonEquilibriumPathways(ut.TestCase):
@@ -270,8 +271,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 + '\nnon_equilibrium=true\n',
                 encoding='utf-8')
 
-            proc = sb.run(executable, cwd=workdir, check=False)
-            self.assertEqual(proc.returncode, 0)
+            run_ok(executable, workdir)
 
             with h5py.File(workdir / 'data.h5', 'r') as data, \
                     h5py.File(workdir / 'data_ref.h5', 'r') as reference:
@@ -322,12 +322,8 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 + '\nnon_equilibrium=true\n',
                 encoding='utf-8')
 
-            result_nonequilibrium = sb.run(
-                executable, cwd=nonequilibrium, check=False)
-            result_reference = sb.run(
-                executable, cwd=weighted_reference, check=False)
-            self.assertEqual(result_nonequilibrium.returncode, 0)
-            self.assertEqual(result_reference.returncode, 0)
+            run_ok(executable, nonequilibrium)
+            run_ok(executable, weighted_reference)
 
             with h5py.File(nonequilibrium / 'data.h5', 'r') as data, \
                     h5py.File(weighted_reference / 'data.h5', 'r') as reference:
@@ -370,8 +366,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 + '\nnon_equilibrium=true\n',
                 encoding='utf-8')
 
-            proc = sb.run(executable, cwd=workdir, check=False)
-            self.assertEqual(proc.returncode, 0)
+            run_ok(executable, workdir)
 
             with h5py.File(workdir / 'rixs.h5', 'r') as result, \
                     h5py.File(workdir / 'rixs_ref.h5', 'r') as reference:
@@ -423,7 +418,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
 
                 proc = sb.run(
                     executable, cwd=workdir, check=False,
-                    capture_output=True, text=True)
+                    stdout=sb.PIPE, stderr=sb.PIPE, universal_newlines=True)
                 output = proc.stdout + proc.stderr
                 if mode == 'missing':
                     # smap is optional: exciting may not always emit it next to
