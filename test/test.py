@@ -1,4 +1,5 @@
 import os
+import shlex
 import unittest as ut
 import subprocess as sb
 import h5py
@@ -12,10 +13,18 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 # to the installed BRIXS/bin/ for a manual `python test.py` run.
 BIN_DIR = os.environ.get('BRIXS_BIN_DIR',
                           os.path.normpath(os.path.join(TEST_DIR, '..', 'bin')))
+# e.g. "mpirun -n 2", set by the brixs_regression_mpi CTest target; empty
+# for a normal serial run.
+MPI_LAUNCHER = shlex.split(os.environ.get('BRIXS_MPI_LAUNCHER', ''))
 
 
 def binary(name):
     return os.path.join(BIN_DIR, name)
+
+
+def launch(name):
+    # argv for a BRIXS executable, prefixed with the MPI launcher if any.
+    return MPI_LAUNCHER + [binary(name)]
 
 
 def data_dir(*parts):
@@ -33,7 +42,7 @@ class TestFundamentalExecution(ut.TestCase):
     # testing the execution of rixs_pathway for diamond example
     def test_exec_pathway_diamond(self):
         # test whether the code runs without error
-        proc_=sb.Popen(binary('rixs_pathway'),
+        proc_=sb.Popen(launch('rixs_pathway'),
                 cwd=data_dir('diamond', 'pathway'))
         out, err=proc_.communicate()
         self.assertEqual(proc_.returncode,0)
@@ -59,11 +68,11 @@ class TestFundamentalExecution(ut.TestCase):
     # rixs_oscstr for diamond example
     def test_exec_oscstr_diamond(self):
         # test whether both pathway and oscstr run without error
-        proc1_=sb.Popen(binary('rixs_pathway'),
+        proc1_=sb.Popen(launch('rixs_pathway'),
                 cwd=data_dir('diamond', 'pathway'))
         out1, err1=proc1_.communicate()
         self.assertEqual(proc1_.returncode,0)
-        proc2_=sb.Popen(binary('rixs_oscstr'),
+        proc2_=sb.Popen(launch('rixs_oscstr'),
                 cwd=data_dir('diamond', 'pathway'))
         out, err=proc2_.communicate()
         self.assertEqual(proc2_.returncode,0)
@@ -85,10 +94,15 @@ class TestFundamentalExecution(ut.TestCase):
         for entry in rixs_['oscstr'].keys():
             assert_close(rixs_['oscstr'][entry], ref_['oscstr'][entry])
 
+        #test the omega grid
+        np.testing.assert_array_equal(rixs_['omega/values'].shape,
+                ref_['omega/values'].shape)
+        np.testing.assert_array_equal(rixs_['omega/values'], ref_['omega/values'])
+
     # testing the execution of rixs_pathway for lif example
     def test_exec_pathway_lif(self):
         # test whether the code runs without error
-        proc_=sb.Popen(binary('rixs_pathway'),
+        proc_=sb.Popen(launch('rixs_pathway'),
                 cwd=data_dir('lif'))
         out, err=proc_.communicate()
         self.assertEqual(proc_.returncode,0)
@@ -114,11 +128,11 @@ class TestFundamentalExecution(ut.TestCase):
     # rixs_oscstr for lif example
     def test_exec_oscstr_lif(self):
         # test whether both pathway and oscstr run without error
-        proc1_=sb.Popen(binary('rixs_pathway'),
+        proc1_=sb.Popen(launch('rixs_pathway'),
                 cwd=data_dir('lif'))
         out1, err1=proc1_.communicate()
         self.assertEqual(proc1_.returncode,0)
-        proc2_=sb.Popen(binary('rixs_oscstr'),
+        proc2_=sb.Popen(launch('rixs_oscstr'),
                 cwd=data_dir('lif'))
         out, err=proc2_.communicate()
         self.assertEqual(proc2_.returncode,0)
@@ -140,11 +154,16 @@ class TestFundamentalExecution(ut.TestCase):
         for entry in rixs_['oscstr'].keys():
             assert_close(rixs_['oscstr'][entry], ref_['oscstr'][entry])
 
+        #test the omega grid
+        np.testing.assert_array_equal(rixs_['omega/values'].shape,
+                ref_['omega/values'].shape)
+        np.testing.assert_array_equal(rixs_['omega/values'], ref_['omega/values'])
+
 class TestCoherenceExecution(ut.TestCase):
     # testing the execution of rixs_coherence for diamond example
     def test_exec_coherence_diamond(self):
         # test whether the code runs without error
-        proc_=sb.Popen(binary('rixs_coherence'),
+        proc_=sb.Popen(launch('rixs_coherence'),
                 cwd=data_dir('diamond', 'coherence'))
         out, err=proc_.communicate()
         self.assertEqual(proc_.returncode,0)
@@ -170,12 +189,54 @@ class TestCoherenceExecution(ut.TestCase):
             assert_close(rixs_['oscstr'][entry]['incoherent'],
                     ref_['oscstr'][entry]['incoherent'])
 
+        #test the omega grid
+        np.testing.assert_array_equal(rixs_['omega/values'].shape,
+                ref_['omega/values'].shape)
+        np.testing.assert_array_equal(rixs_['omega/values'], ref_['omega/values'])
+
+
+class TestBlockDistribution(ut.TestCase):
+    # nblocks is just a work-decomposition parameter; results shouldn't
+    # depend on it. Reuses the nblocks=1 reference data at nblocks=2.
+    def test_pathway_oscstr_diamond_nblocks2_matches_nblocks1_reference(self):
+        source = Path(data_dir('diamond', 'pathway'))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workdir = Path(tmp) / 'pathway'
+            shutil.copytree(source, workdir)
+
+            config_path = workdir / 'input.cfg'
+            config_path.write_text(
+                config_path.read_text(encoding='utf-8').replace(
+                    'nblocks=1', 'nblocks=2'),
+                encoding='utf-8')
+
+            proc1 = sb.run(launch('rixs_pathway'), cwd=workdir, check=False)
+            self.assertEqual(proc1.returncode, 0)
+            proc2 = sb.run(launch('rixs_oscstr'), cwd=workdir, check=False)
+            self.assertEqual(proc2.returncode, 0)
+
+            with h5py.File(workdir / 'data.h5', 'r') as data, \
+                    h5py.File(source / 'data_ref.h5', 'r') as ref:
+                np.testing.assert_array_equal(data['evals'], ref['evals'])
+                assert_close(data['t(1)'][:], ref['t(1)'][:])
+                assert_close(data['t(2)'][:], ref['t(2)'][:])
+
+            with h5py.File(workdir / 'rixs.h5', 'r') as rixs, \
+                    h5py.File(source / 'rixs_ref.h5', 'r') as ref:
+                np.testing.assert_array_equal(rixs['cevals'], ref['cevals'])
+                np.testing.assert_array_equal(rixs['vevals'], ref['vevals'])
+                for entry in rixs['oscstr'].keys():
+                    assert_close(rixs['oscstr'][entry], ref['oscstr'][entry])
+                np.testing.assert_array_equal(
+                    rixs['omega/values'], ref['omega/values'])
+
 
 class TestNonEquilibriumPathways(ut.TestCase):
     def test_constant_occupation_factors_scale_pathways(self):
         """Both BSE amplitudes are weighted in their own transition spaces."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs_pathway'))
+        executable = launch('rixs_pathway')
         core_factor = 0.5
         optical_factor = 0.25
 
@@ -209,7 +270,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 + '\nnon_equilibrium=true\n',
                 encoding='utf-8')
 
-            proc = sb.run([executable], cwd=workdir, check=False)
+            proc = sb.run(executable, cwd=workdir, check=False)
             self.assertEqual(proc.returncode, 0)
 
             with h5py.File(workdir / 'data.h5', 'r') as data, \
@@ -222,7 +283,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
     def test_transition_resolved_factors_match_weighted_eigenvectors(self):
         """Arbitrary factors act component-wise, before pathway contractions."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs_pathway'))
+        executable = launch('rixs_pathway')
         eigenvector_group = 'eigvec-singlet-TDA-BAR-full/0001/rvec'
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,9 +323,9 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 encoding='utf-8')
 
             result_nonequilibrium = sb.run(
-                [executable], cwd=nonequilibrium, check=False)
+                executable, cwd=nonequilibrium, check=False)
             result_reference = sb.run(
-                [executable], cwd=weighted_reference, check=False)
+                executable, cwd=weighted_reference, check=False)
             self.assertEqual(result_nonequilibrium.returncode, 0)
             self.assertEqual(result_reference.returncode, 0)
 
@@ -275,7 +336,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
 
     def test_coherence_uses_both_occupation_factor_sets(self):
         source = Path(data_dir('diamond', 'coherence'))
-        executable = Path(binary('rixs_coherence'))
+        executable = launch('rixs_coherence')
         core_factor = 0.5
         optical_factor = 0.25
         oscillator_factor = core_factor**2 * optical_factor
@@ -309,7 +370,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
                 + '\nnon_equilibrium=true\n',
                 encoding='utf-8')
 
-            proc = sb.run([executable], cwd=workdir, check=False)
+            proc = sb.run(executable, cwd=workdir, check=False)
             self.assertEqual(proc.returncode, 0)
 
             with h5py.File(workdir / 'rixs.h5', 'r') as result, \
@@ -321,10 +382,16 @@ class TestNonEquilibriumPathways(ut.TestCase):
                             oscillator_factor
                             * reference['oscstr'][frequency][contribution][:])
 
+                #test the omega grid
+                np.testing.assert_array_equal(result['omega/values'].shape,
+                        reference['omega/values'].shape)
+                np.testing.assert_array_equal(result['omega/values'],
+                        reference['omega/values'])
+
     def test_non_equilibrium_checks_transition_map_when_present(self):
         """A reordered transition map is rejected; a missing one only warns."""
         source = Path(data_dir('diamond', 'pathway'))
-        executable = Path(binary('rixs_pathway'))
+        executable = launch('rixs_pathway')
 
         for mode in ('missing', 'reordered'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
@@ -355,7 +422,7 @@ class TestNonEquilibriumPathways(ut.TestCase):
                     encoding='utf-8')
 
                 proc = sb.run(
-                    [executable], cwd=workdir, check=False,
+                    executable, cwd=workdir, check=False,
                     capture_output=True, text=True)
                 output = proc.stdout + proc.stderr
                 if mode == 'missing':

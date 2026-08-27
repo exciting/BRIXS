@@ -86,8 +86,9 @@ cmake --build build
 # optional: install the executables to bin/ or -DCMAKE_INSTALL_PREFIX
 cmake --install build
 
-# run the regression suite (requires a `pybrixs_test` conda env with numpy
-# and h5py, matching the environment activated by test/run_tests.sh)
+# run the tests: regression suite (requires a `pybrixs_test` conda env
+# with numpy and h5py, matching the environment activated by
+# test/run_tests.sh) and unit tests (test/unit/)
 ctest --test-dir build --output-on-failure
 ```
 
